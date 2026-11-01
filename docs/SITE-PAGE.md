@@ -72,7 +72,7 @@ Updating: the same way over the old files; your settings, map caches and recorde
 
 ## Requirements and compatibility
 
-SPT **4.1.6** (EFT 0.16.9) and these mods (the versions LiveRaid is built and tested with): **QuestingBots 1.2.0**, **SAIN 4.5.1**, **LootingBots 1.8.0**, **BigBrain 1.5.0**, **Waypoints 1.9.0**. **LiveRaid Online** also needs **Project Fika 2.4.x** with **QuestingBots Fika sync**.
+SPT **4.1.6** (EFT 0.16.9) and these mods (the versions LiveRaid is built and tested with): **QuestingBots 1.2.0**, **SAIN 4.5.1**, **LootingBots 1.8.0**, **BigBrain 1.5.0**, **Waypoints 1.9.0**. *Note: the Forge lists SAIN 4.4.4 at the moment, but LiveRaid is built and tested with SAIN **4.5.1** — get 4.5.1 from the SAIN author; with 4.4.x some behaviour may work worse or not at all.* **LiveRaid Online** also needs **Project Fika 2.4.x** with **QuestingBots Fika sync**.
 
 Not compatible with **ORBIT** — remove it. Other bot mods that change the same things (spawns, quests, looting AI) will fight with LiveRaid; use one of them.
 
@@ -164,7 +164,7 @@ By **Lir**. Licensed CC BY-NC-SA 4.0 (credit, non-commercial, share alike). Live
 
 ## Требования и совместимость
 
-SPT **4.1.6** (EFT 0.16.9) и моды (версии, с которыми LiveRaid собран и проверен): **QuestingBots 1.2.0**, **SAIN 4.5.1**, **LootingBots 1.8.0**, **BigBrain 1.5.0**, **Waypoints 1.9.0**. Для **LiveRaid Online** ещё **Project Fika 2.4.x** и **QuestingBots Fika sync**.
+SPT **4.1.6** (EFT 0.16.9) и моды (версии, с которыми LiveRaid собран и проверен): **QuestingBots 1.2.0**, **SAIN 4.5.1**, **LootingBots 1.8.0**, **BigBrain 1.5.0**, **Waypoints 1.9.0**. *Важно: на хабе сейчас SAIN 4.4.4, а LiveRaid собран и проверен с SAIN **4.5.1** — возьмите 4.5.1 у автора SAIN; с 4.4.x часть поведения может работать хуже или не работать.* Для **LiveRaid Online** ещё **Project Fika 2.4.x** и **QuestingBots Fika sync**.
 
 С **ORBIT** не совместим — удалите. Другие моды, меняющие то же самое (спавн, квесты, ИИ лута), будут конфликтовать с LiveRaid; оставьте один.
 
