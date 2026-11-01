@@ -592,7 +592,7 @@ namespace LiveRaid.Client.Spectator
                 {
                     _follow = null;
                     _target = null;
-                    Toast(Loc.T($"Вселение: {pick.Profile.Nickname}", $"Taking over: {pick.Profile.Nickname}"));
+                    Toast(Loc.T($"Вселение (сырой режим): {pick.Profile.Nickname}", $"Taking over (raw mode): {pick.Profile.Nickname}"));
                 }
                 else
                 {

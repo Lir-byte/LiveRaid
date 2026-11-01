@@ -24,7 +24,7 @@ Two editions from one source:
 - **Healing like a player.** Bandage at the first quiet moment, splints and painkillers for legs, surgery kits, treatment broken off under fire.
 - **Leaving like a player.** Personal times, switch exits, paid and conditional exits, waiting crouched at the exit, leaving as a squad.
 - **Repairs of EFT bugs.** Stuck hands, reload flags, magazines thrown away, friendly fire inside a squad, bots frozen under fire.
-- **After death.** A free camera, an observer mode (watch raids without playing), taking over a bot.
+- **After death.** A free camera, an observer mode (watch raids without playing), taking over a bot (**raw: after the bot you play dies, location textures may stop loading and sound may break — see below**).
 - **One F12 menu.** About 220 settings in English or Russian (by the game's language), grouped into packs, with **ready-made presets**: *Recommended*, *Weak PC*, *Quiet raids*, *Busy raids*, *Fixes only*.
 
 ## Requirements
@@ -41,6 +41,8 @@ SPT **4.1.6** (EFT 0.16.9) and these mods (the versions LiveRaid is built and te
 | Project Fika + QuestingBots Fika sync | 2.4.x | **LiveRaid Online** only |
 
 Not compatible with **ORBIT** (remove it). Install guide: [INSTALL.md](INSTALL.md).
+
+> **Warning — taking over a bot is raw and often breaks.** After the bot you play dies, the textures of the location may stop loading, sound may go wrong and other things may fail; you may have to restart the game. For a stable raid turn *Take over a bot* off in F12 (After death).
 
 ## Build
 
@@ -76,12 +78,16 @@ LiveRaid делает рейд против ботов похожим на ре�
 - **Лечение как у игрока.** Перевязка в первую тихую минуту, шины и обезболивающие, хирургия, прерывание лечения под огнём.
 - **Уход как у игрока.** Своё время, выходы с рубильником, платные и особые выходы, ожидание у выхода присев, уход отрядом.
 - **Исправления ошибок EFT.** Зависшие руки, флаги перезарядки, выброшенные магазины, огонь по своим, замирание под огнём.
-- **После смерти.** Свободная камера, режим наблюдателя (смотреть рейды, не играя), вселение в бота.
+- **После смерти.** Свободная камера, режим наблюдателя (смотреть рейды, не играя), вселение в бота (**сырое: после гибели бота могут перестать грузиться текстуры и сломаться звук — см. ниже**).
 - **Одно меню F12.** Около 220 настроек по-русски или по-английски (по языку игры), пакеты и **готовые пресеты**: *Рекомендуемый*, *Слабый ПК*, *Тихие рейды*, *Людные рейды*, *Только исправления*.
 
 ## Требования
 
-SPT **4.1.6** (EFT 0.16.9) и моды (версии, под которые собран и проверен LiveRaid): QuestingBots 1.2.0, SAIN 4.5.1, LootingBots 1.8.0, BigBrain 1.5.0, Waypoints 1.9.0; для **LiveRaid Online** ещё Project Fika 2.4.x и QuestingBots Fika sync. С **ORBIT** не совместим (удалите). Установка — [INSTALL.md](INSTALL.md). Сборка и устройство мода — выше и в [PROJECT_STATE.md](PROJECT_STATE.md).
+SPT **4.1.6** (EFT 0.16.9) и моды (версии, под которые собран и проверен LiveRaid): QuestingBots 1.2.0, SAIN 4.5.1, LootingBots 1.8.0, BigBrain 1.5.0, Waypoints 1.9.0; для **LiveRaid Online** ещё Project Fika 2.4.x и QuestingBots Fika sync. С **ORBIT** не совместим (удалите). Установка — [INSTALL.md](INSTALL.md).
+
+> **Внимание — вселение в бота сырое и часто ломается.** После гибели бота, за которого вы играли, могут перестать подгружаться текстуры локаций, бывают проблемы со звуком и другие сбои; возможно, придётся перезапустить игру. Для стабильного рейда выключите «Вселяться в бота» в F12 (после смерти).
+
+Сборка и устройство мода — выше и в [PROJECT_STATE.md](PROJECT_STATE.md).
 
 ## Автор и лицензия
 

@@ -1,5 +1,6 @@
 # Publishes a GitHub release for every version in release/ that has no release yet: release/v<version>.md (the notes) and
-# release/LiveRaid-<version>.zip (the mod archive, built and checked beforehand - the game is needed to build it, so CI does not).
+# the archives release/LiveRaid-<version>.zip (single player) and release/LiveRaid-Online-<version>.zip (Project Fika), built and
+# checked beforehand (the game is needed to build them, so CI does not).
 # Runs when files in release/ are pushed, or by hand (Actions -> Release -> Run workflow). The tag v<version> is created on the pushed commit.
 name: Release
 
@@ -24,14 +25,17 @@ jobs:
           for notes in release/v*.md; do
             tag=$(basename "$notes" .md)
             version="${tag#v}"
-            zip="release/LiveRaid-${version}.zip"
-            if [ ! -f "$zip" ]; then
-              echo "skip $tag: no $zip"
+            files=()
+            for zip in "release/LiveRaid-${version}.zip" "release/LiveRaid-Online-${version}.zip"; do
+              if [ -f "$zip" ]; then files+=("$zip"); fi
+            done
+            if [ ${#files[@]} -eq 0 ]; then
+              echo "skip $tag: no archives"
               continue
             fi
             if gh release view "$tag" >/dev/null 2>&1; then
               echo "skip $tag: already released"
               continue
             fi
-            gh release create "$tag" "$zip" --title "LiveRaid ${version}" --notes-file "$notes" --target "$GITHUB_SHA" --latest
+            gh release create "$tag" "${files[@]}" --title "LiveRaid ${version}" --notes-file "$notes" --target "$GITHUB_SHA" --latest
           done
