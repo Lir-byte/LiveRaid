@@ -1,7 +1,11 @@
-**License: CC BY-NC-SA 4.0** - credit Lir, non-commercial, adaptations under the same licence ([text](https://creativecommons.org/licenses/by-nc-sa/4.0/), also `LICENSE.txt` in the archive).  
-**🇷🇺 Описание на русском - ниже на этой же странице** ([перейти](#русский)).
+https://www.youtube.com/watch?v=I84dgrjb89g
 
-> ⚠ **Taking over a bot after death is raw and often breaks** (textures may stop loading, sound may go wrong). It is off by default; everything else works without it.
+**License: CC BY-NC-SA 4.0** - credit Lir, non-commercial, adaptations under the same licence ([text](https://creativecommons.org/licenses/by-nc-sa/4.0/), also `LICENSE.txt` in the archive). QuestingBots, which LiveRaid extends, is under the same licence.  
+**Описание на русском - ниже на этой же странице** (раздел «Русский»).
+
+> ⚠ **Taking over a bot after death is raw and often breaks.** After the bot you play dies, the textures of the location may stop loading, sound may go wrong and other things may fail - you may have to restart the game. For a stable raid leave *Take over a bot* off in F12 → *After death*. Everything else in the mod works without it.
+>
+> ⚠ **Вселение в бота после смерти сырое и часто ломается:** после гибели бота, за которого вы играли, могут перестать подгружаться текстуры локаций, бывают проблемы со звуком и другие сбои - возможно, придётся перезапустить игру. Для стабильного рейда оставьте «Вселяться в бота» выключенным (F12 → «После смерти»). Всё остальное в моде работает и без него.
 
 # English
 
