@@ -52,7 +52,7 @@
 "mods": {
   "required": [
     "com.fika.core",
-    "com.liveraid.client",
+    "com.lir.liveraid",
     "me.sol.sain",
     "com.danw.questingbots",
     "me.skwizzy.lootingbots",

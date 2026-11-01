@@ -20,13 +20,15 @@ namespace LiveRaid.Client
     [BepInDependency("me.skwizzy.lootingbots")]
     public class Plugin : BaseUnityPlugin
     {
-        public const string Guid = "com.liveraid.client";
+        public const string Guid = "com.lir.liveraid";
 #if LIVERAID_ONLINE
-        public const string Name = "LiveRaid Online";
+        public const string Name = "Lir-LiveRaidOnline";
+        public const string Display = "LiveRaid Online";
 #else
-        public const string Name = "LiveRaid";
+        public const string Name = "Lir-LiveRaid";
+        public const string Display = "LiveRaid";
 #endif
-        public const string Version = "1.0.0";
+        public const string Version = "1.0.1";
 
         /// <summary>Branch of the mod: "" - the stable one (main), "test" - the test branch (experimental), switched by LiveRaid Launcher.</summary>
         public const string Channel = "";
@@ -157,7 +159,7 @@ namespace LiveRaid.Client
             ModControl.Hook();
             ModControl.Apply();
 
-            Log.LogInfo($"{Name} {VersionText} loaded" + (DisabledFeatures.Count > 0 ? "; disabled: " + string.Join(", ", DisabledFeatures) : ""));
+            Log.LogInfo($"{Display} {VersionText} loaded" + (DisabledFeatures.Count > 0 ? "; disabled: " + string.Join(", ", DisabledFeatures) : ""));
         }
 
         private void Update()

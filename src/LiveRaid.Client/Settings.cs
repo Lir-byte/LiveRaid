@@ -902,7 +902,7 @@ namespace LiveRaid.Client
             // After death and observer raids are single player only. LiveRaid Online keeps these settings out of F12 (a file of their own) and off:
             // in Fika the raid goes on for the others and Fika has its own camera after death
 #if LIVERAID_ONLINE
-            ConfigFile dcfg = new ConfigFile(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(cfg.ConfigFilePath), "com.liveraid.client.single-player-only.cfg"), false);
+            ConfigFile dcfg = new ConfigFile(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(cfg.ConfigFilePath), "com.lir.liveraid.single-player-only.cfg"), false);
 #else
             ConfigFile dcfg = cfg;
 #endif
@@ -917,8 +917,8 @@ namespace LiveRaid.Client
             ObserverFollowAtStart = B(dcfg, death, "Follow a random PMC at the start", true, "В начале следить за случайным ЧВК",
                 "Работает с «Начинать рейд наблюдателем». Как только в рейде появился ЧВК, камера сразу прыгает к случайному и следит за ним, как по клавише «Следить за ботом». " +
                 "Свободный полёт (WASD) отменяет слежение, «Следующий бот» переключает. Нет ЧВК за первую минуту - остаётся свободная камера", simple: true, synced: false);
-            TakeOverBots = B(dcfg, death, "Take over a bot", true, "Вселяться в бота (сырой режим)",
-                "ЭКСПЕРИМЕНТАЛЬНО, РЕЖИМ СЫРОЙ И ЧАСТО ЛОМАЕТСЯ: после гибели бота, за которого вы играли, могут перестать подгружаться текстуры локаций, бывают проблемы со звуком и другие сбои - возможно, придётся перезапустить игру. Включайте на свой риск. В свободной камере наведитесь на бота и нажмите «Вселиться» - играете им, пока он не погибнет или не выйдет. Его убийства, лут и выход в профиль не идут", simple: true, synced: false);
+            TakeOverBots = B(dcfg, death, "Take over a bot", false, "Вселяться в бота (сырой режим)",
+                "ЭКСПЕРИМЕНТАЛЬНО, ПО УМОЛЧАНИЮ ВЫКЛЮЧЕНО, РЕЖИМ СЫРОЙ И ЧАСТО ЛОМАЕТСЯ: после гибели бота, за которого вы играли, могут перестать подгружаться текстуры локаций, бывают проблемы со звуком и другие сбои - возможно, придётся перезапустить игру. Включайте на свой риск. В свободной камере наведитесь на бота и нажмите «Вселиться» - играете им, пока он не погибнет или не выйдет. Его убийства, лут и выход в профиль не идут", simple: true, synced: false);
             EndRaidWhenTakenBotDies = B(dcfg, death, "End the raid when the taken bot dies", false, "Конец рейда со смертью бота",
                 "Выкл.: назад в свободную камеру, можно вселиться в другого. Вкл.: рейд сразу заканчивается", synced: false);
             SpectatorBotNames = B(dcfg, death, "Bot names in the free camera", true, "Имена ботов в камере",

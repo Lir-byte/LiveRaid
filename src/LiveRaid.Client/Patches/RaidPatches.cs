@@ -29,7 +29,7 @@ namespace LiveRaid.Client.Patches
             if (!Net.RunsBots)
             {
                 // Fika client: the bots of this raid live on the host, LiveRaid runs there
-                Log.Info($"raid on {world.LocationId}: {Plugin.Name} {Plugin.VersionText} - this machine is a Fika client, the host runs the bots and LiveRaid");
+                Log.Info($"raid on {world.LocationId}: {Plugin.Display} {Plugin.VersionText} - this machine is a Fika client, the host runs the bots and LiveRaid");
                 return;
             }
 
@@ -177,7 +177,7 @@ namespace LiveRaid.Client.Patches
                 PlayerTrail.Begin(world.LocationId);
                 EncounterLog.Begin(world.LocationId);
                 world.gameObject.GetOrAddComponent<RaidWorker>();
-                Log.Info($"raid on {world.LocationId}: {Plugin.Name} {Plugin.VersionText} active ({Net.Role}), log detail {Log.Level}" +
+                Log.Info($"raid on {world.LocationId}: {Plugin.Display} {Plugin.VersionText} active ({Net.Role}), log detail {Log.Level}" +
                          (Trace.LastPath != null ? $", trace logs/{System.IO.Path.GetFileName(Trace.LastPath)}" : ""));
             }
             catch (System.Exception e)

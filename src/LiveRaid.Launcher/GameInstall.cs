@@ -34,7 +34,7 @@ namespace LiveRaid.Launcher
     internal sealed class GameInstall
     {
         public const string HomeName = "LiveRaid Launcher";
-        private const string LiveRaidCfg = "com.liveraid.client.cfg";
+        private const string LiveRaidCfg = "com.lir.liveraid.cfg";
 
         private static readonly string[] Parents = { "", @"BepInEx\plugins", @"BepInEx\config", @"BepInEx\patchers", @"SPT_Runtime\user\mods", @"SPT\user\mods" };
 

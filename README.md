@@ -1,6 +1,6 @@
 # LiveRaid — bots that play like people online (SPT 4.1.6)
 
-**Version 1.0.0** · by **Lir** · [CC BY-NC-SA 4.0](LICENSE)
+**Version 1.0.1** · by **Lir** · [CC BY-NC-SA 4.0](LICENSE)
 
 LiveRaid makes a raid against bots feel like a raid against players. It is an extension on top of **QuestingBots**, **SAIN** and **LootingBots**: they stay as they are, LiveRaid steers them with patches and keeps all its switches in one F12 menu.
 
@@ -42,7 +42,7 @@ SPT **4.1.6** (EFT 0.16.9) and these mods (the versions LiveRaid is built and te
 
 Not compatible with **ORBIT** (remove it). Install guide: [INSTALL.md](INSTALL.md).
 
-> **Warning — taking over a bot is raw and often breaks.** After the bot you play dies, the textures of the location may stop loading, sound may go wrong and other things may fail; you may have to restart the game. For a stable raid turn *Take over a bot* off in F12 (After death).
+> **Warning — taking over a bot is raw and often breaks (it is off by default).** After the bot you play dies, the textures of the location may stop loading, sound may go wrong and other things may fail; you may have to restart the game. For a stable raid turn *Take over a bot* off in F12 (After death).
 
 ## Build
 
@@ -61,7 +61,7 @@ By **Lir**. Licensed under [Creative Commons Attribution-NonCommercial-ShareAlik
 
 # LiveRaid — боты как в онлайне (SPT 4.1.6)
 
-**Версия 1.0.0** · автор **Lir** · лицензия [CC BY-NC-SA 4.0](LICENSE)
+**Версия 1.0.1** · автор **Lir** · лицензия [CC BY-NC-SA 4.0](LICENSE)
 
 LiveRaid делает рейд против ботов похожим на рейд против игроков. Это надстройка над **QuestingBots**, **SAIN** и **LootingBots**: сами эти моды не меняются, LiveRaid управляет ими патчами, а все выключатели собраны в одном меню F12.
 
@@ -85,7 +85,7 @@ LiveRaid делает рейд против ботов похожим на ре�
 
 SPT **4.1.6** (EFT 0.16.9) и моды (версии, под которые собран и проверен LiveRaid): QuestingBots 1.2.0, SAIN 4.5.1, LootingBots 1.8.0, BigBrain 1.5.0, Waypoints 1.9.0; для **LiveRaid Online** ещё Project Fika 2.4.x и QuestingBots Fika sync. С **ORBIT** не совместим (удалите). Установка — [INSTALL.md](INSTALL.md).
 
-> **Внимание — вселение в бота сырое и часто ломается.** После гибели бота, за которого вы играли, могут перестать подгружаться текстуры локаций, бывают проблемы со звуком и другие сбои; возможно, придётся перезапустить игру. Для стабильного рейда выключите «Вселяться в бота» в F12 (после смерти).
+> **Внимание — вселение в бота сырое и часто ломается (по умолчанию выключено).** После гибели бота, за которого вы играли, могут перестать подгружаться текстуры локаций, бывают проблемы со звуком и другие сбои; возможно, придётся перезапустить игру. Для стабильного рейда выключите «Вселяться в бота» в F12 (после смерти).
 
 Сборка и устройство мода — выше и в [PROJECT_STATE.md](PROJECT_STATE.md).
 

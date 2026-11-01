@@ -1,15 +1,15 @@
-# Text for the mod page (sp-mod.com / SPT Forge) — LiveRaid 1.0.0
+# Text for the mod page (sp-mod.com / SPT Forge) — LiveRaid 1.0.1
 
 **Name:** LiveRaid
 **Author:** Lir
-**Version:** 1.0.0
+**Version:** 1.0.1
 **SPT versions:** 4.1.6 (`~4.1.0`)
 **License field on the hub:** No license (the list has no Creative Commons non-commercial option; the real licence is CC BY-NC-SA 4.0 and is stated on the first line of the description)
 **Source code:** https://github.com/Lir-byte/LiveRaid
 **Dependencies:** QuestingBots (1.2.0), SAIN (4.5.1), LootingBots (1.8.0), BigBrain (1.5.0), Waypoints (1.9.0). LiveRaid Online also: Project Fika (2.4.x), QuestingBots Fika sync
 **Incompatible with:** ORBIT
 **Tags / categories:** AI, Bots, Gameplay, PvE, Quality of life
-**Files:** `LiveRaid-1.0.0.zip` (single player), `LiveRaid-Online-1.0.0.zip` (Project Fika co-op)
+**Files:** `LiveRaid-1.0.1.zip` (single player), `LiveRaid-Online-1.0.1.zip` (Project Fika co-op)
 
 ## Short description (teaser)
 
@@ -45,12 +45,12 @@ Bots that travel and loot absolutely all over the map — and walk your own reco
 
 | File | For |
 |---|---|
-| `LiveRaid-1.0.0.zip` | single player (SPT without Fika) |
-| `LiveRaid-Online-1.0.0.zip` | co-op through Project Fika (the host's settings apply to everyone) |
+| `LiveRaid-1.0.1.zip` | single player (SPT without Fika) |
+| `LiveRaid-Online-1.0.1.zip` | co-op through Project Fika (the host's settings apply to everyone) |
 
 ### Install
 
-Close the game and the server, unpack the archive into the game's root folder (where `EscapeFromTarkov.exe` is), start the server and the game. Details: `INSTALL.md` in the archive. Check `BepInEx/LogOutput.log` for `LiveRaid 1.0.0 loaded`. Open F12 → LiveRaid and pick a preset (or leave *Recommended*).
+Close the game and the server, unpack the archive into the game's root folder (where `EscapeFromTarkov.exe` is), start the server and the game. Details: `INSTALL.md` in the archive. Check `BepInEx/LogOutput.log` for `LiveRaid 1.0.1 loaded`. Open F12 → LiveRaid and pick a preset (or leave *Recommended*).
 
 ### Notes
 
