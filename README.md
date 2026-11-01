@@ -1,4 +1,4 @@
-# LiveRaid — bots that play like people online (SPT 4.1.6)
+# LiveRaid - bots that play like people online (SPT 4.1.6)
 
 **Version 1.0.1** · by **Lir** · [CC BY-NC-SA 4.0](LICENSE)
 
@@ -15,7 +15,7 @@ Two editions from one source:
 
 ## What it does
 
-- **A map full of people, not a desert.** An online-sized lobby of PMCs on the map's own numbers, reserves, player scavs that come in on their own schedule and replace the people who died, scavs that patrol their own area. *Smart population balance* keeps the head count right for each map and raid time — no crowd round you, no empty map.
+- **A map full of people, not a desert.** An online-sized lobby of PMCs on the map's own numbers, reserves, player scavs that come in on their own schedule and replace the people who died, scavs that patrol their own area. *Smart population balance* keeps the head count right for each map and raid time - no crowd round you, no empty map.
 - **Every bot is a person.** Play styles (camper, rat, rusher, looter, quester, explorer, hunter, sniper), skill from newcomer to pro, moods, squad doctrines (12) and a deck of squad tactics (18): flanks, pincers, peeks, smoke, bounds under cover, revenge for a fallen mate.
 - **Moving like players.** Hot zones, key places, hot drop, people's corridors, bots spread over the map, no idling, no long stands, tempo of the squad's doctrine.
 - **Real keys and doors.** Bots carry real keys, open locked doors and containers, may carry the key to the richest place of the map; helpers for doors, corners and rooms they are shut in.
@@ -24,8 +24,8 @@ Two editions from one source:
 - **Healing like a player.** Bandage at the first quiet moment, splints and painkillers for legs, surgery kits, treatment broken off under fire.
 - **Leaving like a player.** Personal times, switch exits, paid and conditional exits, waiting crouched at the exit, leaving as a squad.
 - **Repairs of EFT bugs.** Stuck hands, reload flags, magazines thrown away, friendly fire inside a squad, bots frozen under fire.
-- **After death.** A free camera, an observer mode (watch raids without playing), taking over a bot (**raw: after the bot you play dies, location textures may stop loading and sound may break — see below**).
-- **Bots go absolutely everywhere.** With LiveRaid the bots travel and loot over the WHOLE map — every district, every floor, every room that has loot — not just the usual few spots. Switch on the recording of your own route and the bots start walking the routes you walk yourself.
+- **After death.** A free camera, an observer mode (watch raids without playing), taking over a bot (**raw: after the bot you play dies, location textures may stop loading and sound may break - see below**).
+- **Bots go absolutely everywhere.** With LiveRaid the bots travel and loot over the WHOLE map - every district, every floor, every room that has loot - not just the usual few spots. Switch on the recording of your own route and the bots start walking the routes you walk yourself.
 
 ## Requirements
 
@@ -42,7 +42,7 @@ SPT **4.1.6** (EFT 0.16.9) and these mods (the versions LiveRaid is built and te
 
 Not compatible with **ORBIT** (remove it). Install guide: [INSTALL.md](INSTALL.md).
 
-> **Warning — taking over a bot is raw and often breaks (it is off by default).** After the bot you play dies, the textures of the location may stop loading, sound may go wrong and other things may fail; you may have to restart the game. For a stable raid turn *Take over a bot* off in F12 (After death).
+> **Warning - taking over a bot is raw and often breaks (it is off by default).** After the bot you play dies, the textures of the location may stop loading, sound may go wrong and other things may fail; you may have to restart the game. For a stable raid turn *Take over a bot* off in F12 (After death).
 
 ## Build
 
@@ -59,7 +59,7 @@ By **Lir**. Licensed under [Creative Commons Attribution-NonCommercial-ShareAlik
 
 ---
 
-# LiveRaid — боты как в онлайне (SPT 4.1.6)
+# LiveRaid - боты как в онлайне (SPT 4.1.6)
 
 **Версия 1.0.1** · автор **Lir** · лицензия [CC BY-NC-SA 4.0](LICENSE)
 
@@ -78,17 +78,17 @@ LiveRaid делает рейд против ботов похожим на ре�
 - **Лечение как у игрока.** Перевязка в первую тихую минуту, шины и обезболивающие, хирургия, прерывание лечения под огнём.
 - **Уход как у игрока.** Своё время, выходы с рубильником, платные и особые выходы, ожидание у выхода присев, уход отрядом.
 - **Исправления ошибок EFT.** Зависшие руки, флаги перезарядки, выброшенные магазины, огонь по своим, замирание под огнём.
-- **После смерти.** Свободная камера, режим наблюдателя (смотреть рейды, не играя), вселение в бота (**сырое: после гибели бота могут перестать грузиться текстуры и сломаться звук — см. ниже**).
-- **Боты ходят и лутают абсолютно по всей карте.** С LiveRaid боты путешествуют и лутают по ВСЕЙ карте — каждый район, каждый этаж, каждая комната с лутом, а не пара привычных мест. Включите запись своего маршрута — и боты начнут ходить по тем путям, которыми ходите вы.
+- **После смерти.** Свободная камера, режим наблюдателя (смотреть рейды, не играя), вселение в бота (**сырое: после гибели бота могут перестать грузиться текстуры и сломаться звук - см. ниже**).
+- **Боты ходят и лутают абсолютно по всей карте.** С LiveRaid боты путешествуют и лутают по ВСЕЙ карте - каждый район, каждый этаж, каждая комната с лутом, а не пара привычных мест. Включите запись своего маршрута - и боты начнут ходить по тем путям, которыми ходите вы.
 
 ## Требования
 
-SPT **4.1.6** (EFT 0.16.9) и моды (версии, под которые собран и проверен LiveRaid): QuestingBots 1.2.0, SAIN 4.5.1, LootingBots 1.8.0, BigBrain 1.5.0, Waypoints 1.9.0; для **LiveRaid Online** ещё Project Fika 2.4.x и QuestingBots Fika sync. С **ORBIT** не совместим (удалите). Установка — [INSTALL.md](INSTALL.md).
+SPT **4.1.6** (EFT 0.16.9) и моды (версии, под которые собран и проверен LiveRaid): QuestingBots 1.2.0, SAIN 4.5.1, LootingBots 1.8.0, BigBrain 1.5.0, Waypoints 1.9.0; для **LiveRaid Online** ещё Project Fika 2.4.x и QuestingBots Fika sync. С **ORBIT** не совместим (удалите). Установка - [INSTALL.md](INSTALL.md).
 
-> **Внимание — вселение в бота сырое и часто ломается (по умолчанию выключено).** После гибели бота, за которого вы играли, могут перестать подгружаться текстуры локаций, бывают проблемы со звуком и другие сбои; возможно, придётся перезапустить игру. Для стабильного рейда выключите «Вселяться в бота» в F12 (после смерти).
+> **Внимание - вселение в бота сырое и часто ломается (по умолчанию выключено).** После гибели бота, за которого вы играли, могут перестать подгружаться текстуры локаций, бывают проблемы со звуком и другие сбои; возможно, придётся перезапустить игру. Для стабильного рейда выключите «Вселяться в бота» в F12 (после смерти).
 
-Сборка и устройство мода — выше и в [PROJECT_STATE.md](PROJECT_STATE.md).
+Сборка и устройство мода - выше и в [PROJECT_STATE.md](PROJECT_STATE.md).
 
 ## Автор и лицензия
 
-Автор — **Lir**. Лицензия [CC BY-NC-SA 4.0](LICENSE): можно делиться и изменять с указанием автора, не для коммерции, производные работы — на тех же условиях. Кода модов, которые LiveRaid расширяет, в нём нет ([NOTICE.md](NOTICE.md)). Спасибо авторам QuestingBots (DanW), SAIN (Solarint), LootingBots (Skwizzy), BigBrain и Waypoints (DrakiaXYZ), командам SPT и Fika.
+Автор - **Lir**. Лицензия [CC BY-NC-SA 4.0](LICENSE): можно делиться и изменять с указанием автора, не для коммерции, производные работы - на тех же условиях. Кода модов, которые LiveRaid расширяет, в нём нет ([NOTICE.md](NOTICE.md)). Спасибо авторам QuestingBots (DanW), SAIN (Solarint), LootingBots (Skwizzy), BigBrain и Waypoints (DrakiaXYZ), командам SPT и Fika.

@@ -1,4 +1,4 @@
-# LiveRaid 1.0.1 — install / установка
+# LiveRaid 1.0.1 - install / установка
 
 ## English
 
@@ -11,13 +11,13 @@
 
 If Fika is installed, the single-player edition switches itself off and says in the log that Online is needed.
 
-**Requirements:** SPT **4.1.6** (EFT 0.16.9) with these mods installed first: QuestingBots 1.2.0, SAIN 4.5.1, LootingBots 1.8.0, BigBrain 1.5.0, Waypoints 1.9.0 (LiveRaid Online also needs Project Fika 2.4.x with QuestingBots Fika sync). Remove **ORBIT** — it conflicts.
+**Requirements:** SPT **4.1.6** (EFT 0.16.9) with these mods installed first: QuestingBots 1.2.0, SAIN 4.5.1, LootingBots 1.8.0, BigBrain 1.5.0, Waypoints 1.9.0 (LiveRaid Online also needs Project Fika 2.4.x with QuestingBots Fika sync). Remove **ORBIT** - it conflicts.
 
 1. **Close the game and stop the SPT server** (a running server holds its DLLs).
 2. Unpack the archive **into the game's root folder** (where `EscapeFromTarkov.exe` and `BepInEx` are), agreeing to replace files. It holds:
-   - `BepInEx/plugins/LiveRaid/LiveRaid.Client.dll` — the client plugin;
-   - `SPT_Runtime/user/mods/LiveRaid/` — the server mod (`LiveRaid.Server.dll`, `data/*.json`);
-   - `LiveRaid Launcher.exe` and `LiveRaid Launcher/editions` — the mode switch (both editions are kept there, one works in the game).
+   - `BepInEx/plugins/LiveRaid/LiveRaid.Client.dll` - the client plugin;
+   - `SPT_Runtime/user/mods/LiveRaid/` - the server mod (`LiveRaid.Server.dll`, `data/*.json`);
+   - `LiveRaid Launcher.exe` and `LiveRaid Launcher/editions` - the mode switch (both editions are kept there, one works in the game).
 
    > If your server folder is `SPT` instead of `SPT_Runtime` (the older 4.x layout `SPT/user/mods`), move the contents of `SPT_Runtime/user/mods/LiveRaid` to `SPT/user/mods/LiveRaid`.
 3. Start the server and the game as usual.
@@ -30,9 +30,9 @@ Nothing needs deleting: map caches, recorded routes, learned places and your F12
 
 ## Русский
 
-**Две редакции, ставится одна:** `LiveRaid-1.0.1.zip` — одиночная игра; `LiveRaid-Online-1.0.1.zip` — кооператив через **Project Fika** ([docs/FIKA.md](docs/FIKA.md)). Если в игре стоит Fika, одиночная редакция сама выключается и пишет в лог, что нужна Online.
+**Две редакции, ставится одна:** `LiveRaid-1.0.1.zip` - одиночная игра; `LiveRaid-Online-1.0.1.zip` - кооператив через **Project Fika** ([docs/FIKA.md](docs/FIKA.md)). Если в игре стоит Fika, одиночная редакция сама выключается и пишет в лог, что нужна Online.
 
-**Нужно:** SPT **4.1.6** (EFT 0.16.9) и заранее установленные QuestingBots 1.2.0, SAIN 4.5.1, LootingBots 1.8.0, BigBrain 1.5.0, Waypoints 1.9.0 (для Online ещё Project Fika 2.4.x и QuestingBots Fika sync). **ORBIT** удалите — конфликтует.
+**Нужно:** SPT **4.1.6** (EFT 0.16.9) и заранее установленные QuestingBots 1.2.0, SAIN 4.5.1, LootingBots 1.8.0, BigBrain 1.5.0, Waypoints 1.9.0 (для Online ещё Project Fika 2.4.x и QuestingBots Fika sync). **ORBIT** удалите - конфликтует.
 
 1. **Закройте игру и остановите сервер SPT** (иначе DLL сервера занята).
 2. Распакуйте архив **в корень папки игры** (где `EscapeFromTarkov.exe` и `BepInEx`), согласившись на замену файлов: клиентский плагин `BepInEx/plugins/LiveRaid`, серверный мод `SPT_Runtime/user/mods/LiveRaid`, `LiveRaid Launcher.exe` и папка `LiveRaid Launcher/editions` (переключатель режимов).

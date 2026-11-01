@@ -14,7 +14,7 @@ LiveRaid is an extension. It is loaded next to the mods below and talks to them 
 | Project Fika (LiveRaid Online only) | the Fika team | see Fika | co-op |
 | SPT | the SPT team | see SPT | the server and the client mod loader |
 
-Because QuestingBots is licensed CC BY-NC-SA 4.0, LiveRaid — which cannot work without it — is published under the same licence: use it freely, give credit, do not sell it, share adaptations alike.
+Because QuestingBots is licensed CC BY-NC-SA 4.0, LiveRaid - which cannot work without it - is published under the same licence: use it freely, give credit, do not sell it, share adaptations alike.
 
 *Escape from Tarkov* is a trademark of Battlestate Games. LiveRaid is an unofficial community mod for the single-player offline project SPT and is not affiliated with Battlestate Games.
 
@@ -24,6 +24,6 @@ Because QuestingBots is licensed CC BY-NC-SA 4.0, LiveRaid — which cannot work
 
 **LiveRaid** © 2026 **Lir**, лицензия [CC BY-NC-SA 4.0](LICENSE).
 
-LiveRaid — надстройка: он загружается рядом с модами из таблицы выше и работает с ними через их открытый код и патчи Harmony. **Кода, ресурсов и данных этих модов в LiveRaid и его архивах нет**; у каждого свой автор и своя лицензия. QuestingBots распространяется по CC BY-NC-SA 4.0, а LiveRaid без него не работает, поэтому публикуется на тех же условиях: свободно пользоваться, указывать автора, не продавать, производные работы — на тех же условиях.
+LiveRaid - надстройка: он загружается рядом с модами из таблицы выше и работает с ними через их открытый код и патчи Harmony. **Кода, ресурсов и данных этих модов в LiveRaid и его архивах нет**; у каждого свой автор и своя лицензия. QuestingBots распространяется по CC BY-NC-SA 4.0, а LiveRaid без него не работает, поэтому публикуется на тех же условиях: свободно пользоваться, указывать автора, не продавать, производные работы - на тех же условиях.
 
-*Escape from Tarkov* — торговая марка Battlestate Games. LiveRaid — неофициальный мод сообщества для SPT и не связан с Battlestate Games.
+*Escape from Tarkov* - торговая марка Battlestate Games. LiveRaid - неофициальный мод сообщества для SPT и не связан с Battlestate Games.
