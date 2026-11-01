@@ -52,6 +52,7 @@ namespace LiveRaid.Client.Spectator
             TakeOver.Clear();
             ObserverMode.Clear();
             CullingProxy.Clear();
+            YourPlayerState.Clear();
             SpectatorCamera.Remove();
             State = SpectatorState.Off;
             OriginalDead = false;

@@ -241,6 +241,10 @@ namespace LiveRaid.Client
             ["Вы - хост: эти настройки действуют у всех игроков"] = "You are the host: these settings apply to every player",
             ["НАСТРОЙКИ КОНТРОЛИРУЮТСЯ ТОЛЬКО ХОСТОМ"] = "SETTINGS ARE CONTROLLED BY THE HOST ONLY",
             ["Хост ещё не сохранил свои настройки - пока действуют ваши"] = "The host has not saved its settings yet - yours apply for now",
+            ["Сервер на другом ПК, а хотите менять настройки? Вставьте текст файла host.token из папки сервера (user/mods/LiveRaid) в поле Host key в BepInEx/config/com.lir.liveraid.cfg (секция 0. Online) и перезапустите игру"] =
+                "The server is on another machine and you want to change the settings? Put the text of the host.token file from the server folder (user/mods/LiveRaid) into the Host key field in BepInEx/config/com.lir.liveraid.cfg (section 0. Online) and restart the game",
+            ["Ключ в поле Host key не подходит к этому серверу - возьмите заново текст файла host.token из папки сервера (user/mods/LiveRaid)"] =
+                "The key in the Host key field does not fit this server - take the text of the host.token file from the server folder (user/mods/LiveRaid) again",
         };
     }
 }

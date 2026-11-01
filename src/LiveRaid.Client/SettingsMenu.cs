@@ -298,6 +298,10 @@ namespace LiveRaid.Client
                 i.Attr.DispName = (i.Owner != null ? "   · " : "") + i.Name;
                 i.Attr.Category = Loc.Tr(i.Category);
             }
+
+            // ConfigurationManager copies names, descriptions and group titles into its list when it builds it (on opening F12):
+            // a language changed with the window open showed only our own drawn values translated until F12 was opened again
+            _rebuild = true;
         }
 
         private static int FirstCombo(List<Item> group) => group.Where(i => i.Combo != null).Select(i => i.Index).DefaultIfEmpty(int.MaxValue).Min();

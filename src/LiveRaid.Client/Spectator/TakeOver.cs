@@ -51,6 +51,7 @@ namespace LiveRaid.Client.Spectator
         private static float _exitSince;
         private static float _nextExitCheck;
         private static readonly List<Behaviour> _disabled = new List<Behaviour>();
+        private static YourPlayerState.BotSettings _saved;
 
         private static readonly FieldInfo InsuranceField = AccessTools.Field(typeof(GamePlayerOwner), "_insurance");
         private static readonly FieldInfo BackEndField = AccessTools.Field(typeof(BaseLocalGame<EftGamePlayerOwner>), "_backEnd");
@@ -76,6 +77,7 @@ namespace LiveRaid.Client.Spectator
             _starting = false;
             _handsBundle = null;
             _disabled.Clear();
+            _saved = null;
         }
 
         /// <summary>A living bot you can watch (follow, name tag).</summary>
@@ -177,6 +179,7 @@ namespace LiveRaid.Client.Spectator
             try
             {
                 EftGamePlayerOwner mainOwner = game.PlayerOwner;
+                _saved = YourPlayerState.Remember(target, SensitivityField, AimingSensitivityField, CullingField);
                 MakePlayable(target);
 
                 // The body becomes "yours": first-person weapon setup, sounds, no culling, your mouse settings
@@ -191,6 +194,10 @@ namespace LiveRaid.Client.Spectator
                 {
                     culling.Disable();
                 }
+
+                // Whatever a body that was yours before (your own, a bot you left) left on the camera: screen effects, a scope camera
+                YourPlayerState.ClearCameraEffects(SpectatorSession.Original);
+                YourPlayerState.CloseOptic();
 
                 FirstPerson = wantFirst && EnsureHands(target, _handsBundle);
                 if (!FirstPerson)
@@ -223,10 +230,12 @@ namespace LiveRaid.Client.Spectator
                 }
 
                 target.HealthController.DiedEvent += OnDied;
+                TakenBotFire.Watch(target);
                 Exit = null;
                 Log.Info($"LR Spectator: took over {name} ({BotProfiles.KindOf(bot)}, {target.Profile.Info.Side}, {bot.Profile.Info.Settings.Role}), " +
                          $"{(FirstPerson ? "first person, " + (_handsBundle != null ? "its own arms" : "your arms") : "third person")}; " +
                          "its kills, loot and exit do not count for the profile");
+                YourPlayerState.Report("after taking over " + name);
             }
             catch (Exception e)
             {
@@ -276,6 +285,7 @@ namespace LiveRaid.Client.Spectator
             }
 
             player.HealthController.DiedEvent -= OnDied;
+            Try(TakenBotFire.Stop);
             if (_owner != null)
             {
                 _owner.OnLeave -= OnLeave;
@@ -301,6 +311,13 @@ namespace LiveRaid.Client.Spectator
             Bot = null;
             _owner = null;
             Exit = null;
+            if (!raidEnding)
+            {
+                // The screen effects, scope camera, sound listener and headphones EFT tied to this body go back to the free camera
+                Try(() => YourPlayerState.Untie(player));
+                bool alive = player.HealthController?.IsAlive == true;
+                YourPlayerState.ReportSoon($"after {player.Profile.Nickname} {(alive ? "was left" : "died")}");
+            }
         }
 
         private static void OnDied(EDamageType damage)
@@ -365,6 +382,9 @@ namespace LiveRaid.Client.Spectator
 
             string name = player.Profile.Nickname;
             Log.Info($"LR Spectator: you left {name}, it goes back to its AI");
+
+            // The weapon in its hands was set up for your view (no gun shadow, first-person parts); taken out again it is a bot's weapon
+            RefreshHands(player, forAi: true);
             Rollback(bot, player);
             SpectatorCamera.Instance?.Fade();
         }
@@ -393,6 +413,8 @@ namespace LiveRaid.Client.Spectator
             _disabled.Clear();
             Try(() => player.IsYourPlayer = false);
             Try(() => player.PointOfView = EPointOfView.ThirdPerson);
+            YourPlayerState.GiveBack(player, _saved, SensitivityField, AimingSensitivityField, CullingField);
+            _saved = null;
             _starting = false;
             if (SpectatorSession.State == SpectatorState.TakenOver)
             {
@@ -502,15 +524,18 @@ namespace LiveRaid.Client.Spectator
             Log.Info($"LR Spectator: {player.Profile.Nickname}'s bot secure container ({inside} spare items) replaced with {given}");
         }
 
-        /// <summary>The item in hands was set up for a bot (third person); take it out again so it is set up for your view.</summary>
-        private static void RefreshHands(Player player)
+        /// <summary>
+        /// The item in hands is set up for whoever held it when it was taken out (first person for you, third person for a bot): take it out
+        /// again for the new holder - you after a take-over, its AI after you left it.
+        /// </summary>
+        private static void RefreshHands(Player player, bool forAi = false)
         {
             Item inHands = player.HandsController?.Item;
             player.SetEmptyHands(result =>
             {
                 Diag.Guard("Spectator.RefreshHands", () =>
                 {
-                    if (Current != player || player.HealthController?.IsAlive != true)
+                    if ((forAi ? Current == player : Current != player) || player.HealthController?.IsAlive != true)
                     {
                         return;
                     }
@@ -617,7 +642,8 @@ namespace LiveRaid.Client.Spectator
             }
             catch (Exception e)
             {
-                Log.Detail("debug", "LR Spectator: " + e.Message);
+                string at = e.StackTrace?.Split('\n').FirstOrDefault()?.Trim() ?? "";
+                Log.Detail("debug", $"LR Spectator: {e.GetType().Name} {e.Message} {at}");
             }
         }
     }

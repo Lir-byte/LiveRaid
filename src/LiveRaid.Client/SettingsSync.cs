@@ -14,8 +14,9 @@ namespace LiveRaid.Client
     /// <summary>
     /// LiveRaid Online: one set of settings for the group, owned by the host - the player whose machine runs the SPT server everybody plays on.
     /// The host's game sends its settings to the server whenever one changes; every other player takes them at start, while F12 is open and at the
-    /// start of every raid (whoever hosts that raid runs the bots with them), and sees F12 locked. Who is the host: the server writes a fresh id
-    /// into host.token in its own folder at every start - only a game installed in the same SPT folder can read it.
+    /// start of every raid (whoever hosts that raid runs the bots with them), and sees F12 locked. Who is the host: the server keeps a host key
+    /// in host.token in its own folder - a game installed in the same SPT folder reads it, and a game on another machine (a dedicated or headless
+    /// server) gets the same power from the key's text put once into the "Host key" of its cfg. A headless client is never the host.
     /// Single player: nothing here runs.
     /// </summary>
     internal static class SettingsSync
@@ -34,6 +35,10 @@ namespace LiveRaid.Client
         public static Mode Current { get; private set; } = Mode.Off;
 
         private static ConfigFile _cfg;
+        private static ConfigEntry<string> _hostKey;
+
+        // What to say in the locked F12 to someone who wants to be the host (server on another machine)
+        private static string _hint = "";
         private static string _token;
         private static int _rev = -1;
         private static DateTime _received;
@@ -50,6 +55,11 @@ namespace LiveRaid.Client
             return;
 #else
             _cfg = cfg;
+
+            // For a server on another machine (dedicated, headless): the text of the server's host.token, put in by hand once (the key stays the same across restarts)
+            _hostKey = cfg.Bind("0. Online", "Host key", "",
+                new ConfigDescription("Ключ хоста: текст файла host.token из папки сервера (user/mods/LiveRaid). Нужен, только если сервер SPT стоит на другом ПК, а вы хотите менять общие настройки", null,
+                    new ConfigurationManagerAttributes { Browsable = false }));
             string json = Fetch();
             if (json == null)
             {
@@ -63,8 +73,13 @@ namespace LiveRaid.Client
             JObject o = Parse(json);
             string server = (string)o?["server"] ?? "";
             bool headless = BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey("com.fika.headless");
-            _token = ReadToken();
-            if (!headless && _token != null && _token == server)
+            string given = (_hostKey.Value ?? "").Trim();
+            string fromFile = ReadToken();
+            _token = given.Length > 0 && given == server ? given : fromFile != null && fromFile == server ? fromFile : null;
+            _hint = headless ? "" : given.Length > 0
+                ? Loc.Tr("Ключ в поле Host key не подходит к этому серверу - возьмите заново текст файла host.token из папки сервера (user/mods/LiveRaid)")
+                : Loc.Tr("Сервер на другом ПК, а хотите менять настройки? Вставьте текст файла host.token из папки сервера (user/mods/LiveRaid) в поле Host key в BepInEx/config/com.lir.liveraid.cfg (секция 0. Online) и перезапустите игру");
+            if (!headless && _token != null)
             {
                 Current = Mode.Host;
                 SettingsMenu.BannerNote = Loc.Tr("Ваши значения получают все игроки группы при каждом изменении и в начале каждого рейда");
@@ -72,14 +87,15 @@ namespace LiveRaid.Client
                 cfg.SettingChanged += OnChanged;
                 _dirty = true;
                 _dirtyAt = -10f;
-                Log.Info("LiveRaid Online: this machine runs the SPT server - it is the host and its F12 settings are the group's");
+                Log.Info("LiveRaid Online: this machine is the host (" + (_token == given ? "the Host key of its cfg fits the SPT server" : "it runs the SPT server") + ") - its F12 settings are the group's");
             }
             else
             {
                 Current = Mode.Client;
                 SettingsMenu.SetLock(true, Loc.Tr("НАСТРОЙКИ КОНТРОЛИРУЮТСЯ ТОЛЬКО ХОСТОМ"));
                 Apply(o);
-                Log.Info("LiveRaid Online: the SPT server runs on another machine - its host's settings are used here, F12 is locked");
+                Log.Info("LiveRaid Online: the SPT server runs on another machine - its host's settings are used here, F12 is locked" +
+                         (headless ? " (a headless client is never the host)" : given.Length > 0 ? " (the Host key in the cfg does not fit this server)" : " (to be the host: put the text of the server's host.token into the Host key of the cfg, section '0. Online')"));
             }
 #endif
         }
@@ -168,11 +184,12 @@ namespace LiveRaid.Client
             if (_rev >= 0)
             {
                 int ago = (int)(DateTime.Now - _received).TotalSeconds;
-                SettingsMenu.BannerNote = Loc.Ru ? "Действуют значения хоста (версия " + _rev + ", получены " + (ago < 5 ? "только что" : ago + " с назад") + ")" : "The host's values apply (version " + _rev + ", received " + (ago < 5 ? "just now" : ago + " s ago") + ")";
+                SettingsMenu.BannerNote = (Loc.Ru ? "Действуют значения хоста (версия " + _rev + ", получены " + (ago < 5 ? "только что" : ago + " с назад") + ")" : "The host's values apply (version " + _rev + ", received " + (ago < 5 ? "just now" : ago + " s ago") + ")") +
+                                          (_hint.Length > 0 ? "\n" + _hint : "");
             }
             else
             {
-                SettingsMenu.BannerNote = Loc.Tr("Хост ещё не сохранил свои настройки - пока действуют ваши");
+                SettingsMenu.BannerNote = Loc.Tr("Хост ещё не сохранил свои настройки - пока действуют ваши") + (_hint.Length > 0 ? "\n" + _hint : "");
             }
         }
 

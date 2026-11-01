@@ -51,6 +51,14 @@ namespace LiveRaid.Client.Spectator
             Switched = 0;
         }
 
+        /// <summary>The body that was "yours" is gone: the camera's indoor / outdoor is set again on the next tick, for your character.</summary>
+        public static void ForgetEnvironment()
+        {
+            _environmentSet = false;
+            _lastTrigger = null;
+            _next = 0f;
+        }
+
         public static void Tick(Vector3 viewer)
         {
             if (Time.time < _next)

@@ -28,7 +28,7 @@ namespace LiveRaid.Client
         public const string Name = "Lir-LiveRaid";
         public const string Display = "LiveRaid";
 #endif
-        public const string Version = "1.0.1";
+        public const string Version = "1.0.5";
 
         /// <summary>Branch of the mod: "" - the stable one (main), "test" - the test branch (experimental), switched by LiveRaid Launcher.</summary>
         public const string Channel = "";

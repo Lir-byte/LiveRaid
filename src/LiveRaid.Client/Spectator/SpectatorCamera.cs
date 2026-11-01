@@ -166,6 +166,7 @@ namespace LiveRaid.Client.Spectator
             Diag.Guard("Spectator.Listener", KeepListener);
             Diag.Guard("Spectator.ListenerRoom", KeepListenerRoom);
             Diag.Guard("Spectator.MyPlayer", KeepMyPlayer);
+            Diag.Guard("Spectator.LevelCulling", YourPlayerState.KeepLevelCulling);
             if (_ownCameraTaken && Cam != null)
             {
                 Diag.Guard("Spectator.Culling", () => CullingProxy.Tick(Cam.transform.position));
@@ -313,6 +314,15 @@ namespace LiveRaid.Client.Spectator
         private static readonly System.Reflection.FieldInfo RoomStorageField = HarmonyLib.AccessTools.Field(typeof(Audio.SpatialSystem.SpatialAudioSystem), "_audioRoomStorage");
         private float _nextRoomCheck;
         private string _listenerRoomName;
+        private bool _forceRoom;
+
+        /// <summary>The taken body's collider put its own rooms in the listener's list: rebuild it for the camera on the next check.</summary>
+        public void ForgetListenerRoom()
+        {
+            _forceRoom = true;
+            _nextRoomCheck = 0f;
+            _listenerRoomName = null;
+        }
 
         /// <summary>
         /// EFT's spatial sound muffles and routes every sound by the audio "room" the listener is in, and that room is set only when YOUR player's collider
@@ -337,10 +347,12 @@ namespace LiveRaid.Client.Spectator
 
             Audio.SpatialSystem.ISpatialAudioRoom current = storage.ListenerCurrentRoom;
             Audio.SpatialSystem.ISpatialAudioRoom room = storage.FindActualCurrentRoom(current, pos);
-            if (room == null || !room.IsValid || (current != null && current.IsValid && current.ID == room.ID))
+            if (room == null || !room.IsValid || (!_forceRoom && current != null && current.IsValid && current.ID == room.ID))
             {
                 return;
             }
+
+            _forceRoom = false;
 
             storage.list_3.Clear();
             storage.list_4.Clear();
@@ -399,6 +411,11 @@ namespace LiveRaid.Client.Spectator
                 }
 
                 SwitchOffGoggles();
+
+                // Your character's pain / contusion screen effects and a scope you died aiming through stay on the camera otherwise
+                YourPlayerState.ClearCameraEffects(me);
+                YourPlayerState.CloseOptic();
+                YourPlayerState.ReportSoon("free camera start");
             }
 
             ClearDeathEffects();
@@ -592,7 +609,7 @@ namespace LiveRaid.Client.Spectator
                 {
                     _follow = null;
                     _target = null;
-                    Toast(Loc.T($"Вселение (сырой режим): {pick.Profile.Nickname}", $"Taking over (raw mode): {pick.Profile.Nickname}"));
+                    Toast(Loc.T($"Вселение: {pick.Profile.Nickname}", $"Taking over: {pick.Profile.Nickname}"));
                 }
                 else
                 {

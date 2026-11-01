@@ -103,13 +103,13 @@ namespace LiveRaid.Client.Spectator
         }
 
         /// <summary>
-        /// Energy and hydration stay full and their effects (exhaustion, dehydration) never set in - on the hidden body and on a bot you have taken over:
-        /// the screen showed your character's thirst and hunger while you only watched.
+        /// Energy and hydration of the hidden body stay full and their effects (exhaustion, dehydration) never set in: the screen showed your character's
+        /// thirst and hunger while you only watched. A bot you take over is not touched - it tires, thirsts and gets hurt like any player (session 34:
+        /// the bot of an observer raid kept full bars and never got exhausted).
         /// </summary>
         private static void KeepNeedsFull()
         {
             KeepNeedsFull(_health);
-            KeepNeedsFull(TakeOver.Current?.ActiveHealthController);
         }
 
         private static void KeepNeedsFull(ActiveHealthController h)

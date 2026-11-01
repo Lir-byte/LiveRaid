@@ -3,10 +3,6 @@ https://www.youtube.com/watch?v=I84dgrjb89g
 **License: CC BY-NC-SA 4.0** - credit Lir, non-commercial, adaptations under the same licence ([text](https://creativecommons.org/licenses/by-nc-sa/4.0/), also `LICENSE.txt` in the archive). QuestingBots, which LiveRaid extends, is under the same licence.  
 **Описание на русском - ниже на этой же странице** (раздел «Русский»).
 
-> ⚠ **Taking over a bot after death is raw and often breaks.** After the bot you play dies, the textures of the location may stop loading, sound may go wrong and other things may fail - you may have to restart the game. For a stable raid leave *Take over a bot* off in F12 → *After death*. Everything else in the mod works without it.
->
-> ⚠ **Вселение в бота после смерти сырое и часто ломается:** после гибели бота, за которого вы играли, могут перестать подгружаться текстуры локаций, бывают проблемы со звуком и другие сбои - возможно, придётся перезапустить игру. Для стабильного рейда оставьте «Вселяться в бота» выключенным (F12 → «После смерти»). Всё остальное в моде работает и без него.
-
 # English
 
 ## What it is, in two sentences
@@ -35,7 +31,7 @@ Is it a copy of ORBIT? Same goal, different way: ORBIT replaces those mods, Live
 - **Decisions in a fight.** SAIN does the shooting; LiveRaid decides the rest: morale and roles, retreating from a lost fight, forgetting a cold one, rush / flank / hold / ambush / leave when a fight is heard far away, by character. Squads play one of 12 doctrines and a deck of 21 tactics (flanks, pincers, smoke, bounds under cover, revenge for a fallen mate).
 - **Healing and leaving.** Bandage at the first quiet moment, splints and painkillers for broken legs; each squad has its own time to leave, waits crouched at the exit and goes out together.
 - **Repairs of EFT's own AI bugs.** Stuck hands after a reload, magazines thrown on the floor, friendly fire inside a squad, bots frozen under fire, bots walking to the exit backwards.
-- **After death.** A free camera and an observer mode - watch the raid without being in it.
+- **After death - a second life.** A free camera, an observer mode, and taking over any other bot: play on as that PMC or scav with its own gear and inventory (see *Life after death* below).
 - **One menu instead of four config files.** The other mods' files stay original; LiveRaid sets the values it needs in memory from F12 and gives them back when you switch a feature off. Presets, English and Russian.
 
 What it does **not** do: it doesn't make bots aim better, see through walls or cheat, it adds no bosses and never goes above the map's own scav limit.
@@ -107,6 +103,10 @@ Online some squads come for Reshala, Glukhar, Sanitar or Tagilla, for the boss's
 
 Online a teammate comes for his friend's loot once it is quiet. The same here, and then some: at the body the bot swaps its own finds for the friend's guns, armour, helmet and backpack; what still doesn't fit it carries off to a hidden spot 6-22 m away (a bush, a corner) or heads out with what it has. Nobody goes while the killer is still within 120 m of the body.
 
+### Life after death: play on as any bot
+
+Your death does not have to end the raid. A free camera comes loose over the map; aim at any living PMC or scav and press **F** - you are that bot now, with **its own gun, armour, rig, backpack and everything in them**: shoot, loot, heal, open its inventory, walk to its exit. When it dies, you are back in the free camera and can take over the next one; **Delete** hands it back to its AI. Switch it on in F12 → *After death* → *Take over a bot*. What the bot does - kills, loot, its exit - does not go to your profile: the raid still ends as your death. If the hands of the bot you took do not work (the gun does not fire or reload), leave it with Delete and take it over again.
+
 ## Depth: presets
 
 | Preset | In short |
@@ -131,13 +131,13 @@ Updating: the same way over the old files; your settings and recorded routes are
 
 ## Requirements and compatibility
 
-SPT **4.1.6** and: **QuestingBots 1.2.0**, **SAIN 4.5.1**, **LootingBots 1.8.0**, **BigBrain 1.5.0**, **Waypoints 1.9.0**. *The Forge lists SAIN 4.4.4 at the moment, but LiveRaid is built and tested with **4.5.1** - get it from the SAIN author; with 4.4.x some behaviour may work worse or not at all.* **LiveRaid Online** also needs **Project Fika 2.4.x** and **QuestingBots Fika sync**: the bots live on the host, the host's settings apply to everybody.
+SPT **4.1.6** and: **QuestingBots 1.2.0**, **SAIN 4.5.1**, **LootingBots 1.8.0**, **BigBrain 1.5.0**, **Waypoints 1.9.0**. *The Forge lists SAIN 4.4.4 at the moment, but LiveRaid is built and tested with **4.5.1** - get it from the SAIN author; with 4.4.x some behaviour may work worse or not at all.* **LiveRaid Online** also needs **Project Fika 2.4.x** and **QuestingBots Fika sync**: the bots live on the host, the host's settings apply to everybody. If the SPT server runs on another machine (dedicated or headless), put the text of the server's `user/mods/LiveRaid/host.token` into the **Host key** field of `BepInEx/config/com.lir.liveraid.cfg` (section `0. Online`) on the machine of the player who should change the settings, and restart the game.
 
 Not compatible with **ORBIT** - remove it. Other mods that change the same things (spawns, quests, looting) will fight with LiveRaid; keep one of them. **LiveRaid Launcher** (in the archive) switches single player ↔ Online and the stable ↔ test branch in one click.
 
 ## Known problems
 
-- **Taking over a bot is raw** (see the warning at the top).
+- **Taking over a bot:** if the hands of the bot you took do not work (the gun does not fire or reload), leave it (Delete) and take it over again.
 - The newest behaviour (population balance, standoff breaker, quick idle watchdog) was written from the logs of a few raids and has not been through many long ones. If a bot does something silly, tell me.
 
 ## Reporting a problem
@@ -174,7 +174,7 @@ LiveRaid **не заменяет** QuestingBots, SAIN и LootingBots. Они д�
 - **Решения в бою.** Стреляет SAIN; остальное решает LiveRaid: мораль и роли, отступление из проигранного боя, забывание остывшего, бросок / фланг / ожидание / засада / уход, когда бой слышен далеко, - по характеру. Отряды играют по одной из 12 доктрин и колоде из 21 тактики (фланги, клещи, дым, перебежки с прикрытием, месть за павшего).
 - **Лечение и уход.** Перевязка в первую тихую минуту, шины и обезболивающие при сломанных ногах; у каждого отряда своё время ухода, ждут у выхода присев и уходят вместе.
 - **Исправления ошибок ИИ самой EFT.** Зависшие руки после перезарядки, выброшенные на пол магазины, огонь по своим внутри отряда, замирание под огнём, ход к выходу спиной.
-- **После смерти.** Свободная камера и режим наблюдателя - смотреть рейд, не участвуя в нём.
+- **После смерти - вторая жизнь.** Свободная камера, режим наблюдателя и вселение в любого другого бота: играйте дальше за этого ЧВК или дикого с его снаряжением и инвентарём (см. «Жизнь после смерти» ниже).
 - **Одно меню вместо четырёх конфигов.** Файлы остальных модов остаются оригинальными; LiveRaid выставляет нужные значения в памяти из F12 и возвращает их, когда вы выключаете функцию. Пресеты, английский и русский.
 
 Чего он **не** делает: не улучшает прицеливание, не даёт видеть сквозь стены, не читерит, не добавляет боссов и не поднимает число диких выше лимита карты.
@@ -246,6 +246,10 @@ SAIN хорошо воюет от секунды к секунде, но сам 
 
 В онлайне товарищ приходит за лутом друга, когда стихнет. Здесь так же, и даже больше: у тела бот меняет свои находки на оружие, броню, шлем и рюкзак друга; то, что не поместилось, он уносит в укромное место в 6-22 м (куст, угол) или уходит с тем, что есть. Пока убийца ближе 120 м к телу, никто не идёт.
 
+### Жизнь после смерти: играйте дальше за любого бота
+
+Смерть не обязана заканчивать рейд. Над картой отрывается свободная камера; наведитесь на любого живого ЧВК или дикого и нажмите **F** - теперь вы этот бот, **с его оружием, бронёй, разгрузкой, рюкзаком и всем, что в них лежит**: стреляйте, лутайте, лечитесь, открывайте его инвентарь, идите к его выходу. Погиб - вы снова в свободной камере и можете вселиться в следующего; **Delete** возвращает бота его ИИ. Включается в F12 → «После смерти» → «Вселяться в бота». То, что делает бот (убийства, лут, его выход), в ваш профиль не идёт: рейд всё равно заканчивается вашей смертью. Если у бота, в которого вы вселились, не работают руки (оружие не стреляет, не перезаряжается) - выйдите из него клавишей Delete и вселитесь снова.
+
 ## Глубина: пресеты
 
 | Пресет | Коротко |
@@ -270,13 +274,13 @@ SAIN хорошо воюет от секунды к секунде, но сам 
 
 ## Требования и совместимость
 
-SPT **4.1.6** и: **QuestingBots 1.2.0**, **SAIN 4.5.1**, **LootingBots 1.8.0**, **BigBrain 1.5.0**, **Waypoints 1.9.0**. *На хабе сейчас SAIN 4.4.4, а LiveRaid собран и проверен с **4.5.1** - возьмите его у автора SAIN; с 4.4.x часть поведения может работать хуже или не работать.* Для **LiveRaid Online** ещё **Project Fika 2.4.x** и **QuestingBots Fika sync**: боты живут у хоста, настройки задаёт хост.
+SPT **4.1.6** и: **QuestingBots 1.2.0**, **SAIN 4.5.1**, **LootingBots 1.8.0**, **BigBrain 1.5.0**, **Waypoints 1.9.0**. *На хабе сейчас SAIN 4.4.4, а LiveRaid собран и проверен с **4.5.1** - возьмите его у автора SAIN; с 4.4.x часть поведения может работать хуже или не работать.* Для **LiveRaid Online** ещё **Project Fika 2.4.x** и **QuestingBots Fika sync**: боты живут у хоста, настройки задаёт хост. Если сервер SPT стоит на другом компьютере (выделенный или headless), вставьте текст файла `user/mods/LiveRaid/host.token` с сервера в поле **Host key** файла `BepInEx/config/com.lir.liveraid.cfg` (раздел `0. Online`) на машине игрока, который должен менять настройки, и перезапустите игру.
 
 С **ORBIT** не совместим - удалите. Другие моды, меняющие то же самое (спавн, квесты, лут), будут конфликтовать с LiveRaid; оставьте один. **LiveRaid Launcher** (в архиве) переключает одиночный ↔ Online и стабильную ↔ тестовую ветку одним нажатием.
 
 ## Известные проблемы
 
-- **Вселение в бота сырое** (см. предупреждение вверху).
+- **Вселение в бота:** если у бота, в которого вы вселились, не работают руки (оружие не стреляет, не перезаряжается), выйдите из него (Delete) и вселитесь снова.
 - Новейшее поведение (баланс численности, выход из тупика, быстрый сторож простоя) написано по логам нескольких рейдов и ещё не прошло много длинных. Если бот делает глупость, напишите.
 
 ## Сообщить о проблеме

@@ -68,7 +68,11 @@ public static class SharedSettings
     private static string _token;
     private static Stored _stored;
 
-    /// <summary>The id of this server start, written where only a game installed next to this server can read it.</summary>
+    /// <summary>
+    /// The host key of this server: made once and kept in host.token next to this DLL (an older server wrote a new one at every start - a player
+    /// on another machine would have to copy it again each time). A game installed next to this server reads the file itself; a game on another
+    /// machine (a dedicated or headless server) takes the file's text once into its LiveRaid cfg ("Host key").
+    /// </summary>
     private static string Token()
     {
         if (_token != null)
@@ -76,16 +80,35 @@ public static class SharedSettings
             return _token;
         }
 
-        _token = Convert.ToHexString(RandomNumberGenerator.GetBytes(16));
+        string path = Path.Combine(Dir, "host.token");
         try
         {
-            File.WriteAllText(Path.Combine(Dir, "host.token"), _token);
+            string old = File.Exists(path) ? File.ReadAllText(path).Trim() : "";
+            if (old.Length >= 16)
+            {
+                _token = old;
+            }
         }
         catch (Exception e)
         {
-            LrState.Error("could not write host.token (LiveRaid Online: nobody will be able to change the shared settings)", e);
+            LrState.Warn("host.token could not be read - a new key will be made: " + e.Message);
         }
 
+        bool made = _token == null;
+        _token ??= Convert.ToHexString(RandomNumberGenerator.GetBytes(16));
+        if (made)
+        {
+            try
+            {
+                File.WriteAllText(path, _token);
+            }
+            catch (Exception e)
+            {
+                LrState.Error("could not write host.token (LiveRaid Online: nobody will be able to change the shared settings)", e);
+            }
+        }
+
+        LrState.Info($"LiveRaid Online: the host key is in {path} - a game in this SPT folder is the host; a game on another machine puts the key's text into its LiveRaid cfg (Host key) to be the host");
         return _token;
     }
 
