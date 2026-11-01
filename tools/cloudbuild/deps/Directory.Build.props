@@ -1,0 +1,19 @@
+<Project>
+  <!-- Reference builds of the mods LiveRaid patches, from their sources in _ref (R = fake SPT root, REF = the _ref folder) -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <NoWarn>$(NoWarn);CS0618;CS0612;CS8632;CS0436;CS1701;CS1702;NU1701</NoWarn>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="$(R)/BepInEx/core/0Harmony.dll" Private="false" />
+    <Reference Include="$(R)/BepInEx/core/BepInEx.dll" Private="false" />
+    <Reference Include="$(R)/EscapeFromTarkov_Data/Managed/*.dll" Private="false" />
+    <Reference Include="$(R)/BepInEx/plugins/spt/*.dll" Private="false" />
+  </ItemGroup>
+</Project>

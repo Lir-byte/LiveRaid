@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><AssemblyName>SAIN.Preset.Shared</AssemblyName></PropertyGroup>
+  <ItemGroup><Compile Include="gen.cs" /><Compile Include="$(REF)/SAIN/SAIN.Preset.Shared/**/*.cs" Exclude="$(REF)/SAIN/SAIN.Preset.Shared/**/obj/**;$(REF)/SAIN/SAIN.Preset.Shared/**/bin/**" /></ItemGroup>
+</Project>

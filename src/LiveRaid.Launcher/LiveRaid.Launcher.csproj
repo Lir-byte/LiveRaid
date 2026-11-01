@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- LiveRaid Launcher: switches the game between LiveRaid (single player) and LiveRaid Online + Project Fika.
+       .NET Framework 4.8 - part of every Windows 10/11, nothing to install for the player. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>LiveRaid Launcher</AssemblyName>
+    <RootNamespace>LiveRaid.Launcher</RootNamespace>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <Product>LiveRaid Launcher</Product>
+    <GenerateSupportedRuntime>false</GenerateSupportedRuntime>
+    <Deploy Condition="'$(Deploy)' == ''">true</Deploy>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+  <!-- next to EscapeFromTarkov.exe, where the release archive puts it -->
+  <Target Name="DeployToSpt" AfterTargets="Build" Condition="'$(Deploy)' == 'true' and Exists('$(SptRoot)\EscapeFromTarkov.exe')">
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(SptRoot)" />
+  </Target>
+</Project>

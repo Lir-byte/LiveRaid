@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><AssemblyName>DrakiaXYZ-BigBrain</AssemblyName><DefineConstants>$(DefineConstants);RELEASE</DefineConstants></PropertyGroup>
+  <ItemGroup><Compile Include="$(REF)/BigBrain/**/*.cs" Exclude="$(REF)/BigBrain/**/obj/**;$(REF)/BigBrain/**/bin/**" /></ItemGroup>
+</Project>

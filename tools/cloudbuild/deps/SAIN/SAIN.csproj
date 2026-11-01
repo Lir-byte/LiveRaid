@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><AssemblyName>SAIN</AssemblyName></PropertyGroup>
+  <ItemGroup><Reference Include="$(R)/BepInEx/plugins/DrakiaXYZ-BigBrain.dll" Private="false" /><ProjectReference Include="../SAINShared/SAIN.Preset.Shared.csproj" /></ItemGroup>
+  <ItemGroup><Compile Include="$(REF)/SAIN/SAIN/**/*.cs" Exclude="$(REF)/SAIN/SAIN/**/obj/**;$(REF)/SAIN/SAIN/**/bin/**" /></ItemGroup>
+</Project>

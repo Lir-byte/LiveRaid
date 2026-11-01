@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><AssemblyName>Skwizzy.LootingBots</AssemblyName><ImplicitUsings>enable</ImplicitUsings></PropertyGroup>
+  <ItemGroup><Reference Include="$(R)/BepInEx/plugins/DrakiaXYZ-BigBrain.dll" Private="false" /><Reference Include="$(R)/BepInEx/plugins/Fika.Core.dll" Private="false" /></ItemGroup>
+  <ItemGroup><Compile Include="$(REF)/LootingBots/LootingBots/**/*.cs" Exclude="$(REF)/LootingBots/LootingBots/**/obj/**;$(REF)/LootingBots/LootingBots/**/bin/**" /></ItemGroup>
+</Project>

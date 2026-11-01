@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Adds the Unity 2022.3 physics query API (QueryParameters, RaycastCommand ctor) to the 2021.3 reference UnityEngine.PhysicsModule (SAIN needs it) -->
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><Nullable>disable</Nullable></PropertyGroup>
+  <ItemGroup><Reference Include="$(CecilDll)" /></ItemGroup>
+</Project>

@@ -1,0 +1,386 @@
+<Window x:Class="LiveRaid.Launcher.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="LiveRaid — пульт режимов" Width="1020" Height="750"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent" ResizeMode="CanMinimize"
+        WindowStartupLocation="CenterScreen" FontFamily="Bahnschrift, Segoe UI" UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Display">
+    <Window.Resources>
+        <SolidColorBrush x:Key="Amber" Color="#E9A23B"/>
+        <SolidColorBrush x:Key="AmberDim" Color="#8A6324"/>
+        <SolidColorBrush x:Key="Ink" Color="#DAD5C3"/>
+        <SolidColorBrush x:Key="Muted" Color="#8B8774"/>
+        <SolidColorBrush x:Key="Line" Color="#2C2E23"/>
+        <SolidColorBrush x:Key="Stamp" Color="#D04A33"/>
+
+        <Style x:Key="Chrome" TargetType="Button">
+            <Setter Property="Foreground" Value="{StaticResource Muted}"/>
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="Width" Value="42"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="b" Background="Transparent" CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="#26281E"/>
+                                <Setter Property="Foreground" Value="{StaticResource Amber}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="Tool" TargetType="Button">
+            <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="Margin" Value="0,0,10,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="b" Background="#14150F" BorderBrush="#3A3B2C" BorderThickness="1" CornerRadius="3" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="b" Property="BorderBrush" Value="{StaticResource Amber}"/>
+                                <Setter TargetName="b" Property="Background" Value="#1E1C12"/>
+                                <Setter Property="Foreground" Value="{StaticResource Amber}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.35"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="Lamp" TargetType="Ellipse">
+            <Setter Property="Width" Value="11"/>
+            <Setter Property="Height" Value="11"/>
+            <Setter Property="Fill" Value="#3A3A33"/>
+            <Setter Property="Stroke" Value="#0A0A08"/>
+            <Setter Property="StrokeThickness" Value="1.5"/>
+        </Style>
+
+        <Style x:Key="Caption" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource Muted}"/>
+            <Setter Property="FontSize" Value="10.5"/>
+        </Style>
+
+        <Style x:Key="Bullet" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#BDB8A6"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Margin" Value="0,3,0,0"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+    </Window.Resources>
+
+    <Border x:Name="Frame" CornerRadius="14" BorderThickness="1" Margin="14" MouseLeftButtonDown="OnDrag">
+        <Border.BorderBrush>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Color="#5C4A22" Offset="0"/>
+                <GradientStop Color="#23251C" Offset="0.45"/>
+                <GradientStop Color="#4A3C1C" Offset="1"/>
+            </LinearGradientBrush>
+        </Border.BorderBrush>
+        <Border.Background>
+            <RadialGradientBrush Center="0.3,0.15" GradientOrigin="0.3,0.15" RadiusX="1.1" RadiusY="1.2">
+                <GradientStop Color="#1B1C15" Offset="0"/>
+                <GradientStop Color="#0F100C" Offset="0.7"/>
+                <GradientStop Color="#0B0C09" Offset="1"/>
+            </RadialGradientBrush>
+        </Border.Background>
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="22" ShadowDepth="0" Opacity="0.65" Color="Black"/>
+        </Border.Effect>
+
+        <Grid ClipToBounds="True">
+            <!-- topographic lines, drawn in code -->
+            <Canvas x:Name="Topo" IsHitTestVisible="False" Opacity="1"/>
+
+            <Grid Margin="26,18,26,18">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="170"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- header -->
+                <Grid Grid.Row="0" Margin="0,0,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Grid Width="46" Height="46" Margin="0,0,14,0">
+                            <Ellipse Stroke="{StaticResource Amber}" StrokeThickness="2"/>
+                            <Ellipse Margin="9" Stroke="{StaticResource AmberDim}" StrokeThickness="1.5"/>
+                            <Path Stroke="{StaticResource Amber}" StrokeThickness="2" Data="M23,0 L23,13 M23,33 L23,46 M0,23 L13,23 M33,23 L46,23"/>
+                            <Ellipse Width="5" Height="5" Fill="{StaticResource Stamp}"/>
+                        </Grid>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="LIVERAID" FontSize="30" FontWeight="Bold" Foreground="{StaticResource Ink}" Margin="0,-4,0,-3"/>
+                            <StackPanel Orientation="Horizontal">
+                                <Rectangle Width="22" Height="2" Fill="{StaticResource Amber}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBlock x:Name="Subtitle" Text="ПУЛЬТ РЕЖИМОВ" FontSize="11.5" Foreground="{StaticResource Amber}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- status gauges -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Border BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4" Padding="12,7" Margin="6,0" Background="#80101109">
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse x:Name="LampGame" Style="{StaticResource Lamp}" Margin="0,0,9,0"/>
+                                <StackPanel>
+                                    <TextBlock Text="ИГРА" Style="{StaticResource Caption}"/>
+                                    <TextBlock x:Name="ValGame" Text="—" Foreground="{StaticResource Ink}" FontSize="12.5"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                        <Border BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4" Padding="12,7" Margin="6,0" Background="#80101109">
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse x:Name="LampServer" Style="{StaticResource Lamp}" Margin="0,0,9,0"/>
+                                <StackPanel>
+                                    <TextBlock Text="СЕРВЕР SPT" Style="{StaticResource Caption}"/>
+                                    <TextBlock x:Name="ValServer" Text="—" Foreground="{StaticResource Ink}" FontSize="12.5"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                        <Border BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4" Padding="12,7" Margin="6,0" Background="#80101109">
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse x:Name="LampFika" Style="{StaticResource Lamp}" Margin="0,0,9,0"/>
+                                <StackPanel>
+                                    <TextBlock Text="PROJECT FIKA" Style="{StaticResource Caption}"/>
+                                    <TextBlock x:Name="ValFika" Text="—" Foreground="{StaticResource Ink}" FontSize="12.5"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                        <Border BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="4" Padding="12,7" Margin="6,0" Background="#80101109">
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse x:Name="LampMod" Style="{StaticResource Lamp}" Margin="0,0,9,0"/>
+                                <StackPanel>
+                                    <TextBlock Text="LIVERAID В ИГРЕ" Style="{StaticResource Caption}"/>
+                                    <TextBlock x:Name="ValMod" Text="—" Foreground="{StaticResource Ink}" FontSize="12.5"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top">
+                        <Button Style="{StaticResource Chrome}" Content="—" Click="OnMinimize" ToolTip="Свернуть"/>
+                        <Button Style="{StaticResource Chrome}" Content="✕" Click="OnClose" ToolTip="Закрыть"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- the two modes and the lever -->
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="230"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border x:Name="CardSingle" Grid.Column="0" CornerRadius="10" BorderThickness="2" BorderBrush="#2C2E23" Padding="22,18" Cursor="Hand"
+                            MouseLeftButtonUp="OnCardSingle" Background="#C0121309">
+                        <Grid>
+                            <StackPanel>
+                                <TextBlock Text="РЕЖИМ 01" Style="{StaticResource Caption}"/>
+                                <TextBlock Text="ОДИНОЧНЫЙ" FontSize="30" FontWeight="Bold" Foreground="{StaticResource Ink}" Margin="0,2,0,0"/>
+                                <TextBlock Text="LiveRaid для SPT без Fika" Foreground="{StaticResource Amber}" FontSize="13.5" Margin="0,0,0,12"/>
+                                <Path Width="64" Height="64" HorizontalAlignment="Left" Stretch="Uniform" Margin="0,0,0,10" Fill="#2F3124" Stroke="#6F7A4A" StrokeThickness="1.6"
+                                      Data="M32,6 A11,11 0 1 1 31.9,6 Z M10,60 C10,42 20,34 32,34 C44,34 54,42 54,60 Z"/>
+                                <TextBlock Style="{StaticResource Bullet}" Text="· вы один против всей карты ботов"/>
+                                <TextBlock Style="{StaticResource Bullet}" Text="· свободная камера после смерти, режим наблюдателя, вселение в бота"/>
+                                <TextBlock Style="{StaticResource Bullet}" Text="· вся Fika с настройками убрана в «LiveRaid Launcher\fika-off» и ждёт"/>
+                            </StackPanel>
+                            <TextBlock x:Name="HintSingle" VerticalAlignment="Bottom" FontSize="11.5" Foreground="#8A6324" Text="НАЖМИТЕ, ЧТОБЫ ПЕРЕКЛЮЧИТЬСЯ"/>
+                            <Border x:Name="StampSingle" HorizontalAlignment="Right" VerticalAlignment="Top" BorderBrush="{StaticResource Stamp}" BorderThickness="3"
+                                    CornerRadius="4" Padding="10,3" Margin="0,6,-4,0" Opacity="0" RenderTransformOrigin="0.5,0.5">
+                                <Border.RenderTransform>
+                                    <TransformGroup>
+                                        <RotateTransform Angle="-12"/>
+                                        <ScaleTransform x:Name="StampSingleScale" ScaleX="1" ScaleY="1"/>
+                                    </TransformGroup>
+                                </Border.RenderTransform>
+                                <TextBlock Text="АКТИВЕН" Foreground="{StaticResource Stamp}" FontSize="17" FontWeight="Bold"/>
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <!-- lever -->
+                    <Grid Grid.Column="1" VerticalAlignment="Center">
+                        <StackPanel HorizontalAlignment="Center">
+                            <Grid Width="180" Margin="0,0,0,6">
+                                <StackPanel HorizontalAlignment="Left">
+                                    <TextBlock Text="СОЛО" Foreground="{StaticResource Ink}" FontSize="13" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                    <Ellipse x:Name="LedSolo" Style="{StaticResource Lamp}" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                </StackPanel>
+                                <StackPanel HorizontalAlignment="Right">
+                                    <TextBlock Text="FIKA" Foreground="{StaticResource Ink}" FontSize="13" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                    <Ellipse x:Name="LedFika" Style="{StaticResource Lamp}" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                            <Canvas x:Name="Lever" Width="180" Height="200" Cursor="Hand" MouseLeftButtonUp="OnLever" Background="Transparent">
+                                <!-- plate -->
+                                <Rectangle Canvas.Left="20" Canvas.Top="30" Width="140" Height="160" RadiusX="10" RadiusY="10" Stroke="#3B3C2E" StrokeThickness="1.5">
+                                    <Rectangle.Fill>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop Color="#2A2B22" Offset="0"/>
+                                            <GradientStop Color="#17180F" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Rectangle.Fill>
+                                </Rectangle>
+                                <Ellipse Canvas.Left="30" Canvas.Top="40" Width="9" Height="9" Fill="#0D0D0A" Stroke="#4A4A3A"/>
+                                <Ellipse Canvas.Left="141" Canvas.Top="40" Width="9" Height="9" Fill="#0D0D0A" Stroke="#4A4A3A"/>
+                                <Ellipse Canvas.Left="30" Canvas.Top="171" Width="9" Height="9" Fill="#0D0D0A" Stroke="#4A4A3A"/>
+                                <Ellipse Canvas.Left="141" Canvas.Top="171" Width="9" Height="9" Fill="#0D0D0A" Stroke="#4A4A3A"/>
+                                <!-- hazard strip -->
+                                <Rectangle Canvas.Left="44" Canvas.Top="166" Width="92" Height="10" RadiusX="2" RadiusY="2" Opacity="0.55">
+                                    <Rectangle.Fill>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="12,12" MappingMode="Absolute" SpreadMethod="Repeat">
+                                            <GradientStop Color="#E9A23B" Offset="0"/>
+                                            <GradientStop Color="#E9A23B" Offset="0.5"/>
+                                            <GradientStop Color="#15160F" Offset="0.5"/>
+                                            <GradientStop Color="#15160F" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Rectangle.Fill>
+                                </Rectangle>
+                                <!-- slot -->
+                                <Rectangle Canvas.Left="45" Canvas.Top="122" Width="90" Height="18" RadiusX="9" RadiusY="9" Fill="#050504" Stroke="#3A3A2E"/>
+                                <!-- the lever turns around (90, 131) -->
+                                <Canvas x:Name="Stick" Width="180" Height="200">
+                                    <Canvas.RenderTransform>
+                                        <RotateTransform x:Name="StickAngle" CenterX="90" CenterY="131" Angle="-36"/>
+                                    </Canvas.RenderTransform>
+                                    <Rectangle Canvas.Left="84" Canvas.Top="40" Width="12" Height="94" RadiusX="5" RadiusY="5">
+                                        <Rectangle.Fill>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                <GradientStop Color="#55574A" Offset="0"/>
+                                                <GradientStop Color="#C9C6B6" Offset="0.45"/>
+                                                <GradientStop Color="#3E3F34" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </Rectangle.Fill>
+                                    </Rectangle>
+                                    <Ellipse Canvas.Left="71" Canvas.Top="16" Width="38" Height="38" Stroke="#3A1209" StrokeThickness="1.5">
+                                        <Ellipse.Fill>
+                                            <RadialGradientBrush GradientOrigin="0.35,0.3" Center="0.4,0.35" RadiusX="0.75" RadiusY="0.75">
+                                                <GradientStop Color="#F2836B" Offset="0"/>
+                                                <GradientStop Color="#C8432F" Offset="0.45"/>
+                                                <GradientStop Color="#5E1A0E" Offset="1"/>
+                                            </RadialGradientBrush>
+                                        </Ellipse.Fill>
+                                    </Ellipse>
+                                </Canvas>
+                                <Ellipse Canvas.Left="80" Canvas.Top="121" Width="20" Height="20" Stroke="#1A1A14" StrokeThickness="1.5">
+                                    <Ellipse.Fill>
+                                        <RadialGradientBrush GradientOrigin="0.35,0.3">
+                                            <GradientStop Color="#9A988A" Offset="0"/>
+                                            <GradientStop Color="#33342A" Offset="1"/>
+                                        </RadialGradientBrush>
+                                    </Ellipse.Fill>
+                                </Ellipse>
+                            </Canvas>
+                            <TextBlock x:Name="LeverCaption" Text="ПЕРЕВЕДИТЕ ТУМБЛЕР" Foreground="{StaticResource Muted}" FontSize="11" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <Border x:Name="CardOnline" Grid.Column="2" CornerRadius="10" BorderThickness="2" BorderBrush="#2C2E23" Padding="22,18" Cursor="Hand"
+                            MouseLeftButtonUp="OnCardOnline" Background="#C0121309">
+                        <Grid>
+                            <StackPanel>
+                                <TextBlock Text="РЕЖИМ 02" Style="{StaticResource Caption}"/>
+                                <TextBlock Text="ОНЛАЙН" FontSize="30" FontWeight="Bold" Foreground="{StaticResource Ink}" Margin="0,2,0,0"/>
+                                <TextBlock Text="LiveRaid Online + Project Fika" Foreground="{StaticResource Amber}" FontSize="13.5" Margin="0,0,0,12"/>
+                                <Path Width="96" Height="64" HorizontalAlignment="Left" Stretch="Uniform" Margin="0,0,0,10" Fill="#2F3124" Stroke="#6F7A4A" StrokeThickness="1.6"
+                                      Data="M30,10 A10,10 0 1 1 29.9,10 Z M10,62 C10,46 18,38 30,38 C42,38 50,46 50,62 Z M66,10 A10,10 0 1 1 65.9,10 Z M46,62 C46,46 54,38 66,38 C78,38 86,46 86,62 Z M82,4 C88,8 90,14 88,20 M86,0 C95,6 97,16 93,24"/>
+                                <TextBlock Style="{StaticResource Bullet}" Text="· кооп с друзьями: боты живут у хоста"/>
+                                <TextBlock Style="{StaticResource Bullet}" Text="· настройки LiveRaid задаёт хост - у остальных F12 заблокирован"/>
+                                <TextBlock Style="{StaticResource Bullet}" Text="· Fika возвращается на место со всеми своими настройками и данными"/>
+                            </StackPanel>
+                            <TextBlock x:Name="HintOnline" VerticalAlignment="Bottom" FontSize="11.5" Foreground="#8A6324" Text="НАЖМИТЕ, ЧТОБЫ ПЕРЕКЛЮЧИТЬСЯ"/>
+                            <Border x:Name="StampOnline" HorizontalAlignment="Right" VerticalAlignment="Top" BorderBrush="{StaticResource Stamp}" BorderThickness="3"
+                                    CornerRadius="4" Padding="10,3" Margin="0,6,-4,0" Opacity="0" RenderTransformOrigin="0.5,0.5">
+                                <Border.RenderTransform>
+                                    <TransformGroup>
+                                        <RotateTransform Angle="-12"/>
+                                        <ScaleTransform x:Name="StampOnlineScale" ScaleX="1" ScaleY="1"/>
+                                    </TransformGroup>
+                                </Border.RenderTransform>
+                                <TextBlock Text="АКТИВЕН" Foreground="{StaticResource Stamp}" FontSize="17" FontWeight="Bold"/>
+                            </Border>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- branch of the mod: stable / test -->
+                <Border Grid.Row="2" Margin="0,14,0,0" CornerRadius="6" BorderBrush="{StaticResource Line}" BorderThickness="1" Background="#C0121309" Padding="14,8">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center" Margin="0,0,18,0" MinWidth="150">
+                            <TextBlock Text="ВЕТКА МОДА" Style="{StaticResource Caption}"/>
+                            <TextBlock x:Name="ValChannel" Text="—" Foreground="{StaticResource Ink}" FontSize="13.5" FontWeight="Bold"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button x:Name="BtnStable" Style="{StaticResource Tool}" Content="СТАБИЛЬНАЯ" Click="OnStable"/>
+                            <Button x:Name="BtnTest" Style="{StaticResource Tool}" Content="ТЕСТОВАЯ" Click="OnTest"/>
+                        </StackPanel>
+                        <TextBlock x:Name="ChannelNote" Grid.Column="2" VerticalAlignment="Center" TextWrapping="Wrap" Foreground="{StaticResource Muted}" FontSize="12" Margin="6,0,0,0"/>
+                    </Grid>
+                </Border>
+
+                <!-- operations log -->
+                <Border Grid.Row="3" Margin="0,16,0,12" CornerRadius="6" BorderBrush="{StaticResource Line}" BorderThickness="1" Background="#E0080906">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Border BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Padding="12,5">
+                            <Grid>
+                                <TextBlock Text="ЖУРНАЛ ОПЕРАЦИЙ" Style="{StaticResource Caption}" FontSize="10.5"/>
+                                <TextBlock x:Name="Clock" HorizontalAlignment="Right" Style="{StaticResource Caption}" FontFamily="Consolas"/>
+                            </Grid>
+                        </Border>
+                        <ScrollViewer x:Name="LogScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="12,6">
+                            <StackPanel x:Name="LogLines"/>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+
+                <!-- footer -->
+                <Grid Grid.Row="4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Style="{StaticResource Tool}" Content="ЗАПУСТИТЬ СЕРВЕР SPT" Click="OnStartServer"/>
+                        <Button Style="{StaticResource Tool}" Content="ЛАУНЧЕР SPT" Click="OnStartLauncher"/>
+                        <Button Style="{StaticResource Tool}" Content="ПАПКА ИГРЫ" Click="OnOpenFolder"/>
+                        <Button Style="{StaticResource Tool}" Content="ВЫБРАТЬ ИГРУ…" Click="OnPickGame"/>
+                        <Button Style="{StaticResource Tool}" Content="RU / EN" Click="OnLanguage" ToolTip="Язык / Language"/>
+                    </StackPanel>
+                    <TextBlock x:Name="PathText" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="#5E5B4D" FontSize="11" FontFamily="Consolas"
+                               TextTrimming="CharacterEllipsis" Margin="10,0,0,0"/>
+                </Grid>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

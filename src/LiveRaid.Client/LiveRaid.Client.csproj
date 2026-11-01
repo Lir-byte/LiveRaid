@@ -1,0 +1,94 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>LiveRaid.Client</AssemblyName>
+    <RootNamespace>LiveRaid.Client</RootNamespace>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <PluginDir>$(SptRoot)\BepInEx\plugins\LiveRaid</PluginDir>
+    <Managed>$(SptRoot)\EscapeFromTarkov_Data\Managed</Managed>
+    <Plugins>$(SptRoot)\BepInEx\plugins</Plugins>
+    <!-- Edition: empty = LiveRaid (single player), Online = LiveRaid Online (Project Fika). Each edition builds into its own folders.
+         Deploy=false builds without copying into the game (the game holds one edition at a time). -->
+    <Edition Condition="'$(Edition)' == ''">Single</Edition>
+    <Deploy Condition="'$(Deploy)' == ''">true</Deploy>
+    <OutputPath>bin\$(Configuration)-$(Edition)\</OutputPath>
+    <IntermediateOutputPath>obj\$(Configuration)-$(Edition)\</IntermediateOutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Edition)' == 'Online'">
+    <DefineConstants>$(DefineConstants);LIVERAID_ONLINE</DefineConstants>
+    <!-- Fika installed in the game (the version it runs), otherwise the copy QuestingBots builds against (2.4.3, LiveRaid Online's minimum) -->
+    <FikaCore Condition="'$(FikaCore)' == '' and Exists('$(Plugins)\Fika\Fika.Core.dll')">$(Plugins)\Fika\Fika.Core.dll</FikaCore>
+    <FikaCore Condition="'$(FikaCore)' == ''">$(MSBuildThisFileDirectory)..\..\_ref\QuestingBots\Dependencies\Fika.Core.dll</FikaCore>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(Edition)' == 'Online'">
+    <Reference Include="Fika.Core"><HintPath>$(FikaCore)</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="0Harmony"><HintPath>$(SptRoot)\BepInEx\core\0Harmony.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="BepInEx"><HintPath>$(SptRoot)\BepInEx\core\BepInEx.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Assembly-CSharp"><HintPath>$(Managed)\Assembly-CSharp.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Comfort"><HintPath>$(Managed)\Comfort.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Comfort.Unity"><HintPath>$(Managed)\Comfort.Unity.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="CommonExtensions"><HintPath>$(Managed)\CommonExtensions.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="DissonanceVoip"><HintPath>$(Managed)\DissonanceVoip.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="ItemComponent.Types"><HintPath>$(Managed)\ItemComponent.Types.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Newtonsoft.Json"><HintPath>$(Managed)\Newtonsoft.Json.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Sirenix.Serialization"><HintPath>$(Managed)\Sirenix.Serialization.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine"><HintPath>$(Managed)\UnityEngine.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.CoreModule"><HintPath>$(Managed)\UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.AIModule"><HintPath>$(Managed)\UnityEngine.AIModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.PhysicsModule"><HintPath>$(Managed)\UnityEngine.PhysicsModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.InputLegacyModule"><HintPath>$(Managed)\UnityEngine.InputLegacyModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.IMGUIModule"><HintPath>$(Managed)\UnityEngine.IMGUIModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.TextRenderingModule"><HintPath>$(Managed)\UnityEngine.TextRenderingModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="spt-common"><HintPath>$(Plugins)\spt\spt-common.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="spt-reflection"><HintPath>$(Plugins)\spt\spt-reflection.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="spt-custom"><HintPath>$(Plugins)\spt\spt-custom.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="spt-singleplayer"><HintPath>$(Plugins)\spt\spt-singleplayer.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="DrakiaXYZ-BigBrain"><HintPath>$(Plugins)\DrakiaXYZ-BigBrain.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="QuestingBots-Client"><HintPath>$(Plugins)\QuestingBots\QuestingBots-Client.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="SAIN"><HintPath>$(Plugins)\SAIN\SAIN.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="SAIN.Preset.Shared"><HintPath>$(Plugins)\SAIN\SAIN.Preset.Shared.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Skwizzy.LootingBots"><HintPath>$(Plugins)\Skwizzy.LootingBots\Skwizzy.LootingBots.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+  <!-- BepInEx refuses = \ " ' [ ] in setting names and the whole plugin then fails to load (session 5: "the bot's eyes").
+       Caught here at build time instead of in the game. -->
+  <UsingTask TaskName="LrCheckConfigKeys" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <SettingsFile ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        string text = System.IO.File.ReadAllText(SettingsFile);
+        var keys = System.Text.RegularExpressions.Regex.Matches(text, "(?:cfg\\.Bind\\(\\w+,|\\bB\\(\\w+,\\s*(?:\"[^\"]*\"|\\w+),|\\b(?:Pack|Level|Amount)\\(\\w+,)\\s*\"([^\"]*)\"");
+        foreach (System.Text.RegularExpressions.Match m in keys)
+        {
+            string key = m.Groups[1].Value;
+            if (key.IndexOfAny(new[] { '=', '\\', '\'', '[', ']' }) >= 0)
+            {
+                Log.LogError("F12 setting name with a character BepInEx forbids (= \\ \" ' [ ]) - the plugin would not load: " + key);
+            }
+        }
+
+        Log.LogMessage(Microsoft.Build.Framework.MessageImportance.Normal, "LiveRaid: " + keys.Count + " F12 setting names checked");
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="CheckConfigKeys" BeforeTargets="CoreCompile">
+    <LrCheckConfigKeys SettingsFile="$(MSBuildProjectDirectory)\Settings.cs" />
+  </Target>
+  <!-- Both editions always land where LiveRaid Launcher switches between them (outside BepInEx/plugins, so only the active one loads):
+       editions\<Single|Online> for the stable branch, editions\Test\<Single|Online> for the test branch -->
+  <PropertyGroup>
+    <LrEditions Condition="'$(LiveRaidChannel)' == ''">$(SptRoot)\LiveRaid Launcher\editions</LrEditions>
+    <LrEditions Condition="'$(LiveRaidChannel)' != ''">$(SptRoot)\LiveRaid Launcher\editions\Test</LrEditions>
+  </PropertyGroup>
+  <Target Name="DeployEdition" AfterTargets="Build" Condition="Exists('$(SptRoot)\EscapeFromTarkov.exe')">
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(LrEditions)\$(Edition)" />
+  </Target>
+  <Target Name="DeployToSpt" AfterTargets="Build" Condition="'$(Deploy)' == 'true'">
+    <MakeDir Directories="$(PluginDir)" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(PluginDir)" />
+  </Target>
+</Project>

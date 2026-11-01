@@ -1,0 +1,78 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Library</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>LiveRaid.Server</AssemblyName>
+    <RootNamespace>LiveRaid.Server</RootNamespace>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <ModDir>$(SptRoot)\SPT_Runtime\user\mods\LiveRaid</ModDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="SPTarkov.Server.Core"><HintPath>$(SptRoot)\SPT_Runtime\SPTarkov.Server.Core.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="SPTarkov.DI"><HintPath>$(SptRoot)\SPT_Runtime\SPTarkov.DI.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="SPTarkov.Common"><HintPath>$(SptRoot)\SPT_Runtime\SPTarkov.Common.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="SPTarkov.Reflection"><HintPath>$(SptRoot)\SPT_Runtime\SPTarkov.Reflection.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="SemanticVersioning"><HintPath>$(SptRoot)\SPT_Runtime\SemanticVersioning.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="0Harmony"><HintPath>$(SptRoot)\SPT_Runtime\0Harmony.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\data\server\**\*.json" Link="data\%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+  <!-- Test branch: the stable server in the game is first put aside where LiveRaid Launcher brings it back from (editions\Server),
+       then the test build goes into the game and into editions\Test\Server -->
+  <UsingTask TaskName="LrKeepStableServer" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <ModDir ParameterType="System.String" Required="true" />
+      <Keep ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        string dll = System.IO.Path.Combine(ModDir, "LiveRaid.Server.dll");
+        if (System.IO.File.Exists(dll))
+        {
+            string v = System.Diagnostics.FileVersionInfo.GetVersionInfo(dll).ProductVersion ?? "";
+            if (v.IndexOf("-", System.StringComparison.Ordinal) < 0)
+            {
+                System.IO.Directory.CreateDirectory(System.IO.Path.Combine(Keep, "data"));
+                System.IO.File.Copy(dll, System.IO.Path.Combine(Keep, "LiveRaid.Server.dll"), true);
+                string data = System.IO.Path.Combine(ModDir, "data");
+                if (System.IO.Directory.Exists(data))
+                {
+                    foreach (string f in System.IO.Directory.GetFiles(data, "*.json"))
+                    {
+                        System.IO.File.Copy(f, System.IO.Path.Combine(Keep, "data", System.IO.Path.GetFileName(f)), true);
+                    }
+                }
+
+                Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, "LiveRaid: the stable server " + v + " in the game is kept in " + Keep);
+            }
+        }
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="KeepStableServer" BeforeTargets="DeployToSpt" Condition="'$(LiveRaidChannel)' != '' and Exists('$(SptRoot)\EscapeFromTarkov.exe')">
+    <LrKeepStableServer ModDir="$(ModDir)" Keep="$(SptRoot)\LiveRaid Launcher\editions\Server" />
+  </Target>
+  <Target Name="DeployTestEdition" AfterTargets="Build" Condition="'$(LiveRaidChannel)' != '' and Exists('$(SptRoot)\EscapeFromTarkov.exe')">
+    <ItemGroup><LrTestData Include="..\..\data\server\**\*.json" /></ItemGroup>
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(SptRoot)\LiveRaid Launcher\editions\Test\Server" />
+    <Copy SourceFiles="@(LrTestData)" DestinationFolder="$(SptRoot)\LiveRaid Launcher\editions\Test\Server\data\%(RecursiveDir)" SkipUnchangedFiles="false" />
+  </Target>
+  <!-- Stable branch: the copy LiveRaid Launcher brings back when it switches to "Stable" is this build too (0.11.0: it kept bringing back 0.9.9) -->
+  <Target Name="DeployStableEdition" AfterTargets="Build" Condition="'$(LiveRaidChannel)' == '' and Exists('$(SptRoot)\EscapeFromTarkov.exe')">
+    <ItemGroup><LrStableData Include="..\..\data\server\**\*.json" /></ItemGroup>
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(SptRoot)\LiveRaid Launcher\editions\Server" />
+    <Copy SourceFiles="@(LrStableData)" DestinationFolder="$(SptRoot)\LiveRaid Launcher\editions\Server\data\%(RecursiveDir)" SkipUnchangedFiles="false" />
+  </Target>
+  <Target Name="DeployToSpt" AfterTargets="Build">
+    <MakeDir Directories="$(ModDir);$(ModDir)\data" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ModDir)" />
+    <ItemGroup><LrServerData Include="..\..\data\server\**\*.json" /></ItemGroup>
+    <Copy SourceFiles="@(LrServerData)" DestinationFolder="$(ModDir)\data\%(RecursiveDir)" SkipUnchangedFiles="false" />
+  </Target>
+</Project>

@@ -1,0 +1,16 @@
+bin/
+obj/
+_ref/
+*.user
+.vs/
+__pycache__/
+
+Github Release/
+LogOutput.log
+report.txt
+VideoBugs/
+_backup/
+release/*.zip
+SPT AKI PROJECT
+_work/
+*.log

@@ -1,0 +1,50 @@
+{
+  // LiveRaid server settings. Changes apply after a server restart.
+  "enabled": true,
+  "debugLogging": false,
+
+  "gear": {
+    // PMC kit follows a random archetype (see archetypes.json) instead of only the bot level
+    "enabled": true,
+    // 1 = keep SPT's item weights, 0 = every allowed item equally likely
+    "weightFlattening": 0.5,
+    // like online: PMC level and kit do not depend on YOUR level. The shown level is drawn from 1-79,
+    // the kit from the archetypes (a level-5 PMC can wear a full kit, a level-60 one can be a bum)
+    "independentOfPlayerLevel": true,
+    // how much a PMC's shown level still hints at its kit (0 = nothing)
+    "levelInfluence": 0.15,
+    // shown-level draw: 1 = uniform over 1-79, 1.6 = more low levels like online (median ~26)
+    "levelCurve": 1.6
+  },
+
+  "bots": {
+    // vanilla stand-by freezes far bots; LiveRaid keeps them moving
+    "disableStandBy": true,
+    // scav backpack keys are mostly removed: LiveRaid gives bots keys that fit doors on the current map
+    "scavKeyWeightMultiplier": 0.15,
+    // allow PMCs without any body armor (SPT otherwise forces an armored rig)
+    "pmcAllowUnarmored": true,
+    // PMCs start with kit only (weapons, mags, a few meds/food/grenades): no valuables in bag, rig and pockets.
+    // Loot comes from searching containers, rooms and bodies during the raid
+    "pmcEmptyLoot": true,
+    "pmcSpareAmmo": false,
+    // Every PMC squad is hostile to every other squad and to you, BEAR to BEAR and USEC to USEC included (SPT: same side only 35-85 %)
+    "pmcAlwaysHostile": true,
+    // The state of PMC guns as online. SPT gives them 90-100 % (practically new); online most guns are at 65-80 %, a brand-new one now and then.
+    // Each PMC gun rolls on its own: "pristineChance" = 100 / 100, otherwise a band by weight (current durability, %); the max durability sits
+    // up to "maxAboveCurrent" above the current one (repairs eat into it). enabled: false = SPT's values
+    "pmcWeaponCondition": {
+      "enabled": true,
+      "pristineChance": 0.15,
+      "maxAboveCurrent": 8,
+      "bands": [
+        { "min": 80, "max": 95, "weight": 22 },
+        { "min": 65, "max": 80, "weight": 60 },
+        { "min": 50, "max": 65, "weight": 14 },
+        { "min": 35, "max": 50, "weight": 4 }
+      ]
+    },
+    // per-map total bot cap; empty = SPT/QuestingBots values
+    "maxBotCapOverrides": {}
+  }
+}

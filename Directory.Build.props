@@ -1,0 +1,20 @@
+<Project>
+  <PropertyGroup>
+    <SptRoot>C:\Games\SPT</SptRoot>
+    <LiveRaidVersion>1.0.0</LiveRaidVersion>
+    <!-- Branch of the mod: empty = stable (main), test = the test branch (experimental). It marks the DLLs ("0.10.0-test" product version),
+         which LiveRaid Launcher reads to tell the branches apart, and sends the builds into the launcher's "Test" folders. -->
+    <LiveRaidChannel></LiveRaidChannel>
+    <Version Condition="'$(LiveRaidChannel)' == ''">$(LiveRaidVersion)</Version>
+    <Version Condition="'$(LiveRaidChannel)' != ''">$(LiveRaidVersion)-$(LiveRaidChannel)</Version>
+    <Authors>Lir</Authors>
+    <Company>Lir</Company>
+    <Copyright>Copyright (c) 2026 Lir. CC BY-NC-SA 4.0</Copyright>
+    <PackageLicenseExpression>CC-BY-NC-SA-4.0</PackageLicenseExpression>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <Deterministic>true</Deterministic>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS0649;CS0169</NoWarn>
+  </PropertyGroup>
+</Project>
