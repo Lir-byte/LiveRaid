@@ -1,6 +1,6 @@
 # LiveRaid — bots that play like people online (SPT 4.1.6)
 
-**Version 1.0.0** · by **Lir** · [CC BY-NC-SA 4.0](LICENSE) · English and Russian in the game (follows the game's language)
+**Version 1.0.0** · by **Lir** · [CC BY-NC-SA 4.0](LICENSE)
 
 LiveRaid makes a raid against bots feel like a raid against players. It is an extension on top of **QuestingBots**, **SAIN** and **LootingBots**: they stay as they are, LiveRaid steers them with patches and keeps all its switches in one F12 menu.
 
@@ -25,7 +25,7 @@ Two editions from one source:
 - **Leaving like a player.** Personal times, switch exits, paid and conditional exits, waiting crouched at the exit, leaving as a squad.
 - **Repairs of EFT bugs.** Stuck hands, reload flags, magazines thrown away, friendly fire inside a squad, bots frozen under fire.
 - **After death.** A free camera, an observer mode (watch raids without playing), taking over a bot (**raw: after the bot you play dies, location textures may stop loading and sound may break — see below**).
-- **One F12 menu.** About 220 settings in English or Russian (by the game's language), grouped into packs, with **ready-made presets**: *Recommended*, *Weak PC*, *Quiet raids*, *Busy raids*, *Fixes only*.
+- **Bots go absolutely everywhere.** With LiveRaid the bots travel and loot over the WHOLE map — every district, every floor, every room that has loot — not just the usual few spots. Switch on the recording of your own route and the bots start walking the routes you walk yourself.
 
 ## Requirements
 
@@ -61,7 +61,7 @@ By **Lir**. Licensed under [Creative Commons Attribution-NonCommercial-ShareAlik
 
 # LiveRaid — боты как в онлайне (SPT 4.1.6)
 
-**Версия 1.0.0** · автор **Lir** · лицензия [CC BY-NC-SA 4.0](LICENSE) · тексты в игре по-русски и по-английски (по языку игры)
+**Версия 1.0.0** · автор **Lir** · лицензия [CC BY-NC-SA 4.0](LICENSE)
 
 LiveRaid делает рейд против ботов похожим на рейд против игроков. Это надстройка над **QuestingBots**, **SAIN** и **LootingBots**: сами эти моды не меняются, LiveRaid управляет ими патчами, а все выключатели собраны в одном меню F12.
 
@@ -79,7 +79,7 @@ LiveRaid делает рейд против ботов похожим на ре�
 - **Уход как у игрока.** Своё время, выходы с рубильником, платные и особые выходы, ожидание у выхода присев, уход отрядом.
 - **Исправления ошибок EFT.** Зависшие руки, флаги перезарядки, выброшенные магазины, огонь по своим, замирание под огнём.
 - **После смерти.** Свободная камера, режим наблюдателя (смотреть рейды, не играя), вселение в бота (**сырое: после гибели бота могут перестать грузиться текстуры и сломаться звук — см. ниже**).
-- **Одно меню F12.** Около 220 настроек по-русски или по-английски (по языку игры), пакеты и **готовые пресеты**: *Рекомендуемый*, *Слабый ПК*, *Тихие рейды*, *Людные рейды*, *Только исправления*.
+- **Боты ходят и лутают абсолютно по всей карте.** С LiveRaid боты путешествуют и лутают по ВСЕЙ карте — каждый район, каждый этаж, каждая комната с лутом, а не пара привычных мест. Включите запись своего маршрута — и боты начнут ходить по тем путям, которыми ходите вы.
 
 ## Требования
 

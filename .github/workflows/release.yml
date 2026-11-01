@@ -34,7 +34,8 @@ jobs:
               continue
             fi
             if gh release view "$tag" >/dev/null 2>&1; then
-              echo "skip $tag: already released"
+              echo "$tag exists: refreshing its notes"
+              gh release edit "$tag" --title "LiveRaid ${version}" --notes-file "$notes"
               continue
             fi
             gh release create "$tag" "${files[@]}" --title "LiveRaid ${version}" --notes-file "$notes" --target "$GITHUB_SHA" --latest

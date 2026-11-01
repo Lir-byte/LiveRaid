@@ -13,11 +13,11 @@
 
 ## Short description (teaser)
 
-Bots that play like people online: a full lobby on every map, characters and squad tactics, real keys and doors, looting, fighting and leaving like a player — with one F12 menu in English or Russian and ready-made presets.
+Bots that travel and loot absolutely all over the map — and walk your own recorded routes. A full online-style lobby on every map, squad tactics, real keys and doors, looting, fighting and leaving like a player.
 
 ## Краткое описание (RU)
 
-Боты как в онлайне: полное лобби на каждой карте, характеры и тактики отрядов, настоящие ключи и двери, лут, бой и уход как у игрока — одно меню F12 по-русски и по-английски и готовые пресеты.
+Боты путешествуют и лутают абсолютно по всей карте — и ходят по вашим записанным маршрутам. Полное онлайн-лобби на каждой карте, тактики отрядов, настоящие ключи и двери, лут, бой и уход как у игрока.
 
 ## Description
 
@@ -38,7 +38,7 @@ Bots that play like people online: a full lobby on every map, characters and squ
 - **Healing and leaving like a player.** Bandage at the first quiet moment, splints, surgery; personal leave times, switch exits, paid exits, waiting crouched at the exit, leaving as a squad.
 - **Repairs of EFT bugs.** Stuck hands, reload flags, magazines thrown away, friendly fire inside a squad, bots frozen under fire.
 - **After death.** A free camera, an observer mode (watch raids without playing), taking over a bot (**experimental, see the warning below**).
-- **One F12 menu, English or Russian** (follows the game's language). About 220 settings in packs and **ready-made presets**: Recommended, Weak PC, Quiet raids, Busy raids, Fixes only.
+- **Bots go absolutely everywhere.** With LiveRaid the bots travel and loot over the WHOLE map — every district, every floor, every room that has loot — not just the usual few spots. Switch on the recording of your own route and the bots start walking the routes you walk yourself.
 - **LiveRaid Launcher** in the archive: switch single player ↔ Online and the stable ↔ test branch in one click.
 
 ### Two editions
@@ -65,7 +65,7 @@ Close the game and the server, unpack the archive into the game's root folder (w
 
 **LiveRaid делает рейд против ботов похожим на рейд против игроков.** Надстройка над QuestingBots, SAIN и LootingBots: сами эти моды не меняются, LiveRaid управляет ими патчами, все выключатели — в одном меню F12.
 
-Полное онлайн-лобби на каждой карте и «умный баланс численности», игроки-дикие на замену погибшим; характеры, 12 доктрин и 18 тактик отрядов; ходьба как у игроков (горячие зоны, ключевые места, хот-дроп, без простоя); настоящие ключи и двери; лут, бой, лечение и уход как у игрока; исправления ошибок EFT; свободная камера, режим наблюдателя и вселение в бота после смерти (**сырое: после гибели бота могут перестать грузиться текстуры, бывают проблемы со звуком — подробности в примечаниях**). Меню F12 (~220 настроек) по-русски и по-английски по языку игры, **готовые пресеты** (Рекомендуемый, Слабый ПК, Тихие рейды, Людные рейды, Только исправления), LiveRaid Launcher для переключения одиночный ↔ Online и стабильной ↔ тестовой ветки.
+Полное онлайн-лобби на каждой карте и «умный баланс численности», игроки-дикие на замену погибшим; характеры, 12 доктрин и 18 тактик отрядов; ходьба как у игроков (горячие зоны, ключевые места, хот-дроп, без простоя); настоящие ключи и двери; лут, бой, лечение и уход как у игрока; исправления ошибок EFT; свободная камера, режим наблюдателя и вселение в бота после смерти (**сырое: после гибели бота могут перестать грузиться текстуры, бывают проблемы со звуком — подробности в примечаниях**). Боты ходят и лутают по всей карте, а при включённой записи вашего маршрута — по вашим путям. LiveRaid Launcher переключает одиночный ↔ Online и стабильную ↔ тестовую ветку.
 
 Две редакции: **LiveRaid** (одиночная игра) и **LiveRaid Online** (кооператив через Project Fika). Установка: закройте игру и сервер, распакуйте архив в корень игры. Нужны SPT 4.1.6, QuestingBots 1.2.0, SAIN 4.5.1, LootingBots 1.8.0, BigBrain 1.5.0, Waypoints 1.9.0. С ORBIT не совместим. Лицензия CC BY-NC-SA 4.0.
 

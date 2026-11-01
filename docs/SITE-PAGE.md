@@ -20,7 +20,7 @@ In plain SPT the bots are fine at shooting but odd at *living*: squads spawn far
 - **They loot, fight, heal and leave like a player.** They weigh value against danger, search a whole room, clean up after a fight, carry out a fallen mate's kit; they have morale and fight roles, choose a gun for the range, forget a cold fight; they bandage at the first quiet moment, put on splints, break treatment off under fire; they leave at their own time, wait crouched at the exit, leave as a squad.
 - **It repairs EFT's own AI bugs.** Stuck hands, reload flags, magazines thrown away, friendly fire inside a squad, bots frozen under fire.
 - **Free camera after death and an observer mode** — watch the raid play out without being in it.
-- **One menu, two languages, presets.** About 220 settings in F12, in English or Russian by the game's language, grouped into packs, with ready-made presets so nobody has to read them all.
+- **Bots go absolutely everywhere.** With LiveRaid the bots travel and loot over the WHOLE map — every district, every floor, every room that has loot — not just the usual few spots. Switch on the recording of your own route and the bots start walking the routes you walk yourself.
 
 ## How much does it change the bots — and why?
 
@@ -112,7 +112,7 @@ By **Lir**. Licensed CC BY-NC-SA 4.0 (credit, non-commercial, share alike). Live
 - **Лутают, дерутся, лечатся и уходят как игрок.** Ценность против опасности, обыск всей комнаты, зачистка после боя, вынос снаряжения павшего товарища; мораль и роли в бою, оружие под дистанцию, остывший бой забывается; перевязка в первую тихую минуту, шины, лечение прерывается под огнём; уход в своё время, ожидание у выхода присев, уход отрядом.
 - **Чинит ошибки ИИ самой EFT.** Зависшие руки, флаги перезарядки, выброшенные магазины, огонь по своим, замирание под огнём.
 - **Свободная камера после смерти и режим наблюдателя** — смотреть рейд, не участвуя в нём.
-- **Одно меню, два языка, пресеты.** Около 220 настроек в F12 по-русски или по-английски (по языку игры), пакеты и готовые пресеты, чтобы не читать всё подряд.
+- **Боты ходят и лутают абсолютно по всей карте.** С LiveRaid боты путешествуют и лутают по ВСЕЙ карте — каждый район, каждый этаж, каждая комната с лутом, а не пара привычных мест. Включите запись своего маршрута — и боты начнут ходить по тем путям, которыми ходите вы.
 
 ## Насколько сильно он меняет ботов — и зачем
 
