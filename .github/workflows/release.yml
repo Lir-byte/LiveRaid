@@ -8,6 +8,7 @@ on:
   push:
     paths:
       - "release/**"
+      - ".github/workflows/release.yml"
   workflow_dispatch:
 
 permissions:
@@ -25,17 +26,17 @@ jobs:
           for notes in release/v*.md; do
             tag=$(basename "$notes" .md)
             version="${tag#v}"
+            if gh release view "$tag" >/dev/null 2>&1; then
+              echo "$tag exists: refreshing its notes"
+              gh release edit "$tag" --title "LiveRaid ${version}" --notes-file "$notes"
+              continue
+            fi
             files=()
             for zip in "release/LiveRaid-${version}.zip" "release/LiveRaid-Online-${version}.zip"; do
               if [ -f "$zip" ]; then files+=("$zip"); fi
             done
             if [ ${#files[@]} -eq 0 ]; then
               echo "skip $tag: no archives"
-              continue
-            fi
-            if gh release view "$tag" >/dev/null 2>&1; then
-              echo "$tag exists: refreshing its notes"
-              gh release edit "$tag" --title "LiveRaid ${version}" --notes-file "$notes"
               continue
             fi
             gh release create "$tag" "${files[@]}" --title "LiveRaid ${version}" --notes-file "$notes" --target "$GITHUB_SHA" --latest
