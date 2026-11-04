@@ -32,6 +32,10 @@ namespace LiveRaid.Client.Raid
     public class Route
     {
         public string Id;
+
+        // Studio: a name for the editor, and a switch (a disabled climb is kept in the file but not used)
+        public string Name;
+        public bool Enabled = true;
         public List<RoutePoint> Points = new List<RoutePoint>();
 
         [JsonIgnore]
@@ -79,6 +83,9 @@ namespace LiveRaid.Client.Raid
 
             Remove();
             _location = location;
+
+            // Navmesh patches, blockers and links drawn in LiveRaid Studio go in first: the routes' ends and every reachability check see them
+            Diag.Guard("studio edits", () => Studio.MapEdits.Apply(location));
             if (!Settings.Routes.Value)
             {
                 return;
@@ -91,7 +98,15 @@ namespace LiveRaid.Client.Raid
                 file.Routes.AddRange(PlayerTrail.ShortcutsFor(location));
             }
 
-            Key = file.Routes.Count == 0 ? "" : Hash(JsonConvert.SerializeObject(file.Routes));
+            // Climbs drawn in Studio; one imported from routes/<map>.json keeps its Id, so it is not taken twice
+            foreach (Route edited in Studio.MapEdits.RoutesFor(location).ToList())
+            {
+                file.Routes.RemoveAll(r => r.Id == edited.Id);
+                file.Routes.Add(edited);
+            }
+
+            file.Routes.RemoveAll(r => !r.Enabled);
+            Key = KeyFor(file.Routes);
             List<string> report = new List<string>();
             foreach (Route route in file.Routes)
             {
@@ -104,8 +119,20 @@ namespace LiveRaid.Client.Raid
             }
         }
 
+        /// <summary>Applies the routes and the Studio edits again (the edits file changed in a running raid).</summary>
+        public static void Reload(string location)
+        {
+            Remove();
+            Apply(location);
+        }
+
+        /// <summary>The route set plus what Studio changed in the navmesh: reachability depends on both, so the map cache is rebuilt when either changes.</summary>
+        private static string KeyFor(List<Route> routes) =>
+            routes.Count == 0 && Studio.MapEdits.NavKey == "" ? "" : Hash(JsonConvert.SerializeObject(routes) + Studio.MapEdits.NavKey);
+
         public static void Remove()
         {
+            Diag.Guard("studio edits removal", Studio.MapEdits.Remove);
             foreach (NavMeshLinkInstance link in _links)
             {
                 try
@@ -299,7 +326,14 @@ namespace LiveRaid.Client.Raid
                 all.AddRange(PlayerTrail.ShortcutsFor(location));
             }
 
-            Key = Hash(JsonConvert.SerializeObject(all));
+            foreach (Route edited in Studio.MapEdits.RoutesFor(location).ToList())
+            {
+                all.RemoveAll(r => r.Id == edited.Id);
+                all.Add(edited);
+            }
+
+            all.RemoveAll(r => !r.Enabled);
+            Key = KeyFor(all);
             Log.Info($"LR Routes: saved {result} to routes/{location}.json");
             Notify($"Route saved and active: {result}");
         }

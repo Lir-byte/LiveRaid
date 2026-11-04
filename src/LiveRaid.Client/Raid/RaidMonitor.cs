@@ -260,6 +260,20 @@ namespace LiveRaid.Client.Raid
                 sb.Append(" legs=").Append(legs.Replace(' ', '_'));
             }
 
+            MovementContext mover = bot.GetPlayer?.MovementContext;
+            if (mover != null)
+            {
+                if (!mover.CanWalk)
+                {
+                    sb.Append(" CANTWALK=").Append(mover.PhysicalCondition.ToString().Replace(", ", "+"));
+                }
+
+                if (mover.BlindFire != 0)
+                {
+                    sb.Append(" blind=").Append(mover.BlindFire);
+                }
+            }
+
             sb.Append(" pos=").Append(Fmt(bot.Position)).Append(" moved=").Append(moved.ToString("0")).Append('m');
             float turned = MoveWatch.TakeTurned(bot);
             if (turned >= 150f)

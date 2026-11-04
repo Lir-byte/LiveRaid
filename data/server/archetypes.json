@@ -1093,6 +1093,88 @@
         "min": 10,
         "max": 60
       }
+    },
+    {
+      "id": "packrat",
+      "name": "Барахольщик (один на рейд, только по шансу из F12)",
+      "weights": [],
+      "skillAffinity": {},
+      "primary": {
+        "chance": 0,
+        "classes": []
+      },
+      "holster": {
+        "chance": 100,
+        "price": {
+          "min": 0,
+          "max": 0.5
+        }
+      },
+      "secondPrimaryChance": 0,
+      "slots": {
+        "ArmorVest": {
+          "chance": 15,
+          "price": {
+            "min": 0,
+            "max": 0.3
+          }
+        },
+        "TacticalVest": {
+          "chance": 100,
+          "price": {
+            "min": 0,
+            "max": 0.4
+          }
+        },
+        "Headwear": {
+          "chance": 25,
+          "price": {
+            "min": 0,
+            "max": 0.3
+          }
+        },
+        "Backpack": {
+          "chance": 100,
+          "price": {
+            "min": 0.88,
+            "max": 1
+          }
+        },
+        "Earpiece": {
+          "chance": 70,
+          "price": {
+            "min": 0,
+            "max": 0.6
+          }
+        },
+        "FaceCover": {
+          "chance": 40
+        },
+        "Eyewear": {
+          "chance": 20
+        },
+        "ArmBand": {
+          "chance": 30
+        }
+      },
+      "plates": {
+        "2": 70,
+        "3": 30
+      },
+      "ammo": {
+        "min": 0,
+        "max": 0.5
+      },
+      "weaponModChanceMult": 0.4,
+      "equipmentModChanceMult": 0.4,
+      "lootCountMult": 0.4,
+      "medsMult": 1.2,
+      "grenadeMult": 0.5,
+      "variance": 0.05,
+      "kitLevel": {
+        "min": 12,
+        "max": 40
+      }
     }
   ]
 }

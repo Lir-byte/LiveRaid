@@ -19,6 +19,7 @@ namespace LiveRaid.Client.Raid
     {
         public const string ExplorePrefix = "LR Explore";
         public const string LockedPrefix = "LR Locked ";
+        public const string PathPrefix = "LR Path ";
 
         /// <summary>Quest name -> how loot-rich the region is compared with the rest of the map (0 = empty, 1 = the richest).</summary>
         public static readonly Dictionary<string, float> Heat = new Dictionary<string, float>();
@@ -54,6 +55,15 @@ namespace LiveRaid.Client.Raid
                 }
             }
 
+            // Walks drawn in LiveRaid Studio
+            if (Settings.MapEdits.Value)
+            {
+                foreach (JObject q in EditedPathQuests(intel))
+                {
+                    quests.Add(q);
+                }
+            }
+
             BotQuest[] result = JsonConvert.DeserializeObject<BotQuest[]>(quests.ToString(Formatting.None), EFT.EftJsonConverters.SerializerSettings);
             return result?.ToList() ?? new List<BotQuest>();
         }
@@ -76,6 +86,12 @@ namespace LiveRaid.Client.Raid
 
             // Places the player found that the bots' map did not have (PlayerTrail) join the regions they lie in
             List<Poi> learned = PlayerTrail.PlacesFor(intel.LocationId);
+            if (Settings.MapEdits.Value)
+            {
+                // Places drawn in LiveRaid Studio join the regions they lie in, like the ones learned from the player's trail
+                learned = learned.Concat(Studio.MapEdits.SpotsFor(intel.LocationId)).ToList();
+            }
+
             if (learned.Count > 0)
             {
                 Log.Info($"LR Trail: {learned.Count} learned places on {intel.LocationId} ({learned.Count(l => l.W >= 1.2f)} where you stopped) join the exploration quests");
@@ -197,6 +213,73 @@ namespace LiveRaid.Client.Raid
                             ["doorIDToUnlock"] = spot.Id,
                             ["fixedPositionToUnlockDoor"] = Vec(spot.OutsidePos.Value),
                             ["steps"] = new JArray { Step(inside), look },
+                        },
+                    },
+                };
+            }
+        }
+
+        /// <summary>
+        /// "LR Path &lt;name&gt;": a walk drawn in Studio. One objective whose steps are the points in order (QuestingBots walks the steps one after another);
+        /// "pingpong" adds the way back, "loop" returns to the first point, "once" ends at the last.
+        /// </summary>
+        private static IEnumerable<JObject> EditedPathQuests(MapIntel intel)
+        {
+            foreach (Studio.BotPath path in Studio.MapEdits.PathsFor(intel.LocationId))
+            {
+                List<Studio.PathPoint> points = path.Points.Where(p => p.P != null && p.P.Length >= 3).ToList();
+                if (points.Count < 2)
+                {
+                    continue;
+                }
+
+                List<Studio.PathPoint> order = new List<Studio.PathPoint>(points);
+                if (path.Mode == "pingpong")
+                {
+                    order.AddRange(Enumerable.Reverse(points).Skip(1));
+                }
+                else if (path.Mode == "loop")
+                {
+                    order.Add(points[0]);
+                }
+
+                JArray steps = new JArray();
+                foreach (Studio.PathPoint point in order)
+                {
+                    JObject step = Step(new Vector3(point.P[0], point.P[1], point.P[2]));
+                    step["waitTimeAfterCompleting"] = Math.Max(0f, point.Wait);
+                    if (point.Hold)
+                    {
+                        step["stepType"] = "HoldAtPosition";
+                        step["minElapsedTime"] = new JObject { ["min"] = Math.Max(2f, point.Wait), ["max"] = Math.Max(4f, point.Wait * 1.5f) };
+                    }
+
+                    steps.Add(step);
+                }
+
+                yield return new JObject
+                {
+                    ["name"] = PathPrefix + (path.Name ?? path.Id),
+                    ["repeatable"] = true,
+                    ["pmcsOnly"] = path.Who == "pmc",
+                    ["botRoleFilter"] = path.Who == "scav" ? "assault,cursedAssault,marksman" : "",
+                    ["minLevel"] = 0,
+                    ["maxLevel"] = 99,
+                    ["maxBots"] = Math.Max(1, path.MaxBots),
+                    ["maxBotsInGroup"] = 5,
+                    ["desirability"] = Math.Max(0f, Math.Min(100f, path.Desirability)),
+                    ["canRunBetweenObjectives"] = true,
+                    ["maxTimeOnQuest"] = Math.Max(60f, path.MaxTime),
+                    ["objectives"] = new JArray
+                    {
+                        new JObject
+                        {
+                            ["repeatable"] = false,
+                            ["minDistanceFromBot"] = 0,
+                            ["maxDistanceFromBot"] = 9999,
+                            ["maxRunDistance"] = 12,
+                            ["lootAfterCompleting"] = "Default",
+                            ["steps"] = steps,
                         },
                     },
                 };

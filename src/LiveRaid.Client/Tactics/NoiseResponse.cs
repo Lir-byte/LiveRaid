@@ -15,8 +15,8 @@ namespace LiveRaid.Client.Tactics
     /// Hearing more than gunfire (F12 -> 9 "Respond to noise"). A player hears someone run on the floor above, a door, someone going through a
     /// body or reloading behind a wall - and goes to look, goes round, stops to listen, or slips away. Bots only went to shooting (GunfireResponse);
     /// SAIN hears steps, but only in its own fight. Here, twice a second, every calm leader or lone bot listens for enemies making noise near it:
-    ///   running        38 m (walking upright 14 m; crouching, prone and standing make none)
-    ///   a door         30 m (opened or shut by someone within 3 m of it)
+    ///   running        50 m (walking upright 20 m; crouching, prone and standing make none)  [1.2.0: 38 / 14 / 30 - in a 37-minute raid of 70 bots only 10 noises reached a
+    ///   a door         40 m (opened or shut by someone within 3 m of it)                     calm leader at all, so the ambush had hardly a chance to come up]
     ///   looting        14 m (a bot going through a body or a container)
     ///   reloading      16 m
     /// A wall between halves the range, another floor (over 3.5 m up or down) cuts it to 40 %, a skilled ear hears a little further.
@@ -44,6 +44,9 @@ namespace LiveRaid.Client.Tactics
             Listen,
             SlipAway,
             Ignore,
+
+            // Lie in wait where the enemy is likely to go (Intercept)
+            Intercept,
         }
 
         private class Source
@@ -51,6 +54,9 @@ namespace LiveRaid.Client.Tactics
             public Vector3 LastPos;
             public float LastAt;
             public float Speed;
+
+            // Where he walks: the smoothed direction of his steps of the last seconds (flat), zero while he stands
+            public Vector3 Dir;
             public Noise Door;
             public float DoorAt;
             public Vector3 DoorPos;
@@ -122,7 +128,8 @@ namespace LiveRaid.Client.Tactics
 
             int cap = Mathf.Max(3, alive.Count / 4);
             _active.RemoveWhere(id => !TacticalTasks.Has(alive.FirstOrDefault(x => x.ProfileId == id)?.AIData?.BotOwner, TaskKind.Investigate)
-                                      && !TacticalTasks.Has(alive.FirstOrDefault(x => x.ProfileId == id)?.AIData?.BotOwner, TaskKind.Listen));
+                                      && !TacticalTasks.Has(alive.FirstOrDefault(x => x.ProfileId == id)?.AIData?.BotOwner, TaskKind.Listen)
+                                      && !TacticalTasks.Has(alive.FirstOrDefault(x => x.ProfileId == id)?.AIData?.BotOwner, TaskKind.Ambush));
             foreach (Player listener in alive)
             {
                 if (_active.Count >= cap)
@@ -234,6 +241,15 @@ namespace LiveRaid.Client.Tactics
                     Vector3 d = x.Position - s.LastPos;
                     d.y = 0f;
                     s.Speed = Mathf.Lerp(s.Speed, d.magnitude / dt, 0.6f);
+                    if (d.magnitude / dt > 0.8f)
+                    {
+                        Vector3 now1 = d.normalized;
+                        s.Dir = s.Dir.sqrMagnitude < 0.01f ? now1 : (s.Dir * 0.6f + now1 * 0.4f).normalized;
+                    }
+                    else if (d.magnitude / dt < 0.3f)
+                    {
+                        s.Dir = Vector3.zero;
+                    }
                     s.LastPos = x.Position;
                     s.LastAt = now;
                 }
@@ -289,7 +305,7 @@ namespace LiveRaid.Client.Tactics
             if (s.Door == Noise.Door && Time.time - s.DoorAt < 1.2f)
             {
                 at = s.DoorPos;
-                range = 30f;
+                range = 40f;
                 return Noise.Door;
             }
 
@@ -297,7 +313,7 @@ namespace LiveRaid.Client.Tactics
             bool prone = x.MovementContext != null && x.MovementContext.IsInPronePose;
             if (!prone && (x.MovementContext?.IsSprintEnabled == true || s.Speed > 4.6f))
             {
-                range = 38f;
+                range = 50f;
                 return Noise.Running;
             }
 
@@ -317,7 +333,7 @@ namespace LiveRaid.Client.Tactics
 
             if (!prone && pose > 0.7f && s.Speed > 2.2f)
             {
-                range = 14f;
+                range = 20f;
                 return Noise.Steps;
             }
 
@@ -390,11 +406,35 @@ namespace LiveRaid.Client.Tactics
                 [Reaction.Listen] = 0.45f,
                 [Reaction.SlipAway] = (p.Style == PlayStyle.Rat ? 0.6f : 0.08f) + (fullBag ? 0.4f : 0f) + (1f - aggr) * 0.2f,
                 [Reaction.Ignore] = 0.25f + (noise == Noise.Steps ? 0.3f : 0f) + (p.Kind == BotKind.Scav ? 0.2f : 0f),
+
+                // Only for someone who is on the move (a looter or a reloader stands where he is): by character, see Intercept.Weight
+                [Reaction.Intercept] = noise == Noise.Running || noise == Noise.Steps || noise == Noise.Door ? Intercept.Weight(bot, p, precision, fullBag) : 0f,
             };
 
+            // The packrat does not go to look: it slips away (Packrat)
+            if (p.Packrat)
+            {
+                w[Reaction.Check] = w[Reaction.GoRound] = 0f;
+                w[Reaction.SlipAway] = Mathf.Max(w[Reaction.SlipAway], 1.5f);
+            }
+
             Reaction r = Pick(w);
+            Intercept.Plan plan = null;
+            if (r == Reaction.Intercept)
+            {
+                // A place to lie in wait that the bot reaches first - else it does something else
+                plan = Intercept.MakePlan(bot, p, maker, where);
+                if (plan == null)
+                {
+                    Intercept.NoteNoSpot();
+                    w[Reaction.Intercept] = 0f;
+                    r = Pick(w);
+                }
+            }
+
             _reactions[r] = _reactions.TryGetValue(r, out int c) ? c + 1 : 1;
-            _cooldown[bot.ProfileId] = now + 60f + (float)_rng.NextDouble() * 30f;
+            // A noise let be (Ignore) is not a reaction yet: the bot hears the next one soon (before, 60-90 s after every noise - 10 reactions in a whole raid)
+            _cooldown[bot.ProfileId] = now + (r == Reaction.Ignore ? 15f + (float)_rng.NextDouble() * 10f : 60f + (float)_rng.NextDouble() * 30f);
             float dist = Vector3.Distance(bot.Position, where);
             Log.Info($"LR Noise: {p.Name} ({p.Kind} {p.Style}, {p.Skill}) hears {(human ? "you" : maker.Profile?.Nickname)} {Words(noise)} {dist:0} m away -> {r}");
             if (r == Reaction.Ignore)
@@ -441,6 +481,10 @@ namespace LiveRaid.Client.Tactics
                     task = new TacticalTask { Kind = TaskKind.Listen, LookAt = where, Until = now + 3f + (float)_rng.NextDouble() * 3f };
                     break;
 
+                case Reaction.Intercept:
+                    task = Intercept.Task(bot, p, maker, plan, 1);
+                    break;
+
                 case Reaction.SlipAway:
                 {
                     Vector3 away = bot.Position - where;
@@ -466,11 +510,54 @@ namespace LiveRaid.Client.Tactics
                     going.Add(bot.ProfileId);
                 }
 
-                if (r != Reaction.SlipAway)
+                if (r != Reaction.SlipAway && r != Reaction.Intercept)
                 {
                     SquadBrain.Say(bot, r == Reaction.Listen ? EPhraseTrigger.Stop : EPhraseTrigger.Going, 0.35f);
                 }
             }
+        }
+
+        /// <summary>Where the person walks (flat, zero when he stands) and how fast, from his steps of the last seconds (Intercept).</summary>
+        internal static bool Heading(Player x, out Vector3 dir, out float speed)
+        {
+            dir = default;
+            speed = 0f;
+            if (x == null || !_sources.TryGetValue(x.ProfileId, out Source s))
+            {
+                return false;
+            }
+
+            dir = s.Dir;
+            speed = s.Speed;
+            return s.Dir.sqrMagnitude > 0.01f;
+        }
+
+        /// <summary>No new reaction to a noise for this long (after an ambush).</summary>
+        internal static void Rest(BotOwner bot, float seconds)
+        {
+            if (bot == null)
+            {
+                return;
+            }
+
+            float until = Time.time + seconds;
+            if (!_cooldown.TryGetValue(bot.ProfileId, out float now) || now < until)
+            {
+                _cooldown[bot.ProfileId] = until;
+            }
+        }
+
+        /// <summary>Does the bot hear this person right now (moving: running, walking upright or at a door), and where.</summary>
+        internal static bool Hear(BotOwner bot, BotProfile p, Player maker, out Vector3 at)
+        {
+            at = default;
+            if (bot == null || maker == null || maker.HealthController?.IsAlive != true)
+            {
+                return false;
+            }
+
+            Noise n = NoiseOf(maker, out at, out float range);
+            return (n == Noise.Running || n == Noise.Steps || n == Noise.Door) && Heard(bot, p, at, range) > 0f;
         }
 
         private static string Words(Noise n)

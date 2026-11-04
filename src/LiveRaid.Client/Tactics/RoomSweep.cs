@@ -24,11 +24,16 @@ namespace LiveRaid.Client.Tactics
     /// Now the visit picks every next thing itself and hands it to LootingBots directly (as if its scan had found it):
     ///  - ROOM: from where the first thing was taken. The next is the nearest - on foot - unsearched container, body or loose thing worth taking in the
     ///    same room (straight distance &lt;= 14 m, the same floor, no wall between). Up to 12 things per room.
-    ///  - Room done: chance to go on to the next room 0.9 x 0.85 per room already done (x0.7..1.0 by the bot's greed): 90 / 77 / 65 / 55 %. Yes: the
+    ///  - Room done: chance to go on to the next room 100 / 95 / 85 / 65 / 55 / 45 / 35 / 25 % for the 1st, 2nd... room done (x0.8..1.0 by the bot's greed; see
+    ///    <see cref="GoOnChance"/>). Yes: the
     ///    nearest unsearched thing elsewhere in the building (40 m round where the visit began, 9 m up or down), in a room no squadmate is going through
     ///    if there is one - its room is the next. Nothing left: the building is done.
     ///  - Patience: 150-470 s per building (by greed), 30 things at most; a fight, danger or a full bag ends it.
     ///  - Out: the bot goes about its quest, LootingBots does not scan for 20-45 s and leaves that building alone for 4 minutes (bodies excepted).
+    ///
+    /// A room opened with a key (RoomPeek) is searched in full: the visit is marked (<see cref="MarkFullRoom"/>) and then it does not end at the usual room
+    /// limits - up to 40 things in the room, then everything within 20 m of the room's middle (on this floor, 40 m of walking), no chance to leave, 7 minutes
+    /// of patience; it ends when nothing is left, the bag is full, or a fight/danger drives the bot off.
     /// F12 -> 7 "Search the whole room".
     /// </summary>
     public static class RoomSweep
@@ -58,6 +63,10 @@ namespace LiveRaid.Client.Tactics
             public int Steps;
             public int VisitSteps;
             public float VisitUntil;
+
+            // A room opened with the bot's key: searched to the end (MarkFullRoom)
+            public bool Full;
+            public Vector3 FullCenter;
             public readonly HashSet<string> Tried = new HashSet<string>();
         }
 
@@ -74,10 +83,25 @@ namespace LiveRaid.Client.Tactics
         private static readonly Collider[] _colliders = new Collider[2048];
         private static readonly Dictionary<string, float> _pending = new Dictionary<string, float>();
         private static readonly Dictionary<string, Visit> _visits = new Dictionary<string, Visit>();
+        private static readonly Dictionary<string, (Vector3 center, float until)> _full = new Dictionary<string, (Vector3, float)>();
+        private const int MaxFullRoomSteps = 40;
+        private const int MaxFullVisitSteps = 80;
+        private const float FullRadius = 20f;
+        private const float FullPath = 40f;
         private static readonly Dictionary<string, List<(Vector3 at, float until)>> _done = new Dictionary<string, List<(Vector3, float)>>();
         private static readonly System.Random _rng = new System.Random();
         private static readonly NavMeshPath _path = new NavMeshPath();
         private static float _next;
+
+        // Why the last search for the next thing came out empty (the "nothing left" line says it): what the loot layers held, what each filter took out
+        private static int _seen, _ignored, _busy, _floor, _where, _share, _noStand, _noPath, _far, _taken, _refused;
+
+        private static void ResetWhy() => _seen = _ignored = _busy = _floor = _where = _share = _noStand = _noPath = _far = _taken = _refused = 0;
+
+        private static string Why() =>
+            $"{_seen} lootable thing(s) round it: searched or ignored by LootingBots {_ignored}, in someone's hands {_busy}, another floor or too far {_floor}, " +
+            $"behind a wall / outside the room {_where}, a squadmate's share {_share}, no spot to loot from {_noStand}; of the rest no full path {_noPath}, " +
+            $"too long a way {_far}, taken by another bot {_taken}, refused {_refused}";
 
         public static int Rooms { get; private set; }
         public static int Steps { get; private set; }
@@ -93,6 +117,7 @@ namespace LiveRaid.Client.Tactics
         {
             _pending.Clear();
             _visits.Clear();
+            _full.Clear();
             _done.Clear();
             _next = 0f;
             Rooms = Steps = NextRooms = Leaves = Emptied = SplitRooms = 0;
@@ -167,7 +192,8 @@ namespace LiveRaid.Client.Tactics
             {
                 BotProfile p = BotProfiles.Get(bot);
                 float greed = Mathf.Clamp(p?.LootGreed ?? 1f, 0.4f, 1.6f);
-                _visits[bot.ProfileId] = v = new Visit { Anchor = pos, RoomCenter = pos, Mode = Mode.Room, VisitUntil = now + 150f + 320f * (greed - 0.4f) / 1.2f, Rooms = 1 };
+                _visits[bot.ProfileId] = v = new Visit { Anchor = pos, RoomCenter = pos, Mode = Mode.Room, VisitUntil = now + 150f + 320f * (greed - 0.4f) / 1.2f + (p?.Packrat == true ? 240f : 0f), Rooms = 1 };
+                ApplyFull(bot, v, pos);
                 return;
             }
 
@@ -177,6 +203,43 @@ namespace LiveRaid.Client.Tactics
                 v.RoomCenter = pos;
                 v.Rooms++;
                 v.Steps = 0;
+            }
+
+            ApplyFull(bot, v, pos);
+        }
+
+        /// <summary>
+        /// RoomPeek: the bot has just walked into a room it opened with its key - the visit it starts at the first thing it takes there searches the room to the
+        /// end (<see cref="Visit.Full"/>), with no chance of leaving early.
+        /// </summary>
+        public static void MarkFullRoom(BotOwner bot, Vector3 center)
+        {
+            if (bot != null && Settings.RoomSweep.Value)
+            {
+                _full[bot.ProfileId] = (center, Time.time + 90f);
+            }
+        }
+
+        private static void ApplyFull(BotOwner bot, Visit v, Vector3 pos)
+        {
+            if (!_full.TryGetValue(bot.ProfileId, out (Vector3 center, float until) m))
+            {
+                return;
+            }
+
+            if (Time.time > m.until)
+            {
+                _full.Remove(bot.ProfileId);
+                return;
+            }
+
+            if (FlatDistance(m.center, pos) <= 25f && Mathf.Abs(m.center.y - pos.y) <= 4f)
+            {
+                v.Full = true;
+                v.FullCenter = m.center;
+                v.VisitUntil = Mathf.Max(v.VisitUntil, Time.time + 420f);
+                _full.Remove(bot.ProfileId);
+                Log.Detail("loot", () => $"{bot.Profile?.Nickname} searches the room it opened with its key to the end");
             }
         }
 
@@ -222,6 +285,12 @@ namespace LiveRaid.Client.Tactics
             if (now > v.VisitUntil || v.Mode == Mode.Done || FlatDistance(v.Anchor, pos) > BuildingRadius + 10f)
             {
                 _visits.Remove(bot.ProfileId);
+                return true;
+            }
+
+            // The room opened with a key: everything round its middle is part of the job
+            if (v.Full && FlatDistance(v.FullCenter, destination) <= FullRadius && Mathf.Abs(v.FullCenter.y - destination.y) <= 3f)
+            {
                 return true;
             }
 
@@ -326,7 +395,7 @@ namespace LiveRaid.Client.Tactics
                 return;
             }
 
-            if (now > v.VisitUntil || v.VisitSteps >= MaxVisitSteps)
+            if (now > v.VisitUntil || v.VisitSteps >= (v.Full || p.Packrat ? MaxFullVisitSteps : MaxVisitSteps))
             {
                 Leave(bot, player, p, v, "it has had enough of this building");
                 return;
@@ -348,9 +417,16 @@ namespace LiveRaid.Client.Tactics
             }
 
             // The next thing of this room
-            if (v.Steps < MaxRoomSteps)
+            ResetWhy();
+            if (v.Steps < (v.Full ? MaxFullRoomSteps : MaxRoomSteps))
             {
                 List<Target> room = Candidates(bot, brain, v, v.RoomCenter, RoomRadius, 2.2f, at => InRoom(v.RoomCenter, at));
+                if (v.Full && room.Count == 0)
+                {
+                    // The room opened with a key: its other corner, seen from the middle of the room
+                    room = Candidates(bot, brain, v, v.FullCenter, RoomRadius, 2.2f, at => InRoom(v.FullCenter, at));
+                }
+
                 if (Hand(bot, brain, v, room, RoomPath, out Target t))
                 {
                     if (v.Steps == 0)
@@ -371,9 +447,31 @@ namespace LiveRaid.Client.Tactics
         /// <summary>Everything in this room is done: on to the next room of the building, or out - the likelier out the more rooms the bot has done.</summary>
         private static void RoomFinished(BotOwner bot, Player player, BotProfile p, LootingBrain brain, Visit v)
         {
-            float greed = Mathf.Clamp(p.LootGreed, 0.4f, 1.6f);
-            // 90 / 77 / 65 / 55 / 47 % (x0.7..1.0 by greed) - before 85 / 64 / 48 / 36: a building was left after two rooms as often as it was finished
-            float chance = Mathf.Clamp(0.9f * Mathf.Pow(0.85f, v.Rooms - 1) * (0.7f + 0.3f * Mathf.Min(1f, greed)), 0.05f, 0.95f);
+            if (v.Full)
+            {
+                // The room opened with a key is searched to the end: whatever is left round its middle (a big room, a second room behind it), no chance of leaving
+                List<Target> all = Candidates(bot, brain, v, v.FullCenter, FullRadius, 3f, at => true);
+                if (!Hand(bot, brain, v, all, FullPath, out Target next))
+                {
+                    Emptied++;
+                    Leave(bot, player, p, v, $"the room it opened with its key is searched to the end ({v.VisitSteps} thing(s); {Why()})");
+                    return;
+                }
+
+                if (!InRoom(v.RoomCenter, next.Pos))
+                {
+                    v.Rooms++;
+                    v.RoomCenter = next.Pos;
+                    v.Steps = 1;
+                    NextRooms++;
+                }
+
+                Log.Detail("loot", () => $"{p.Name} goes on in the room it opened with its key - {What(next)} {next.Path:0} m away");
+                return;
+            }
+
+            // The packrat is a vacuum cleaner: on to the next room almost every time, however many rooms it has done
+            float chance = p.Packrat ? 0.97f : GoOnChance(v.Rooms, p.LootGreed);
             if (_rng.NextDouble() >= chance)
             {
                 Leave(bot, player, p, v, $"{v.Rooms} room(s) are enough ({chance:P0} to go on)");
@@ -393,7 +491,7 @@ namespace LiveRaid.Client.Tactics
             if (!Hand(bot, brain, v, rest, BuildingPath, out Target t))
             {
                 Emptied++;
-                Leave(bot, player, p, v, $"nothing left to search in the building after {v.Rooms} room(s)");
+                Leave(bot, player, p, v, $"nothing left to search in the building after {v.Rooms} room(s) ({Why()})");
                 return;
             }
 
@@ -402,6 +500,18 @@ namespace LiveRaid.Client.Tactics
             v.Steps = 1;
             NextRooms++;
             Log.Info($"LR Loot: {p.Name} ({p.Style}) has gone through room {v.Rooms - 1} and goes on to the next one ({chance:P0}) - {What(t)} {t.Path:0} m away");
+        }
+
+        private static readonly float[] GoOn = { 1f, 0.95f, 0.85f, 0.65f, 0.55f, 0.45f, 0.35f };
+
+        /// <summary>
+        /// The chance to go on to the next room after <paramref name="roomsDone"/> rooms of the building: 100 / 95 / 85 / 65 / 55 / 45 / 35 %, then 25 % (2026-11-02, the owner's table;
+        /// before it 90 / 77 / 65 / 55 / 47). A greedy bot (1.0 and over) keeps the whole figure, a lazier one loses up to a fifth of it (greed 0.4: x0.88).
+        /// </summary>
+        public static float GoOnChance(int roomsDone, float greed)
+        {
+            float basic = roomsDone >= 1 && roomsDone <= GoOn.Length ? GoOn[roomsDone - 1] : 0.25f;
+            return Mathf.Clamp(basic * (0.8f + 0.2f * Mathf.Min(1f, Mathf.Clamp(greed, 0.4f, 1.6f))), 0.05f, 1f);
         }
 
         /// <summary>A squadmate is going through the room this point is in right now.</summary>
@@ -558,6 +668,7 @@ namespace LiveRaid.Client.Tactics
                 if (!NavMesh.CalculatePath(from.position, t.Dest, NavMesh.AllAreas, _path) || _path.status != NavMeshPathStatus.PathComplete)
                 {
                     v.Tried.Add(t.Id);
+                    _noPath++;
                     continue;
                 }
 
@@ -570,6 +681,7 @@ namespace LiveRaid.Client.Tactics
 
                 if (len > maxPath)
                 {
+                    _far++;
                     continue;
                 }
 
@@ -582,6 +694,7 @@ namespace LiveRaid.Client.Tactics
                 v.Tried.Add(t.Id);
                 if (!ActiveLootCache.CacheActiveLootId(t.Id, bot))
                 {
+                    _taken++;
                     continue;
                 }
 
@@ -590,6 +703,7 @@ namespace LiveRaid.Client.Tactics
                 {
                     // Refused (LiveRaid's loot brain does not want this body now)
                     ActiveLootCache.Cleanup(t.Id, bot);
+                    _refused++;
                     continue;
                 }
 
@@ -657,15 +771,40 @@ namespace LiveRaid.Client.Tactics
                 }
 
                 string id = root.Id;
-                if (string.IsNullOrEmpty(id) || !seen.Add(id) || v.Tried.Contains(id) || brain.IsLootIgnored(id) || LootAudit.Cooling(bot, id) || ActiveLootCache.IsLootInUse(id, bot))
+                if (string.IsNullOrEmpty(id) || !seen.Add(id))
                 {
                     continue;
                 }
 
-                Vector3 at = obj.transform.position;
-                if (Mathf.Abs(at.y - center.y) > height || FlatDistance(center, at) > radius || !where(at)
-                    || (type != LootFinder.LootType.Corpse && !SquadLoot.InReach(bot, at)))
+                _seen++;
+                if (v.Tried.Contains(id) || brain.IsLootIgnored(id) || LootAudit.Cooling(bot, id))
                 {
+                    _ignored++;
+                    continue;
+                }
+
+                if (ActiveLootCache.IsLootInUse(id, bot))
+                {
+                    _busy++;
+                    continue;
+                }
+
+                Vector3 at = obj.transform.position;
+                if (Mathf.Abs(at.y - center.y) > height || FlatDistance(center, at) > radius)
+                {
+                    _floor++;
+                    continue;
+                }
+
+                if (!where(at))
+                {
+                    _where++;
+                    continue;
+                }
+
+                if (type != LootFinder.LootType.Corpse && !SquadLoot.InReach(bot, at))
+                {
+                    _share++;
                     continue;
                 }
 
@@ -675,6 +814,7 @@ namespace LiveRaid.Client.Tactics
                 Vector3 dest = Destination(low);
                 if (dest == Vector3.zero)
                 {
+                    _noStand++;
                     continue;
                 }
 

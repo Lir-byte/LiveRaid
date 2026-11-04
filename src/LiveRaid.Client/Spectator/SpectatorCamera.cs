@@ -74,7 +74,7 @@ namespace LiveRaid.Client.Spectator
             _dyingText = text;
             _freeAt = Time.time + seconds;
             _follow = null;
-            _autoFollowUntil = SpectatorSession.Observer && Settings.ObserverFollowAtStart.Value ? Time.time + 60f : 0f;
+            _autoFollowUntil = SpectatorSession.Observer && Settings.ObserverFollowAtStart.Value ? Time.time + (Settings.ObserverFollowPackrat.Value ? 180f : 60f) : 0f;
             SpectatorSession.State = SpectatorState.Dying;
             if (_speed <= 0f)
             {
@@ -653,7 +653,24 @@ namespace LiveRaid.Client.Spectator
                 return;
             }
 
-            Player pick = pmcs[UnityEngine.Random.Range(0, pmcs.Count)];
+            // Testing the packrat: wait for it (it comes with the PMC groups), a random PMC only when the time is nearly out
+            Player pick = null;
+            bool packrat = false;
+            if (Settings.ObserverFollowPackrat.Value)
+            {
+                pick = pmcs.FirstOrDefault(x => BotProfiles.Get(x.AIData.BotOwner)?.Packrat == true);
+                packrat = pick != null;
+                if (pick == null && Time.time < _autoFollowUntil - 1f)
+                {
+                    return;
+                }
+            }
+
+            if (pick == null)
+            {
+                pick = pmcs[UnityEngine.Random.Range(0, pmcs.Count)];
+            }
+
             _autoFollowUntil = 0f;
             Fade();
             StartFollow(pick);
@@ -668,7 +685,9 @@ namespace LiveRaid.Client.Spectator
 
             _pitch = 12f;
             Toast(Loc.T($"Слежение: {pick.Profile.Nickname}", $"Following: {pick.Profile.Nickname}"));
-            Log.Info($"LR Spectator: observer raid starts by following a random PMC - {pick.Profile.Nickname} ({pmcs.Count} PMCs in the raid)");
+            Log.Info(packrat
+                ? $"LR Spectator: observer raid starts by following the packrat - {pick.Profile.Nickname} ({pmcs.Count} PMCs in the raid)"
+                : $"LR Spectator: observer raid starts by following a random PMC - {pick.Profile.Nickname} ({pmcs.Count} PMCs in the raid)");
         }
 
         private void StartFollow(Player bot)

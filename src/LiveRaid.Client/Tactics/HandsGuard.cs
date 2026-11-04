@@ -32,6 +32,7 @@ namespace LiveRaid.Client.Tactics
             public float NotReadySince = -1f;
             public float NextTakeAt;
             public int Takes;
+            public float GrenadeSince = -1f;
         }
 
         private static readonly Dictionary<string, State> _states = new Dictionary<string, State>();
@@ -41,15 +42,16 @@ namespace LiveRaid.Client.Tactics
         public static int MedsEnded { get; private set; }
         public static int GunsBack { get; private set; }
         public static int ChangesReleased { get; private set; }
+        public static int GrenadesFreed { get; private set; }
 
         public static string Summary =>
-            $"stuck hands freed: hung reloads cleared {ReloadsCleared}, hung meds ended {MedsEnded}, guns taken back from idle hands {GunsBack}, unfinished weapon changes released {ChangesReleased}";
+            $"stuck hands freed: hung reloads cleared {ReloadsCleared}, hung meds ended {MedsEnded}, guns taken back from idle hands {GunsBack}, unfinished weapon changes released {ChangesReleased}, grenades left in the hands put away {GrenadesFreed}";
 
         public static void Clear()
         {
             _states.Clear();
             _next = 0f;
-            ReloadsCleared = MedsEnded = GunsBack = ChangesReleased = 0;
+            ReloadsCleared = MedsEnded = GunsBack = ChangesReleased = GrenadesFreed = 0;
         }
 
         /// <summary>The reload in the hands is real (the animation is going on), not just EFT's flag.</summary>
@@ -194,15 +196,49 @@ namespace LiveRaid.Client.Tactics
             }
 
             // 3. Meds (or nothing) in the hands while nothing is being used: the gun has to come back
-            bool idleHands = p.Kind != BotKind.Other && hands != null && !using_ && (medsInHands || (IsEmpty(hands) && !player.HandsController.IsInInteractionStrictCheck()));
+            // A grenade left in the hands after the throw (raid 2026-11-02 14:11: SabikONE walked and fought for two minutes with "a_grenade" in his hands).
+            // EFT's BotGrenadeController.EndAll takes the previous weapon back once, and once more after 2 s (TakePrevWeapon, refused while the weapon-change
+            // period has not passed, a change is under way or the reload flag hangs - and for a bot whose last slot was the second gun it asks for the support
+            // weapon, which may not be allowed); no third try, and the idle-hands rule below knew only meds and empty hands.
+            bool grenadeInHands = hands != null && !(hands is Player.FirearmController) && hands.GetType().Name.Contains("Grenade");
+            if (grenadeInHands)
+            {
+                if (s.GrenadeSince < 0f)
+                {
+                    s.GrenadeSince = now;
+                }
+            }
+            else
+            {
+                s.GrenadeSince = -1f;
+            }
+
+            bool throwing = wm.Grenades?.ThrowindNow == true;
+            bool grenadeStuck = grenadeInHands && now - s.GrenadeSince >= (throwing ? 10f : 3f);
+            bool idleHands = p.Kind != BotKind.Other && hands != null && !using_ && (medsInHands || grenadeStuck || (IsEmpty(hands) && !player.HandsController.IsInInteractionStrictCheck()));
             if (idleHands)
             {
                 if (s.IdleHandsSince < 0f)
                 {
                     s.IdleHandsSince = now;
                 }
-                else if (now - s.IdleHandsSince >= (medsInHands ? 3f : 5f) && now >= s.NextTakeAt)
+                else if (now - s.IdleHandsSince >= (grenadeStuck ? 0f : medsInHands ? 3f : 5f) && now >= s.NextTakeAt)
                 {
+                    if (grenadeStuck)
+                    {
+                        GrenadesFreed++;
+                        BotWeaponSelector sel0 = wm.Selector;
+                        Log.Info($"LR Weapon: {p.Name} still holds a grenade after {now - s.GrenadeSince:0} s ({(throwing ? "the throw flag is up" : "nothing is being thrown")}; " +
+                                 $"selector ready {sel0.IsWeaponReady}, changing {sel0.IsChanging}, last slot {sel0.LastEquipmentSlot}, reload flag {wm.Reload?.Reloading}) - puts it away and draws a gun");
+                        if (throwing)
+                        {
+                            wm.Grenades.ThrowindNow = false;
+                        }
+
+                        wm.Selector.IsWeaponReady = true;
+                        s.GrenadeSince = now;
+                    }
+
                     if (reload != null && reload.Reloading)
                     {
                         // EFT refuses any weapon change while the flag is up
@@ -211,7 +247,7 @@ namespace LiveRaid.Client.Tactics
                     }
 
                     bool first = s.Takes == 0;
-                    TakeGunBack(bot, s, now, force: s.Takes >= 2);
+                    TakeGunBack(bot, s, now, force: s.Takes >= 2 || grenadeStuck);
                     if (first)
                     {
                         GunsBack++;

@@ -104,6 +104,13 @@ namespace LiveRaid.Client.Patches
                 Tactics.GunState.Clear();
                 Tactics.HealBreak.Clear();
                 Tactics.CloseSense.Clear();
+                Tactics.FireDiscipline.Clear();
+                Tactics.BlindFireHold.Clear();
+                FrozenWatch.Clear();
+                LayerCalm.Clear();
+                QbLootWalkPatch.Clear();
+                Tactics.Intercept.Clear();
+                Tactics.PressHurt.Clear();
                 Tactics.MagKeeper.Clear();
                 Tactics.Bottomless.Clear();
                 NetWatch.Clear();
@@ -125,6 +132,9 @@ namespace LiveRaid.Client.Patches
                 Raid.Corridors.Clear();
                 Tempo.Clear();
                 DoorManners.Clear();
+                RoomPeek.Clear();
+                Packrat.Clear();
+                PerfProbe.Clear();
                 ExitRules.Clear();
                 Load.Clear();
                 FoundKeys.Clear();
@@ -251,6 +261,13 @@ namespace LiveRaid.Client.Patches
                 Tactics.GunState.Clear();
                 Tactics.HealBreak.Clear();
                 Tactics.CloseSense.Clear();
+                Tactics.FireDiscipline.Clear();
+                Tactics.BlindFireHold.Clear();
+                FrozenWatch.Clear();
+                LayerCalm.Clear();
+                QbLootWalkPatch.Clear();
+                Tactics.Intercept.Clear();
+                Tactics.PressHurt.Clear();
                 Tactics.MagKeeper.Clear();
                 Tactics.Bottomless.Clear();
                 NetWatch.Clear();
@@ -268,6 +285,9 @@ namespace LiveRaid.Client.Patches
                 Tactics.PlayerSense.Clear();
                 Tactics.GrenadeHabit.Clear();
                 DoorManners.Clear();
+                RoomPeek.Clear();
+                Packrat.Clear();
+                PerfProbe.Clear();
                 ExitRules.Clear();
                 Load.Clear();
                 FoundKeys.Clear();
@@ -419,6 +439,7 @@ namespace LiveRaid.Client.Patches
             Diag.Tick("CoverRoute", CoverRoute.Tick);
             Diag.Tick("Corridors", Raid.Corridors.Tick);
             Diag.Tick("DoorManners", DoorManners.Tick);
+            Diag.Tick("RoomPeek", RoomPeek.Tick);
             Diag.Tick("FoundKeys", FoundKeys.Tick);
             Diag.Tick("ExitArrival", ExitArrival.Tick);
             Diag.Tick("CarExits", CarExits.Tick);
@@ -432,6 +453,7 @@ namespace LiveRaid.Client.Patches
             Diag.Tick("EncounterLog", EncounterLog.Tick);
             Diag.Tick("QuestAudit", QuestAudit.Tick);
             Diag.Tick("RouteRecorder", Routes.TickRecorder);
+            Diag.Tick("MapEdits", Studio.MapEdits.Tick);
             Diag.Tick("RaidMonitor", RaidMonitor.Tick);
             Diag.Tick("DoorCuts", DoorAssistLayer.Tick);
             Diag.Tick("RequestWatch", RequestWatch.Tick);
@@ -465,6 +487,9 @@ namespace LiveRaid.Client.Patches
             Diag.Tick("Bottomless", Tactics.Bottomless.Tick);
             Diag.Tick("AimWatch", Tactics.AimWatch.Tick);
             Diag.Tick("ReloadUnderFire", Tactics.ReloadUnderFire.Tick);
+            Diag.Tick("Intercept", Tactics.Intercept.Tick);
+            Diag.Tick("FrozenWatch", FrozenWatch.Tick);
+            Diag.Tick("Packrat", Packrat.Tick);
             Diag.Tick("SafeReload", Tactics.SafeReload.Tick);
             Diag.Tick("KeyPlaces", KeyPlaces.Tick);
             Diag.Tick("SquadExtract", SquadExtract.Tick);

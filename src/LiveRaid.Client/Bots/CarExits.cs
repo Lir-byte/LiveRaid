@@ -19,18 +19,21 @@ namespace LiveRaid.Client.Bots
     public static class CarExits
     {
         private static readonly Dictionary<ExfiltrationPoint, float> _departAt = new Dictionary<ExfiltrationPoint, float>();
+        private static readonly Dictionary<string, float> _waitSince = new Dictionary<string, float>();
         private static float _next;
 
+        public static int Missed { get; private set; }
         public static int Paid { get; private set; }
         public static int Departed { get; private set; }
 
-        public static string Summary => $"paid cars started by bots {Paid}, driven off {Departed}";
+        public static string Summary => $"paid cars started by bots {Paid}, driven off {Departed}, bots that came too late for it and chose another exit {Missed}";
 
         public static void Clear()
         {
             _departAt.Clear();
+            _waitSince.Clear();
             _next = 0f;
-            Paid = Departed = 0;
+            Paid = Departed = Missed = 0;
         }
 
         private static bool On => Settings.Enabled.Value && Settings.SpecialExits.Value && Settings.CarLeaves.Value && Net.RunsBots;
@@ -41,7 +44,7 @@ namespace LiveRaid.Client.Bots
         /// <summary>From the exit node: the bot stands at the point of its exit.</summary>
         public static void Arrived(BotOwner bot, ExfiltrationPoint e)
         {
-            if (!On || bot == null || !IsCar(e) || _departAt.ContainsKey(e) || e.Status == EExfiltrationStatus.NotPresent)
+            if (!On || bot == null || !IsCar(e) || e.Status == EExfiltrationStatus.NotPresent)
             {
                 return;
             }
@@ -53,6 +56,35 @@ namespace LiveRaid.Client.Bots
             }
 
             float time = Mathf.Max(5f, e.Settings.ExfiltrationTime);
+            if (_departAt.TryGetValue(e, out float at))
+            {
+                // The car is paid for and counting down: this one rides with it, if there is still time - its own 60 s would end after the car has gone
+                float left = at - Time.time - (Net.Online ? 3f : 0f);
+                if (left > 1.5f && bot.Exfiltration != null && bot.Exfiltration.LeaveTime > Time.time + left + 0.5f)
+                {
+                    bot.Exfiltration.SetLeaveTime(Time.time + left);
+                }
+
+                return;
+            }
+
+            // The payment starts a clock for everyone, and the car does not wait: a squad pays when it is all there (raid 2026-11-02 15:58: Therkelsen paid
+            // with his mate 136 m away, the mate ran 148 m in 27 s and stood a minute at a car that had gone half way through his timer)
+            if (!SquadExtract.SquadIsThere(bot, out string missing))
+            {
+                if (!_waitSince.TryGetValue(bot.ProfileId, out float since))
+                {
+                    _waitSince[bot.ProfileId] = since = Time.time;
+                    Log.Info($"LR Extract: {p.Name} does not pay for the car at {e.Settings.Name.Localized()} yet - the squad is not there ({missing})");
+                }
+
+                if (Time.time - since < 90f)
+                {
+                    return;
+                }
+            }
+
+            _waitSince.Remove(bot.ProfileId);
 #if LIVERAID_ONLINE
             if (e.Status != EExfiltrationStatus.Countdown)
             {
@@ -103,7 +135,48 @@ namespace LiveRaid.Client.Bots
 #endif
                 _departAt.Remove(e);
                 Departed++;
-                Log.Info($"LR Extract: the car at {e.Settings.Name.Localized()} has driven off - the exit is {(e.Status == EExfiltrationStatus.NotPresent ? "closed" : "still open (a player is in it)")}");
+                bool closed = e.Status == EExfiltrationStatus.NotPresent;
+                Log.Info($"LR Extract: the car at {e.Settings.Name.Localized()} has driven off - the exit is {(closed ? "closed" : "still open (a player is in it)")}");
+                if (closed)
+                {
+                    ReleaseLate(e);
+                }
+            }
+        }
+
+        /// <summary>The bots that stood at the car with their own timer still running when it drove off do not leave through a closed exit: they look for another.</summary>
+        private static void ReleaseLate(ExfiltrationPoint e)
+        {
+            GameWorld world = Singleton<GameWorld>.Instance;
+            if (world == null)
+            {
+                return;
+            }
+
+            foreach (Player pl in world.AllAlivePlayersList.ToList())
+            {
+                BotOwner b = pl?.AIData?.BotOwner;
+                if (b == null || b.IsDead || b.Exfiltration == null || b.PatrollingData?.ExfiltrationData?.CachedExfiltrationPoint?.ExfiltrationPoint != e)
+                {
+                    continue;
+                }
+
+                // Leaving with the car right now (its timer is the car's)
+                if (b.Exfiltration.LeaveTime < Time.time + 2f)
+                {
+                    continue;
+                }
+
+                if (b.Exfiltration.LeaveTime >= float.MaxValue)
+                {
+                    // not yet at its exit: it only has to choose another one on its way
+                    ExitPlan.Release(b);
+                    continue;
+                }
+
+                ExitPlan.Release(b);
+                Missed++;
+                Log.Info($"LR Extract: {b.Profile?.Nickname} came too late for the car at {e.Settings.Name.Localized()} - it looks for another exit");
             }
         }
     }

@@ -224,6 +224,7 @@ namespace LiveRaid.Client.Patches
             _approach.Clear();
             _nearEnough.Clear();
             Unspun = GaveUp = 0;
+            LbNoSlowEndPatch.Fast = SainLootPatrolPatch.Held = 0;
         }
 
         /// <summary>LbCloseEnoughPatch: the bot stalled right next to the spot - near enough.</summary>
@@ -265,8 +266,9 @@ namespace LiveRaid.Client.Patches
                 }
 
                 // Raid 2026-10-31 05:46: Hjal crouch-walked from drawer to drawer across the room - the "goose step" a player does not do. Only the last
-                // step or so (the next drawer of the same cabinet) is a shuffle in a crouch; farther it walks upright, without the sprint LootingBots gives it
-                if (dy < 1f && sq <= 1.5f * 1.5f)
+                // step or so (the next drawer of the same cabinet) is a shuffle in a crouch; farther it walks upright, without the sprint LootingBots gives it.
+                // With "Walk to the loot at full step" not even that: upright to the spot, LootingBots crouches on arrival (the tester's "tiny slow steps")
+                if (dy < 1f && sq <= 1.5f * 1.5f && !Settings.LootWalk.Value)
                 {
                     bot.Sprint(false);
                     bot.SetPose(0.6f);
@@ -536,5 +538,83 @@ namespace LiveRaid.Client.Patches
         }
 
         private static bool IsFinite(Vector3 v) => !(float.IsNaN(v.x) || float.IsNaN(v.y) || float.IsNaN(v.z) || float.IsInfinity(v.x) || float.IsInfinity(v.y) || float.IsInfinity(v.z));
+    }
+}
+
+namespace LiveRaid.Client.Patches
+{
+    /// <summary>
+    /// "Bots stutter and move in tiny slow steps while looting" (a player's tester, 2026-11-02) - F12 -> 7 "Walk to the loot at full step". Not an
+    /// anti-freeze: LootingBots walks to a thing with EFT's GoToPoint(slowAtTheEnd: true), and EFT then cuts the speed to (distance left / 7) for the
+    /// last 1.5 m (Move.START_SLOW_DIST, SLOW_COEF of the bot settings) - 0.2 of a walk at 1.5 m, 0.14 at 1 m - while LootingBots only starts looting
+    /// within 0.92 m. From drawer to drawer of one cabinet the whole way was that crawl. Here the walk of LootingBots asks for no slow end: the ordinary
+    /// braking of EFT (from 1.1 m) is left, a fraction of a second.
+    /// </summary>
+    public class LbMoveToLootPatch : ModulePatch
+    {
+        [System.ThreadStatic]
+        internal static int InMoveFrame;
+
+        protected override MethodBase GetTargetMethod() => AccessTools.Method(AccessTools.TypeByName("LootingBots.Logic.LootingLogic"), "TryMoveToLoot");
+
+        [PatchPrefix]
+        protected static void PatchPrefix() => InMoveFrame = Time.frameCount;
+
+        [PatchPostfix]
+        protected static void PatchPostfix() => InMoveFrame = -1;
+    }
+
+    public class LbNoSlowEndPatch : ModulePatch
+    {
+        public static int Fast;
+
+        protected override MethodBase GetTargetMethod() =>
+            AccessTools.Method(typeof(BotMover), nameof(BotMover.GoToPoint),
+                new[] { typeof(Vector3), typeof(bool), typeof(float), typeof(bool), typeof(bool), typeof(bool), typeof(bool) });
+
+        [PatchPrefix]
+        protected static void PatchPrefix(ref bool slowAtTheEnd)
+        {
+            if (slowAtTheEnd && LbMoveToLootPatch.InMoveFrame == Time.frameCount && Settings.LootWalk.Value)
+            {
+                slowAtTheEnd = false;
+                Fast++;
+            }
+        }
+    }
+
+    /// <summary>
+    /// SAIN puts a calm bot that is not sprinting into the patrol stance of EFT (gun down, the patrol walk) every quarter of a second, and LootingBots
+    /// takes it out of it again when it arrives at the loot - on a walk between drawers (never a sprint) the two flipped the stance back and forth, and
+    /// each flip is an animation the walk waits for. While the bot has a loot target or a loot job runs, SAIN does not want the patrol stance.
+    /// </summary>
+    public class SainLootPatrolPatch : ModulePatch
+    {
+        public static int Held;
+
+        protected override MethodBase GetTargetMethod() => AccessTools.Method(typeof(SAIN.SAINComponent.Classes.Mover.SAINMoverClass), "WantsPatrolStance");
+
+        [PatchPostfix]
+        protected static void PatchPostfix(SAIN.SAINComponent.Classes.Mover.SAINMoverClass __instance, ref bool __result)
+        {
+            if (!__result || !Settings.LootWalk.Value)
+            {
+                return;
+            }
+
+            try
+            {
+                LootingBots.Components.LootingBrain brain = __instance.BotOwner?.GetPlayer?.GetComponent<LootingBots.Components.LootingBrain>();
+                if (brain != null && (brain.HasActiveLootable || brain.LootTaskRunning))
+                {
+                    __result = false;
+                    Held++;
+                }
+            }
+            catch (System.Exception e)
+            {
+                Diag.Report("SainLootPatrolPatch", e);
+            }
+        }
     }
 }

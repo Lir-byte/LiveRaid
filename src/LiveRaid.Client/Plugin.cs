@@ -28,10 +28,10 @@ namespace LiveRaid.Client
         public const string Name = "Lir-LiveRaid";
         public const string Display = "LiveRaid";
 #endif
-        public const string Version = "1.0.5";
+        public const string Version = "1.2.4";
 
         /// <summary>Branch of the mod: "" - the stable one (main), "test" - the test branch (experimental), switched by LiveRaid Launcher.</summary>
-        public const string Channel = "";
+        public const string Channel = "test";
 
         /// <summary>The version as the logs show it: "0.10.12 (test)" on the test branch.</summary>
         public const string VersionText = Version + (Channel == "" ? "" : " (" + Channel + ")");
@@ -55,6 +55,17 @@ namespace LiveRaid.Client
                 // Without its settings nothing can run; say so where the user looks (the exception alone went only to Unity's Player.log)
                 Log.LogError("LiveRaid could not read its F12 settings and is OFF this session: " + e);
                 return;
+            }
+
+            // The packrat chance lives on the server (it rolls it at a raid start): sent now and on every change
+            try
+            {
+                Bots.Packrat.SendChance();
+                Settings.PackratChance.SettingChanged += (_, __) => Bots.Packrat.SendChance();
+            }
+            catch (Exception e)
+            {
+                Log.LogError("LiveRaid: the packrat chance could not be sent to the server: " + e);
             }
 
             // LiveRaid Online: the host's settings for everybody (before the master switch - the host may have turned it on or off)
@@ -105,6 +116,7 @@ namespace LiveRaid.Client
             Enable("extract", new QbScavNoExtractPatch());
             Enable("loot thinking", new ShotHeardPatch(), new LbCorpseDecisionPatch(), new LbStartLootingPatch(), new LbStopLootingPatch(), new LbLootTaskEndPatch(), new BotLayGetUpPatch(), new LbRoomRangePatch());
             Enable("loot pose", new LbTryLootPatch(), new LootSteadyLookPatch(), new LbCloseEnoughPatch(), new LbScanHoldPatch(), new LbCrouchWalkPatch(), new LbWoundedLootPatch(), new LootSpinGuardPatch(), new LbHandoverPatch());
+            Enable("loot walk at full step", new LbMoveToLootPatch(), new LbNoSlowEndPatch(), new SainLootPatrolPatch());
             Enable("steady weapons", new LbUpdateActiveWeaponPatch(), new WeaponChangeChancePatch(), new WeaponTryChangePatch(), new WeaponTryChangeToMainPatch(),
                 new WeaponChangeToMainPatch(), new WeaponChangeToSecondPatch(), new WeaponChangeToSlotPatch(), new WeaponTakeMainPatch(),
                 new WeaponDistanceChangePatch(), new WeaponNoAmmoChangePatch());
@@ -129,6 +141,14 @@ namespace LiveRaid.Client
             Enable("squad extract", new Bots.QbFollowerExtractPatch(), new Bots.ExitChoicePatch(), new Bots.ExitTimerPatch());
             Enable("squads", new QbFormationPatch());
             Enable("combat morale", new SainCombatDecisionPatch(), new SainSquadDecisionPatch());
+            Enable("fire discipline", new Tactics.SainSuppressDisciplinePatch());
+            Enable("ammo check of a gun with no magazine", new Tactics.SainAmmoRatioPatch());
+            Enable("perf probe", new PerfSainTickPatch());
+            Enable("packrat comes alone", new QbGroupPlanPatch(), new BotCreateSizePatch(), new PoolProfilePatch());
+            PackratPool.Active = !DisabledFeatures.Contains("packrat comes alone");
+            Enable("loot walk not cut at 7 s", new QbLootWalkPatch());
+            Enable("calm idle layer of QuestingBots", new Bots.QbRecoveryLayerCalmPatch());
+            Enable("blind fire hold", new Tactics.SainBlindFireStablePatch(), new Tactics.SainBlindFireResetPatch(), new Tactics.SainBlindFireSetPatch());
             Enable("distant fights", new SainDistantEnemyPatch());
             Enable("no dogfight with far enemies", new SainDogFightPatch(), new SainDogFightClearPatch());
             Enable("bushes between bots", new Tactics.BushSightPatch());

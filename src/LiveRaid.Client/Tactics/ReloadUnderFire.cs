@@ -35,15 +35,16 @@ namespace LiveRaid.Client.Tactics
         public static int Switched { get; private set; }
         public static int Knifed { get; private set; }
         public static int ToCover { get; private set; }
+        public static int ShortCover { get; private set; }
 
-        public static string Summary => $"caught in a long reload: switched to another gun {Switched}, knife {Knifed}, reloaded on the way to cover {ToCover}";
+        public static string Summary => $"caught reloading: switched to another gun {Switched}, knife {Knifed}, reloaded on the way to cover {ToCover} (short reloads sent to cover {ShortCover})";
 
         public static void Clear()
         {
             _states.Clear();
             _capacity.Clear();
             _next = 0f;
-            Switched = Knifed = ToCover = 0;
+            Switched = Knifed = ToCover = ShortCover = 0;
         }
 
         /// <summary>The bot reloads with an enemy on it: LiveRaid's combat hooks send it to cover instead of standing or pushing.</summary>
@@ -146,8 +147,14 @@ namespace LiveRaid.Client.Tactics
             }
 
             s.ReloadKey = reload._reloadStartTime;
-            if (!LongReload(gun, reload))
+            // A short reload (2026-11-02, the tester: "they reload in the open, I take them mid-reload"; 21 of 225 deaths were mid-reload): with the
+            // enemy in sight within 15 m the same choice as a long one (a little less often), otherwise it goes on reloading on the way to cover
+            bool longReload = LongReload(gun, reload);
+            bool closeInSight = enemy.IsVisible && enemy.RealDistance <= 15f;
+            if (!longReload && !closeInSight)
             {
+                s.CoverUntil = Time.time + 5f;
+                ShortCover++;
                 return;
             }
 
@@ -160,8 +167,9 @@ namespace LiveRaid.Client.Tactics
                 default: chance = 0.9; break;
             }
 
-            if (_rng.NextDouble() > chance)
+            if (_rng.NextDouble() > (longReload ? chance : chance * 0.7))
             {
+                s.CoverUntil = Time.time + 5f;
                 return;
             }
 

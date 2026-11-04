@@ -67,6 +67,9 @@ namespace LiveRaid.Client.Bots
         public EPersonality SainPersonality;
         public string WeaponClass;
 
+        // The raid's packrat: a lone PMC with a pistol and a big bag, there for the loot only (Packrat)
+        public bool Packrat;
+
         public bool KeysGiven;
         public float ActivatedAt = -1f;
 
@@ -75,7 +78,7 @@ namespace LiveRaid.Client.Bots
         public readonly List<string> Keys = new List<string>();
 
         public override string ToString() =>
-            $"{Name} [{Kind} {Skill}/{Style} {SainPersonality} talent {Talent:+0.00;-0.00} weapon {WeaponClass ?? "none"} extract at {ExtractAtRemaining:P0} left{(HotDrop ? ", hot-drop" : "")}]";
+            $"{Name} [{Kind} {Skill}/{Style} {SainPersonality} talent {Talent:+0.00;-0.00} weapon {WeaponClass ?? "none"} extract at {ExtractAtRemaining:P0} left{(HotDrop ? ", hot-drop" : "")}{(Packrat ? ", packrat" : "")}]";
     }
 
     public static class BotProfiles
@@ -163,6 +166,11 @@ namespace LiveRaid.Client.Bots
             p.SainPersonality = ChoosePersonality(p, rng);
             p.ExtractAtRemaining = ChooseExtractTime(p, rng);
             p.HotDrop = ChooseHotDrop(p, rng);
+            if (Packrat.Check(bot, p.Kind))
+            {
+                Packrat.Shape(p, bot);
+            }
+
             return p;
         }
 

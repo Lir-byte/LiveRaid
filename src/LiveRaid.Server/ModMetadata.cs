@@ -9,7 +9,7 @@ public record ModMetadata : IModMetadata
     public string Name { get; init; } = "LiveRaid";
     public string Author { get; init; } = "Lir";
     public List<string>? Contributors { get; init; }
-    public SemanticVersioning.Version Version { get; init; } = new("1.0.5");
+    public SemanticVersioning.Version Version { get; init; } = new("1.2.4");
     public SemanticVersioning.Range SptVersion { get; init; } = new("~4.1.0");
     public List<string>? Incompatibilities { get; init; } = ["com.chazut.orbit.server"];
     public Dictionary<string, SemanticVersioning.Range>? ModDependencies { get; init; } = new()

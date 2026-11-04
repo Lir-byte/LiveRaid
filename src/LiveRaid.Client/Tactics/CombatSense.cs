@@ -425,16 +425,25 @@ namespace LiveRaid.Client.Tactics
             // edge); without it only aggressive characters (snipers, campers and rats hold and shoot).
             // A bot that still has to patch up does not push: it went Push -> heal -> Push every few seconds and never finished healing.
             FightRole role = FightRoles.Current(bot, p, enemies, allies, health, closest, holdLong);
-            bool assault = role != FightRole.None
+            // A hurt enemy (hit, badly hurt, heard patching up): by character the bot goes in before he heals (PressHurt)
+            bool press = !needsHeal && !holdLong && PressHurt.Wants(bot, p, closest, health, enemies, allies, out _);
+            bool assault = press || role != FightRole.None
                 ? role == FightRole.Assault
                 : p.Style == PlayStyle.Rusher || p.Style == PlayStyle.Hunter
                   || (p.Aggression >= 0.65f && p.Style != PlayStyle.Sniper && p.Style != PlayStyle.Camper && p.Style != PlayStyle.Rat);
-            bool canPush = assault && !needsHeal && (old == CombatStance.Push || Time.time > s.PushCooldownUntil);
+            bool canPush = assault && !needsHeal && !p.Packrat && (old == CombatStance.Push || Time.time > s.PushCooldownUntil || press);
 
             // Losing nerve: a clear edge against the bot makes it run, with a small chance that grows with the pressure
             string fleeWhy = null;
             bool fleeing = old != CombatStance.BreakContact && closest != null && closest.RealDistance > 12f && Time.time > s.BreakCooldownUntil
                            && LosesNerve(bot, p, s, health, enemies, allies, aliveSquad, lost, suppression, courage, active, out fleeWhy);
+
+            // The packrat keeps out of fights: whoever it meets farther than 12 m off it breaks off from (again 15 s after the last time); closer - cornered, it fights
+            if (!fleeing && p.Packrat && old != CombatStance.BreakContact && closest != null && closest.RealDistance > 12f && Time.time > s.BreakCooldownUntil - 45f)
+            {
+                fleeing = true;
+                fleeWhy = "the packrat keeps out of fights";
+            }
 
             // Nothing left to shoot with: a player gets out of the fight (and looks for ammo or leaves - LootJobs, ExtractPlanner)
             if (!fleeing && old != CombatStance.BreakContact && closest != null && closest.RealDistance > 6f && Time.time > s.BreakCooldownUntil
@@ -481,7 +490,7 @@ namespace LiveRaid.Client.Tactics
             {
                 want = CombatStance.Reposition;
             }
-            else if (canPush && closest != null && (role != FightRole.None
+            else if (canPush && closest != null && (press ? s.Morale > -0.4f && closest.RealDistance < 100f : role != FightRole.None
                          // The role already weighed the numbers: going in needs the nerve (more of it against more enemies), staying in needs the edge to roughly hold
                          ? (old == CombatStance.Push
                              ? s.Morale > -0.1f && allies + 1 >= enemies && closest.RealDistance < 150f

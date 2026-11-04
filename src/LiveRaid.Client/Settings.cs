@@ -41,6 +41,8 @@ namespace LiveRaid.Client
         public static ConfigEntry<bool> PlayerScavLife;
         public static ConfigEntry<bool> BossHunts;
         public static ConfigEntry<bool> NoiseResponse;
+        public static ConfigEntry<bool> Intercept;
+        public static ConfigEntry<float> InterceptWeight;
         public static ConfigEntry<bool> FightLikePlayer;
         public static ConfigEntry<bool> GrenadeHabit;
         public static ConfigEntry<bool> SpecialExits;
@@ -54,6 +56,7 @@ namespace LiveRaid.Client
         public static ConfigEntry<bool> FoundKeys;
         public static ConfigEntry<bool> StormStims;
         public static ConfigEntry<bool> DoorManners;
+        public static ConfigEntry<bool> RoomPeek;
         public static ConfigEntry<bool> CoverRoutes;
         public static ConfigEntry<bool> HotZones;
         public static ConfigEntry<bool> PeopleCorridors;
@@ -73,6 +76,9 @@ namespace LiveRaid.Client
         public static ConfigEntry<float> MemoryMultiplier;
         public static ConfigEntry<float> MaxSearchWait;
         public static ConfigEntry<bool> FarBotsFullSenses;
+        public static ConfigEntry<bool> LodByCamera;
+        public static ConfigEntry<int> LodNear;
+        public static ConfigEntry<bool> LodAdaptive;
         public static ConfigEntry<bool> QbSleeping;
         public static ConfigEntry<bool> PersonalExtract;
         public static ConfigEntry<bool> ExtractCurve;
@@ -84,9 +90,13 @@ namespace LiveRaid.Client
         public static ConfigEntry<bool> BalancedSpawnSides;
         public static ConfigEntry<bool> BiggerLobby;
         public static ConfigEntry<int> BiggerLobbyCount;
+        public static ConfigEntry<int> PackratChance;
+        public static ConfigEntry<int> PmcSoloShare;
 
         public static ConfigEntry<bool> LootThinking;
         public static ConfigEntry<bool> NoLootInDanger;
+        public static ConfigEntry<bool> LootNerve;
+        public static ConfigEntry<bool> LootWalk;
         public static ConfigEntry<bool> CleanUpAfterFight;
         public static ConfigEntry<bool> NoticeBodies;
         public static ConfigEntry<bool> LootGivenFirst;
@@ -146,6 +156,11 @@ namespace LiveRaid.Client
         public static ConfigEntry<bool> HealFirst;
         public static ConfigEntry<bool> HealBreakOff;
         public static ConfigEntry<bool> CloseNotice;
+        public static ConfigEntry<bool> FireDiscipline;
+        public static ConfigEntry<bool> BlindFireHold;
+        public static ConfigEntry<bool> FrozenWatch;
+        public static ConfigEntry<bool> LayerCalm;
+        public static ConfigEntry<bool> PressHurt;
         public static ConfigEntry<bool> QuestDriveOn;
         public static ConfigEntry<bool> QuestSpread;
         public static ConfigEntry<float> QuestStepGiveUpMin;
@@ -211,10 +226,18 @@ namespace LiveRaid.Client
         public static ConfigEntry<KeyboardShortcut> RouteRecordJump;
         public static ConfigEntry<KeyboardShortcut> RouteUndo;
         public static ConfigEntry<KeyboardShortcut> RouteSave;
+        public static ConfigEntry<bool> MapEdits;
+        public static ConfigEntry<bool> MapEditsAutoReload;
+        public static ConfigEntry<bool> MapEditsDump;
+        public static ConfigEntry<bool> MapEditsRedump;
+        public static ConfigEntry<bool> MapEditsOverlay;
+        public static ConfigEntry<KeyboardShortcut> MapEditsReloadKey;
+        public static ConfigEntry<KeyboardShortcut> MapEditsOverlayKey;
 
         public static ConfigEntry<bool> SpectateAfterDeath;
         public static ConfigEntry<bool> ObserverFromStart;
         public static ConfigEntry<bool> ObserverFollowAtStart;
+        public static ConfigEntry<bool> ObserverFollowPackrat;
         public static ConfigEntry<bool> TakeOverBots;
         public static ConfigEntry<bool> EndRaidWhenTakenBotDies;
         public static ConfigEntry<bool> SpectatorBotNames;
@@ -380,7 +403,7 @@ namespace LiveRaid.Client
             var packQuests = Pack(cfg, "Quests pack", "Квесты EFT",
                 "ЧВК идут к шагам своих квестов, отыгрывают их (поднять, заложить, осмотреть), отряды расходятся по разным квестам, точки квестов проверяются");
             var packRoutes = Pack(cfg, "Routes pack", "Маршруты через завалы",
-                "Боты ходят по записанным маршрутам (routes/<карта>.json) туда, куда навмеш не ведёт: завалы, перила, «Утёс»");
+                "Боты ходят по записанным маршрутам (routes/<карта>.json) туда, куда навмеш не ведёт: завалы, перила, «Утёс». Здесь же правки карты из LiveRaid Studio (свой навмеш, запреты, маршруты ботов)");
 
             _cat = CMain;
             LogLevel = B(cfg, "1. Main", "Log detail", LogDetail.Normal, "Подробность журнала",
@@ -415,6 +438,16 @@ namespace LiveRaid.Client
             DoorManners = B(cfg, "2. Keys and locked doors", "Door manners", true, "Двери как у игроков",
                 "Вошёл в здание - иногда закрывает дверь за собой (если товарищей у двери не осталось), подходит к закрытой двери - замирает на 1-2 с послушать. " +
                 "Крысы и чёткие отряды чаще, рашеры почти никогда");
+            RoomPeek = B(cfg, "2. Keys and locked doors", "Look into a room you unlocked", true, "Заходить в отпертую комнату",
+                "Бот отпер дверь ключом - всегда открывает её, заходит на 3-6 м, осматривается и обыскивает комнату ЦЕЛИКОМ: каждый контейнер, тело и ценную вещь, " +
+                "без шанса уйти раньше (пока не кончится что брать, не заполнится рюкзак и не прогонит бой). Раньше после отпирания он сразу уходил дальше по квесту");
+            FrozenWatch = B(cfg, "2. Keys and locked doors", "Free frozen bots", true, "Размораживать застывших ботов",
+                "1) Бот не может ходить, потому что оборванное лечение оставило ему флаги «лечится» при пустых руках - флаги и эффект лечения снимаются через 2 с. " +
+                "2) Бот хочет двигаться (укрытие, отход, рывок), но 10 с не сошёл с места при враге рядом - в журнал пишется его состояние, и он уходит из-под взгляда врага на 8-30 м",
+                synced: false);
+            LayerCalm = B(cfg, "2. Keys and locked doors", "Calm the flicker of the QuestingBots idle layer", true, "Без мигания простоя QuestingBots",
+                "Слой простоя QuestingBots (BotRecoveryLayer) включался и выключался по нескольку раз в секунду (205 мельканий за рейд у патрулей диких и ботов между шагами квеста) - " +
+                "ходьба бота начиналась и обрывалась. Теперь его ответ меняется не чаще раза в секунду. Бой, лут и остальные слои не затронуты", synced: false);
             DoorAssist = B(cfg, "2. Keys and locked doors", "Unstick bots (doors, door leaves, corners)", true, "Помощь у дверей и углов",
                 "Бот, 2 с стоящий у закрытой двери на пути, открывает её; застрял снова - отходит и проходит ещё раз; после двух неудач оставляет дверь на минуту " +
                 "(боты EFT открывают только двери со ссылкой в навмеше)");
@@ -583,6 +616,13 @@ namespace LiveRaid.Client
                 "ЧВК на старте = онлайн-лобби карты (между мин. и макс. игроков), все сразу; позже заходят только запасные");
             PmcReserve = B(cfg, "6. Spawns", "Reserve PMCs", 3, "Запасные ЧВК",
                 "Сколько ЧВК зайдёт позже, когда погибнут ЧВК стартового лобби (нужен перезапуск игры)", new AcceptableValueRange<int>(0, 8), simple: true);
+            PackratChance = B(cfg, "6. Spawns", "Packrat chance, %", 15, "Шанс Барахольщика, %",
+                "Шанс, что в рейде появится Барахольщик: ЧВК-одиночка с пистолетом и самым большим рюкзаком, который пришёл только за лутом - " +
+                "избегает встреч, уходит от стрельбы и шума, дерётся только загнанным в угол. Не больше одного за рейд. 0 - не появляется", new AcceptableValueRange<int>(0, 100), simple: true);
+            PmcSoloShare = B(cfg, "6. Spawns", "Lone PMCs among groups, %", 45, "Одиночек среди групп ЧВК, %",
+                "Какая доля групп ЧВК - одиночки (остальные - двойки, тройки, четвёрки и пятёрки в прежней пропорции). 45 - как было с «Лобби больше онлайна»; " +
+                "0 - одиночек почти нет, 100 - все ЧВК поодиночке. Доля ЧВК-одиночек из всех ЧВК заметно меньше доли групп (по трассам 31.10-02.11: 50 % групп = 28 % ЧВК). " +
+                "Со следующего рейда", new AcceptableValueRange<int>(0, 100), simple: true);
             GroupFillsLobby = B(cfg, "6. Spawns", "Players of the group take lobby places", true, "Игроки группы занимают места",
                 "Кооп (LiveRaid Online): каждый игрок-ЧВК группы сверх первого занимает место одного ЧВК-бота, как в онлайн-лобби (4 игрока на Таможне - на 3 бота меньше). " +
                 "Легче для хоста. В одиночной - без эффекта");
@@ -619,6 +659,9 @@ namespace LiveRaid.Client
             NoLootInDanger = B(cfg, "7. Looting like a player", "No looting in danger", true, "Не лутать в опасности",
                 "ЧВК и дикие прекращают лут (и не начинают), когда небезопасно: попадание или обстрел, выстрелы в 50 м, враг на виду или слышен рядом, чужой в 50 м, " +
                 "которого слышно. Возвращаются к луту через 6 с после последнего признака опасности. Товарищи и союзники не считаются");
+            LootNerve = B(cfg, "7. Looting like a player", "Nerve at the loot", true, "Выдержка при луте",
+                "Не всех шум отрывает от лута одинаково: жадные и смелые (лутеры, рашеры, охотники) продолжают обыск при далёких шагах и бросают его только когда чужой близко, " +
+                "стреляют рядом или враг на виду; крысы и кемперы осторожны как раньше. Выкл. - все бросают лут на любой шаг в 50 м");
             WoundedLoot = B(cfg, "7. Looting like a player", "Loot while hurt without meds", true, "Лутать раненым без аптечек",
                 "LootingBots разрешает лут только когда нечего лечить; бот с раной и без аптечки так и не лутал до конца рейда. Здесь лутает, пока лечить нечем (с аптечкой - сперва лечится)");
             CleanUpAfterFight = B(cfg, "7. Looting like a player", "Clean up after a fight", true, "Зачистка после боя",
@@ -650,6 +693,9 @@ namespace LiveRaid.Client
                 "или лутал сквозь стену. Теперь точка, от которой вещь не видно сквозь стену или до которой нет пути, переносится на сторону вещи, а без такой вещь пропускается");
             LootStill = B(cfg, "7. Looting like a player", "Squat still while looting", true, "Не вертеться при луте",
                 "Бот у тела или контейнера больше не крутится на месте (LootingBots переприцеливался на вещь под ногами при каждом качании анимации) и считает 1,6 м достаточно близким");
+            LootWalk = B(cfg, "7. Looting like a player", "Walk to the loot at full step", true, "К луту - полным шагом",
+                "Бот идёт к следующему ящику или полке в полный рост и обычным шагом до самого места: без торможения EFT на последних 1,5 м (скорость падала до 0,15 шага), " +
+                "без присядки и без переключений в патрульную стойку SAIN по дороге. Приседает уже на месте. Идущего к далёкому телу QuestingBots больше не обрывает на 7-й секунде. Выкл. - мелкие медленные шажки, как раньше");
             LootProne = B(cfg, "7. Looting like a player", "Loot lying down (test)", true, "Лутать тела лёжа",
                 "Подойдя к ТЕЛУ, бот с заданным шансом (ниже) сперва ложится, потом облутывает его лёжа и встаёт; иначе приседает, как раньше. " +
                 "Контейнеры и вещи на земле всегда лутаются сидя. Негде лечь (склон, стена, вода) - присядет. Выкл.: всегда присед",
@@ -731,9 +777,15 @@ namespace LiveRaid.Client
                 "Боты слышат перестрелки (и вашу) издалека и решают по характеру, снаряжению и опасности: ворваться, подойти, обойти, затаиться и слушать, уйти или не обращать внимания. " +
                 "Реагируют только лидеры и одиночки, немного ботов на бой, с перерывами");
             NoiseResponse = B(cfg, "9. Combat morale", "Respond to noise", true, "Реакция на шум",
-                "Боты слышат не только стрельбу: бег (38 м), шаги (14 м), дверь (30 м), лут (14 м), перезарядку (16 м); стена вдвое глушит, другой этаж - сильнее. " +
+                "Боты слышат не только стрельбу: бег (50 м), шаги (20 м), дверь (40 м), лут (14 м), перезарядку (16 м); стена вдвое глушит, другой этаж - сильнее. " +
                 "Спокойный лидер или одиночка идёт посмотреть, обходит, замирает послушать на пару секунд, тихо уходит или не обращает внимания - по характеру и доктрине. " +
                 "Ваш шум слышат так же - вас ищут");
+            Intercept = B(cfg, "9. Combat morale", "Lie in wait for an enemy you hear", true, "Засада на услышанного",
+                "Услышав бегущего, идущего или дверь, бот (по характеру, как одна из реакций на шум) не бежит на звук, а предсказывает, куда враг идёт - дверь, место с лутом, " +
+                "выход или рубильник выхода - и затаивается неподалёку, присев и глядя туда, на 12-25 с. Крысы, кемперы, снайперы и охотники часто, рашеры почти никогда. " +
+                "Не пришёл - бот ещё раз угадывает (если слышит врага) или бросает засаду. Заранее, не слыша врага, засад нет. До 3 засад одновременно");
+            InterceptWeight = B(cfg, "9. Combat morale", "Ambush frequency x", 1f, "Частота засад, ×",
+                "Множитель веса засады среди реакций на шум: 0 - засад нет, 1 - как задумано, 3 - в три раза чаще", new AcceptableValueRange<float>(0f, 3f));
             FightLikePlayer = B(cfg, "9. Combat morale", "Fight like a player", true, "Бой как у игрока",
                 "После нескольких выстрелов с одной точки (профи - 4-9, новичок - 18-30, длинный ствол - 2-4) боец меняет угол, а не выглядывает там, где его ждут; " +
                 "попали на открытом месте издалека - бежит в укрытие, а не стоит; дорогой кит и рюкзак лута - осторожнее (реже в чужие бои, меньше упорства), бомжу терять нечего - смелее; " +
@@ -793,12 +845,24 @@ namespace LiveRaid.Client
                 "Типы оружия с запасом через запятую: pistol, sniperRifle (болтовка), assaultRifle, marksmanRifle, assaultCarbine, smg, shotgun, machinegun. Остальные - дальность игры как есть");
             LongGunHolds = B(cfg, "9. Combat morale", "Long gun holds its position", true, "Длинный ствол держит позицию",
                 "Бот со снайперской или марксманской винтовкой (или снайпер по стилю) не отходит и не «идёт искать», пока враги дальше 35 м и он здоров: стреляет оттуда, где стоит");
+            FireDiscipline = B(cfg, "9. Combat morale", "Fire discipline", true, "Огневая дисциплина",
+                "Бот не высаживает весь магазин в стену, за которой спрятался враг: подавляет очередями с паузами и оставляет часть магазина на выглядывание " +
+                "(новичок - треть, профи - две трети). Без ограничений - только когда прикрывает товарища, который идёт на штурм или в обход, или сам давит. " +
+                "Новички и рашеры всё равно иногда сыплют патронами");
+            BlindFireHold = B(cfg, "9. Combat morale", "Hold the blind-fire pose", true, "Держать позу стрельбы из-за угла",
+                "Бот, стреляющий из-за укрытия «по-сомалийски» (оружие поднято над углом или сбоку), держит позу, а не включает и выключает её каждые 0,2 с: " +
+                "ответ проверки SAIN держится 2 с, сброс позы откладывается на 1,5 с (если бот не пошёл, не остался без патронов и в него не попали). Выкл. - как в SAIN");
+            PressHurt = B(cfg, "9. Combat morale", "Press a hurt enemy", true, "Дожимать раненого",
+                "Бот попал по врагу (или попал его отряд), видит, что тот тяжело ранен, или слышит в 25 м, как он лечится - и по характеру идёт на него, пока тот не залечился: " +
+                "охотники и рашеры почти всегда, лутеры и квестеры иногда, крысы, кемперы и снайперы редко; раненый сам или вдвое меньший числом - никогда. " +
+                "Отряд дожимает раненого дольше (18-30 с)");
             CloseNotice = B(cfg, "9. Combat morale", "Notice an enemy right next to you", true, "Замечать врага вплотную",
                 "Враг в 5 м (или движущийся в 10 м) на том же этаже и на открытой линии замечается за 1-2,5 с (по навыку), как игрок его слышит и краем глаза видит. " +
+                "Бегущий в 12 м или идущий в 6 м слышен и сквозь стену или на лестнице этажом выше/ниже - бот поворачивается к нему. " +
                 "Занятый лутом или квестом бот раньше давал врагу минуту стоять за спиной");
             ReloadUnderFire = B(cfg, "9. Combat morale", "Reload under fire", true, "Перезарядка под огнём",
                 "Застигнутый близким врагом посреди долгой перезарядки (магазин больше 30 или 4+ патрона в трубу): с заряженным пистолетом или вторым стволом - меняет, вплотную - нож, " +
-                "остальные перезаряжаются на бегу к укрытию. Опытные чаще новичков. Никто не давит и не стоит стреляя, пока перезаряжается");
+                "остальные перезаряжаются на бегу к укрытию. Обычная перезарядка при враге на виду в 15 м - так же (чуть реже), иначе тоже на бегу к укрытию. Опытные чаще новичков. Никто не давит и не стоит стреляя, пока перезаряжается");
             KnifeAtArmsLength = B(cfg, "9. Combat morale", "Knife only at arms length", true, "Нож только вплотную",
                 "Нож - только для врага в 3 м или когда ни в одном стволе нет патрона; с ножом и далёким (или пропавшим) врагом бот сразу берёт ствол с патронами. SAIN бегал с ножом на любой дистанции");
             FightRoles = B(cfg, "9. Combat morale", "Fight roles", true, "Роли в бою",
@@ -888,6 +952,19 @@ namespace LiveRaid.Client
             RouteUndo = B(cfg, "10. Quests and routes", "Remove last point", new KeyboardShortcut(KeyCode.Keypad4), "Маршрут: убрать точку", "Убрать последнюю точку", synced: false);
             RouteSave = B(cfg, "10. Quests and routes", "Save route", new KeyboardShortcut(KeyCode.Keypad9), "Маршрут: сохранить", "Сохранить маршрут", synced: false);
 
+            MapEdits = B(cfg, "10. Quests and routes", "Map edits from Studio", true, "Правки карты из Studio",
+                "Применять то, что нарисовано в LiveRaid Studio (BepInEx/plugins/LiveRaid/studio/edits/<карта>.json): свои куски навмеша, запреты, связки, лазания, маршруты и места для ботов. Правки навмеша и запреты работают сразу, маршруты и места - со следующего рейда");
+            MapEditsAutoReload = B(cfg, "10. Quests and routes", "Reload edits when the file changes", true, "Подхватывать правки на лету",
+                "Когда Studio сохранил файл правок, навмеш, запреты, связки и лазания обновляются в идущем рейде за пару секунд (свободная камера покажет результат)", synced: false);
+            MapEditsDump = B(cfg, "10. Quests and routes", "Dump the navmesh for Studio", true, "Выгружать навмеш для Studio",
+                "В первом рейде на карте записать её навмеш, двери, выходы и точки спавна в studio/dump/<карта> - это та карта, которую Studio открывает для правки", synced: false);
+            MapEditsRedump = B(cfg, "10. Quests and routes", "Dump the navmesh again", false, "Выгрузить навмеш заново",
+                "В начале следующего рейда перезаписать выгрузку навмеша этой карты (после обновления игры или чужого мода навмеша). Включится обратно в «Выкл.» сам", synced: false);
+            MapEditsOverlay = B(cfg, "10. Quests and routes", "Show the edits in the world", false, "Показывать правки в мире",
+                "Нарисованное в Studio видно в мире: куски навмеша зелёные, запреты красные, связки жёлтые, лазания оранжевые, маршруты ботов голубые, места розовые", synced: false);
+            MapEditsReloadKey = B(cfg, "10. Quests and routes", "Reload edits", new KeyboardShortcut(KeyCode.Keypad1), "Правки: перечитать", "Перечитать файл правок Studio прямо сейчас", synced: false);
+            MapEditsOverlayKey = B(cfg, "10. Quests and routes", "Toggle edits overlay", new KeyboardShortcut(KeyCode.Keypad3), "Правки: показать / скрыть", "Показать или скрыть правки Studio в мире", synced: false);
+
             _cat = CPerf;
             SimplifyDistantBots = B(cfg, "5. Performance", "Simplify distant bots", true, "Упрощать дальних ботов",
                 "Вкл.: боты далеко от вас и не в бою реже «думают» (зрение и решения SAIN), но двигаются, квестуют, лутают и уходят - никто не спит. Выкл.: каждый бот полноценный на любом расстоянии (тяжелее для ЦП)",
@@ -895,6 +972,15 @@ namespace LiveRaid.Client
             QbSleeping = B(cfg, "5. Performance", "Allow QuestingBots to put far bots to sleep", false, "Разрешить QuestingBots усыплять дальних",
                 "Выкл. (LiveRaid): никто не спит - дальние боты двигаются, квестуют, лутают и дерутся, лишь думают реже. Вкл.: ограничитель QuestingBots (его F12 и дистанции) может " +
                 "полностью заморозить дальних ботов. Легче для ЦП", simple: true);
+            LodByCamera = B(cfg, "5. Performance", "Tiers by the camera", true, "Ярусы по камере",
+                "Наблюдатель и после смерти нет живого человека, и SAIN не умеет делить ботов на ближних и дальних. Вкл.: делит LiveRaid - по расстоянию до камеры: " +
+                "ближе «Ближний ярус» - каждый кадр, дальше - каждый 2-й, 3-й, 4-й. Бот с врагом и все возле камеры думают каждый кадр; движение, квесты, лут и выходы не режутся. " +
+                "Облегчает ЦП, когда ботов много", simple: true);
+            LodNear = B(cfg, "5. Performance", "Near tier (m)", 150, "Ближний ярус, м",
+                "Радиус вокруг камеры, где боты думают каждый кадр (дальше - вдвое, втрое и вчетверо реже)", new AcceptableValueRange<int>(60, 400));
+            LodAdaptive = B(cfg, "5. Performance", "Think less when the frame rate is low", true, "Реже думать при низком FPS",
+                "Когда сглаженный FPS падает ниже 38 (ниже 25), дальние ярусы думают ещё на 1 (на 2) кадра реже, а при ярусах по камере ближний радиус сужается; " +
+                "выше 46 FPS всё возвращается. Ближние боты и боты в бою не затрагиваются", simple: true);
             FarBotsFullSenses = B(cfg, "5. Performance", "Far bots see and hear each other", true, "Дальние боты видят и слышат друг друга",
                 "Вкл. (как онлайн): боты дерутся друг с другом на полной дальности по всей карте. Выкл.: ограничения SAIN «ИИ против ИИ» - вдали от вас боты видят друг друга лишь на " +
                 "200 / 100 / 50 м и слышат на 100 / 60 / 25 м, дальние отряды проходят мимо друг друга. Чуть легче для ЦП", simple: true);
@@ -917,6 +1003,9 @@ namespace LiveRaid.Client
             ObserverFollowAtStart = B(dcfg, death, "Follow a random PMC at the start", true, "В начале следить за случайным ЧВК",
                 "Работает с «Начинать рейд наблюдателем». Как только в рейде появился ЧВК, камера сразу прыгает к случайному и следит за ним, как по клавише «Следить за ботом». " +
                 "Свободный полёт (WASD) отменяет слежение, «Следующий бот» переключает. Нет ЧВК за первую минуту - остаётся свободная камера", simple: true, synced: false);
+            ObserverFollowPackrat = B(dcfg, death, "Follow the packrat at the start", false, "В начале следить за Барахольщиком",
+                "Только для проверки (виден лишь в режиме разработчика). С «Начинать рейд наблюдателем»: камера в начале рейда ждёт Барахольщика (до 3 минут: он приходит с группами ЧВК), " +
+                "прыгает к нему и следит за ним. Не появился - к случайному ЧВК, как обычно. Шанс его появления - в разделе «Спавн»", synced: false);
             TakeOverBots = B(dcfg, death, "Take over a bot", false, "Вселяться в бота",
                 "Жизнь после смерти: в свободной камере наведитесь на любого бота и нажмите «Вселиться» - играете им с его снаряжением и инвентарём, пока он не погибнет или не выйдет, потом можно вселиться в следующего. Если у вселённого не работают руки (оружие не стреляет, не перезаряжается) - выйдите из него и вселитесь снова. Его убийства, лут и выход в профиль не идут", simple: true, synced: false);
             EndRaidWhenTakenBotDies = B(dcfg, death, "End the raid when the taken bot dies", false, "Конец рейда со смертью бота",
@@ -945,7 +1034,7 @@ namespace LiveRaid.Client
 #endif
 
             // What each pack and level of the compact menu stands for
-            SettingsMenu.PackOf(packKeys, RealKeys, FoundKeys, DoorManners, DoorAssist, FreeShutIn, BackOffWhenStuck, ContainerKeys);
+            SettingsMenu.PackOf(packKeys, RealKeys, FoundKeys, DoorManners, RoomPeek, DoorAssist, FrozenWatch, LayerCalm, FreeShutIn, BackOffWhenStuck, ContainerKeys);
             SettingsMenu.LevelOf(keyAmount, new ConfigEntryBase[] { PmcKeyChance, ScavKeyChance, MaxKeysPerBot },
                 (SettingsMenu.Level.Low, "Мало", new object[] { 0.3f, 0.1f, 2 }),
                 (SettingsMenu.Level.Normal, "Как онлайн", new object[] { 0.6f, 0.25f, 3 }),
@@ -967,13 +1056,13 @@ namespace LiveRaid.Client
             SettingsMenu.PackOf(packSpawn, OnlineSpawns, SpawnAllPoints, BalancedSpawnSides, LobbyLikeOnline, GroupFillsLobby, LivelyMap, PScavReplace, PeopleShare, PopulationBalance, PopulationDensity, PopulationStrength, CrowdCap, OnlineSpawnMinDistance);
             SettingsMenu.AmountOf(extraPmcs, BiggerLobby, BiggerLobbyCount, 1);
 
-            SettingsMenu.PackOf(packLoot, LootThinking, LootRightSide, NoLootInDanger, WoundedLoot, CleanUpAfterFight, NoticeBodies, LootGivenFirst, RoomSweep, DropCheapForBetter, WeightMatters, ShedWeight, ShedWeightChance,
+            SettingsMenu.PackOf(packLoot, LootThinking, LootRightSide, NoLootInDanger, LootNerve, LootWalk, WoundedLoot, CleanUpAfterFight, NoticeBodies, LootGivenFirst, RoomSweep, DropCheapForBetter, WeightMatters, ShedWeight, ShedWeightChance,
                 LootStill, LootProne, LootProneChance);
             SettingsMenu.PackOf(packSquad, SquadTactics, TightSquads, SquadLootWait, HelpSquadmates, RecoverFallenMate, MateFullKit, MateStashChance, MateStashRadius, SquadFormation, SquadShare, SquadVoice,
                 SquadDoctrines, SquadPlaybook, SquadListen, SquadComms, PeekBait, ThirdPartyTurn, SmokeScreens, BossHunts, SquadFlanking, SquadSpreadOut, SquadTrade, SquadLootSpread);
 
-            SettingsMenu.PackOf(packFight, CombatMorale, SmoothCombatDecisions, GunfireResponse, NoiseResponse, FightLikePlayer, GrenadeHabit, StormStims, NightDiscipline, SearchFullPace, FightRoles, ReturnFire, GunRange, SidearmCare, DogFightSanity, BushSight, LongGunHolds,
-                CloseNotice, FloorAware, FightersOnly, ReloadUnderFire, KnifeAtArmsLength, DistantFightRange, GunRangeMargin, GunRangeMarginClasses);
+            SettingsMenu.PackOf(packFight, CombatMorale, SmoothCombatDecisions, GunfireResponse, NoiseResponse, Intercept, InterceptWeight, FightLikePlayer, GrenadeHabit, StormStims, NightDiscipline, SearchFullPace, FightRoles, ReturnFire, GunRange, SidearmCare, DogFightSanity, BushSight, LongGunHolds,
+                CloseNotice, FireDiscipline, BlindFireHold, PressHurt, FloorAware, FightersOnly, ReloadUnderFire, KnifeAtArmsLength, DistantFightRange, GunRangeMargin, GunRangeMarginClasses);
             SettingsMenu.LevelOf(flee, new ConfigEntryBase[] { FleeMorale, FleeChance },
                 (SettingsMenu.Level.Off, "Никогда", new object[] { false, null }),
                 (SettingsMenu.Level.Low, "Редко", new object[] { true, 0.5f }),
@@ -990,7 +1079,7 @@ namespace LiveRaid.Client
             SettingsMenu.AmountOf(bottomless, BottomlessAmmo, BottomlessReserve, 10);
 
             SettingsMenu.PackOf(packQuests, QuestDriveOn, QuestSpread, QuestAudit, QuestPointFix, QuestSimulation, QuestAnimations, QuestStepGiveUpMin);
-            SettingsMenu.PackOf(packRoutes, Routes, RouteTeleportUnseen, RouteAreaBots, RouteRecorder, RouteRecordPoint, RouteRecordJump, RouteUndo, RouteSave);
+            SettingsMenu.PackOf(packRoutes, Routes, RouteTeleportUnseen, RouteAreaBots, RouteRecorder, RouteRecordPoint, RouteRecordJump, RouteUndo, RouteSave, MapEdits, MapEditsAutoReload, MapEditsDump, MapEditsRedump, MapEditsOverlay, MapEditsReloadKey, MapEditsOverlayKey);
 
             Presets.Setup(cfg, new[] { packKeys, packMap, packLearn, packChars, packExfil, packSpawn, packLoot, packSquad, packFight, packHeal, packFixes, packQuests, packRoutes }, packHeal, packFixes);
             SettingsMenu.Finish(cfg);

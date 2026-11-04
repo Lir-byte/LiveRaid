@@ -84,12 +84,14 @@ namespace LiveRaid.Client.Tactics
         public static int RefusedStart { get; private set; }
         public static int Evicted { get; private set; }
         public static int Unloaded { get; private set; }
+        public static int Restored { get; private set; }
 
         private static readonly HashSet<string> _toppedBots = new HashSet<string>();
 
         public static string Summary =>
             $"summoned ammo: round stacks {StacksMade} ({RoundsAdded} rounds, bots {BotsToppedUp}, nowhere to put {NoRoom}), magazines made {MagsMade} " +
-            $"(an empty one filled {MagsReused}, could not make {MagsFailed}), the gun's own empty magazine taken out to be filled {Unloaded}, " +
+            $"(an empty one filled {MagsReused}, could not make {MagsFailed}), the gun's own empty magazine taken out to be filled {Unloaded} " +
+            $"(put back in the gun when the rounds would not go in {Restored}), " +
             $"refused for a gun the bot started with {RefusedStart}, taken away for a find {Evicted}";
 
         public static void Clear()
@@ -105,7 +107,7 @@ namespace LiveRaid.Client.Tactics
             _toppedBots.Clear();
             _tick = 0f;
             _infoLeft = 40;
-            RoundsAdded = StacksMade = BotsToppedUp = MagsMade = MagsReused = MagsFailed = NoRoom = RefusedStart = Evicted = Unloaded = 0;
+            RoundsAdded = StacksMade = BotsToppedUp = MagsMade = MagsReused = MagsFailed = NoRoom = RefusedStart = Evicted = Unloaded = Restored = 0;
         }
 
         private static string Name(BotOwner bot) => bot?.Profile?.Nickname ?? "?";
@@ -494,6 +496,11 @@ namespace LiveRaid.Client.Tactics
                 }
 
                 _pending.Remove(id);
+                // Raid 2026-11-02 15:58: 8 guns had their empty magazine taken out and none was filled - the gun stood without a magazine for minutes
+                // (SAIN threw 880 NullReferenceExceptions in CalcAmmoRatio, cutting the cover steering of those bots short on every tick). The empty
+                // magazine goes back into the gun, and the gun is not unloaded again for five minutes
+                RestoreEmpty(bot, gun, pend.Mag);
+                _unloadTried[id + gun.Id] = now + 290f;
                 return Failed(bot, gun, now, "the magazine stayed empty - the rounds did not go in");
             }
 
@@ -602,6 +609,39 @@ namespace LiveRaid.Client.Tactics
             }
 
             return true;
+        }
+
+        /// <summary>The gun has no magazine and the empty one that was taken out could not be filled: it goes back where it was.</summary>
+        private static void RestoreEmpty(BotOwner bot, Weapon gun, Magazine mag)
+        {
+            try
+            {
+                if (mag == null || gun == null || gun.GetCurrentMagazine() != null)
+                {
+                    return;
+                }
+
+                Slot magSlot = gun.GetMagazineSlot();
+                InventoryController ic = bot.GetPlayer?.InventoryController;
+                if (magSlot == null || ic == null || !magSlot.CanAccept(mag))
+                {
+                    return;
+                }
+
+                var move = ItemManipulator.Move(mag, magSlot.CreateItemAddress(), ic, true);
+                if (move.Failed)
+                {
+                    return;
+                }
+
+                ic.TryRunNetworkTransaction(move, null);
+                Restored++;
+                Log.Detail("weapon", () => $"{Name(bot)}: the empty {mag.ShortName.Localized()} is put back into its {gun.ShortName.Localized()}");
+            }
+            catch (System.Exception e)
+            {
+                Diag.Report("Bottomless.RestoreEmpty", e);
+            }
         }
 
         private static void Done(BotOwner bot, Weapon gun, Magazine target, bool reused, string where)

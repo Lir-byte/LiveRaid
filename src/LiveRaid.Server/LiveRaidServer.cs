@@ -135,6 +135,8 @@ public class LiveRaidServer(
             // Raids watched from the start (client F12 -> 11) leave the profile as it was
             EnablePatch<ObserverStartRaidPatch>();
             EnablePatch<ObserverEndRaidPatch>();
+            EnablePatch<PackratStartRaidPatch>();
+            EnablePatch<PackratWavePatch>();
 
             logger.Success("[LiveRaid] server loaded");
         }

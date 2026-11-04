@@ -14,3 +14,7 @@ release/*.zip
 SPT AKI PROJECT
 _work/
 *.log
+studio/build/
+studio/dist/
+studio/workspace/
+studio/*.spec

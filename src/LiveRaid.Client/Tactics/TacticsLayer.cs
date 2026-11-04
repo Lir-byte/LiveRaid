@@ -31,6 +31,9 @@ namespace LiveRaid.Client.Tactics
         // Run to a squadmate who is in a fight (SquadAssist); ends when the helper makes contact itself
         Assist,
 
+        // Lie in wait, crouched and facing a place where a heard enemy is expected, for 12-25 s (Intercept)
+        Ambush,
+
         // Give a squadmate meds or loot, or wait for it (SquadShare): walk up, throw, the other picks it up
         Handover,
 
@@ -49,6 +52,9 @@ namespace LiveRaid.Client.Tactics
         public float Until;
         public bool Prone;
         public string CorpseId;
+
+        // How long to stay after arriving at StandAt (the wait of an ambush); <0 - by the kind of task (HoldLogic)
+        public float Dwell = -1f;
 
         // Runs when the task ends normally (time up, arrived and done) and the bot is still alive
         public Action<BotOwner> OnFinished;
@@ -72,7 +78,7 @@ namespace LiveRaid.Client.Tactics
         public override string ToString() => $"{Kind} until {Until:0}s";
 
         /// <summary>Tasks a fight makes pointless: after the shooting the bot decides afresh instead of resuming an old plan.</summary>
-        public bool EndsWithCombat => Kind == TaskKind.Listen || Kind == TaskKind.Investigate || Kind == TaskKind.Hide || Kind == TaskKind.Cover
+        public bool EndsWithCombat => Kind == TaskKind.Listen || Kind == TaskKind.Investigate || Kind == TaskKind.Hide || Kind == TaskKind.Ambush || Kind == TaskKind.Cover
                                       || Kind == TaskKind.Handover || Kind == TaskKind.Relocate || Kind == TaskKind.Recover;
     }
 
@@ -112,6 +118,7 @@ namespace LiveRaid.Client.Tactics
                 case TaskKind.Recover: return 4;
                 case TaskKind.ExitCamp: return 4;
                 case TaskKind.Investigate:
+                case TaskKind.Ambush:
                 case TaskKind.Watch: return 3;
                 case TaskKind.Hide:
                 case TaskKind.Cover: return 2;
@@ -504,7 +511,7 @@ namespace LiveRaid.Client.Tactics
             if (task.StandAt.HasValue && !task.Arrived)
             {
                 task.Arrived = true;
-                float dwell = ArrivalDwell(task.Kind);
+                float dwell = task.Dwell >= 0f ? task.Dwell : ArrivalDwell(task.Kind);
                 if (dwell > 0f && Time.time + dwell < task.Until)
                 {
                     Log.Detail("task", $"{BotOwner.Profile?.Nickname} arrived for {task.Kind}, waits {dwell:0} s instead of {task.Until - Time.time:0} s");

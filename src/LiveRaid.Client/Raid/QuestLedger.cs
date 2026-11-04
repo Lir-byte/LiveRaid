@@ -217,6 +217,20 @@ namespace LiveRaid.Client.Raid
     {
         protected override MethodBase GetTargetMethod() => AccessTools.Method(typeof(BotObjectiveManager), nameof(BotObjectiveManager.DoorIsUnlocked));
 
+        // Which door it was: QuestingBots forgets it in this very call
+        [PatchPrefix]
+        protected static void PatchPrefix(BotObjectiveManager __instance)
+        {
+            try
+            {
+                Bots.RoomPeek.OnUnlocked(QuestLedger.OwnerOf(__instance), __instance.CurrentAssignment?.DoorToUnlock);
+            }
+            catch (Exception e)
+            {
+                Diag.Report("QuestLedgerUnlockPatch", e);
+            }
+        }
+
         [PatchPostfix]
         protected static void PatchPostfix(BotObjectiveManager __instance)
         {

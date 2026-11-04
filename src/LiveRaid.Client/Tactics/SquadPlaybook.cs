@@ -705,7 +705,9 @@ namespace LiveRaid.Client.Tactics
             Vector3 target = default)
         {
             float now = Time.time;
-            float length = tactic == SquadTactic.PushTheWounded || tactic == SquadTactic.RunDown ? 12f + (float)_rng.NextDouble() * 6f
+            // Pressing a hurt enemy: long enough to get to him before he is patched up (2026-11-02: 12-18 s ended before the squad got there)
+            float length = tactic == SquadTactic.PushTheWounded ? 18f + (float)_rng.NextDouble() * 12f
+                : tactic == SquadTactic.RunDown ? 12f + (float)_rng.NextDouble() * 6f
                 : tactic == SquadTactic.Revenge ? 20f + (float)_rng.NextDouble() * 10f
                 : tactic == SquadTactic.FallBackAndRegroup || tactic == SquadTactic.Scatter ? 30f + (float)_rng.NextDouble() * 10f
                 : 30f + (float)_rng.NextDouble() * 20f;
@@ -888,14 +890,8 @@ namespace LiveRaid.Client.Tactics
                 return false;
             }
 
-            BotOwner enemyBot = enemy.AIData?.BotOwner;
-            if (enemyBot != null)
-            {
-                return HitReaction.TryGetHit(enemyBot, out HitReaction.Hit hit) && Time.time - hit.At < 8f && hit.By != null
-                       && mates.Any(m => m.ProfileId == hit.By.ProfileId);
-            }
-
-            return enemy.HealthController != null && enemy.HealthController.IsAlive && enemy.HealthController.GetBodyPartHealth(EBodyPart.Common).Normalized < 0.6f;
+            // Hit by one of the squad, visibly hurt, or heard patching up near one of them (PressHurt)
+            return mates.Any(m => PressHurt.HurtWhy(m, enemy, Vector3.Distance(m.Position, enemy.Position)) != null);
         }
 
         private static SquadTactic Pick(Dictionary<SquadTactic, float> w)

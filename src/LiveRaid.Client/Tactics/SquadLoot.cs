@@ -110,6 +110,14 @@ namespace LiveRaid.Client.Tactics
                 return false;
             }
 
+            // The leader is on its way out: nobody waits for loot or walks back for it (raid 2026-11-02 15:58: Therkelsen "walked back 136 m to a looter"
+            // while that looter was running to the same exit, and the squad's wait and its exit pulled him two ways)
+            if (Raid.RaidMonitor.SafeLayerName(leader) == "Exfiltration")
+            {
+                w.From = 0f;
+                return false;
+            }
+
             List<BotOwner> looters = leader.Boss.Followers
                 .Where(f => f != null && !f.IsDead && (f.Position - leader.Position).sqrMagnitude < Reach * Reach && Busy(f))
                 .ToList();
@@ -233,6 +241,12 @@ namespace LiveRaid.Client.Tactics
         /// </summary>
         private static bool Busy(BotOwner f)
         {
+            // On its way to the exit it is not looting, whatever body job is still on its list
+            if (Raid.RaidMonitor.SafeLayerName(f) == "Exfiltration")
+            {
+                return false;
+            }
+
             LootingBrain brain = f.GetPlayer?.GetComponent<LootingBrain>();
             if (brain != null && brain.LootTaskRunning)
             {

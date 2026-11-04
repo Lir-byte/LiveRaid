@@ -455,6 +455,13 @@ namespace LiveRaid.Client.Tactics
                 w[FightReaction.Approach] *= 0.3f;
             }
 
+            // The packrat keeps out of every fight it hears (Packrat)
+            if (p.Packrat)
+            {
+                w[FightReaction.Rush] = w[FightReaction.Approach] = w[FightReaction.Flank] = w[FightReaction.Ambush] = 0f;
+                w[FightReaction.Leave] = Mathf.Max(w[FightReaction.Leave], 1.2f);
+            }
+
             FightReaction reaction = Pick(w);
             ReactionCounts[reaction] = ReactionCounts.TryGetValue(reaction, out int n) ? n + 1 : 1;
             Log.Info($"LR Gunfire: {p.Name} ({p.Style}, {p.Skill}, {p.Kind}) hears a fight {dist:0} m away ({fight.Shots} shots, {fight.Shooters.Count} shooters" +

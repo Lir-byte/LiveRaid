@@ -43,20 +43,37 @@ namespace LiveRaid.Client.Patches
                 return true;
             }
 
-            // After your death nobody is "near a human" any more: SAIN put every bot in the far tiers and they all thought slowly
-            // (half blind to each other) while you watched. Full speed then
-            if (Spectator.SpectatorSession.OriginalDead || Spectator.SpectatorSession.Observer)
-            {
-                return true;
-            }
+            PerfProbe.Frame();
 
             int every;
-            switch (__instance.CurrentAILimit)
+            if (Spectator.SpectatorSession.OriginalDead || Spectator.SpectatorSession.Observer)
             {
-                case AILimitSetting.Far: every = 2; break;
-                case AILimitSetting.VeryFar: every = 3; break;
-                case AILimitSetting.Narnia: every = 5; break;
-                default: return true;
+                // After your death nobody is "near a human" any more: SAIN put every bot in the far tiers and they all thought slowly
+                // (half blind to each other) while you watched. Here the tiers are those of the camera: a bot far from where you look thinks less often,
+                // the ones round the camera at full speed (F12 -> 5 "Tiers by the camera")
+                if (!Settings.LodByCamera.Value)
+                {
+                    return true;
+                }
+
+                every = PerfProbe.CameraTier(__instance.BotOwner);
+            }
+            else
+            {
+                switch (__instance.CurrentAILimit)
+                {
+                    case AILimitSetting.Far: every = 2; break;
+                    case AILimitSetting.VeryFar: every = 3; break;
+                    case AILimitSetting.Narnia: every = 5; break;
+                    default: return true;
+                }
+
+                every += PerfProbe.Pressure;
+            }
+
+            if (every <= 1)
+            {
+                return true;
             }
 
             if (__instance.GoalEnemy != null || __instance.BotOwner?.Memory?.GoalEnemy != null)
@@ -66,7 +83,13 @@ namespace LiveRaid.Client.Patches
 
             // Stagger bots so the skipped work is spread evenly across frames
             int slot = (__instance.GetInstanceID() & 0x7fffffff) % every;
-            return Time.frameCount % every == slot;
+            bool run = Time.frameCount % every == slot;
+            if (!run)
+            {
+                PerfProbe.Skipped++;
+            }
+
+            return run;
         }
     }
 

@@ -31,6 +31,9 @@ public class GenContext
     // The raid this bot is for is a night raid (the player's raid settings and the in-raid hour)
     public bool IsNight;
 
+    // This PMC is the raid's packrat (Packrat.cs)
+    public bool IsPackrat;
+
     // Debug: loot counts of the template the loot generator will use
     public string LootCounts;
 
@@ -82,6 +85,9 @@ public class GearShaper
 
         return (int)Math.Round(arch.KitLevel.Min + rng.NextDouble() * (arch.KitLevel.Max - arch.KitLevel.Min));
     }
+
+    /// <summary>An archetype by its id (the packrat's, never drawn by weight), or null.</summary>
+    public Archetype ById(string id) => _archetypes.FirstOrDefault(a => a.Id == id);
 
     public Archetype Choose(int level, string difficulty, Random rng)
     {

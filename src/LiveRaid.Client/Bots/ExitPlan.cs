@@ -29,6 +29,10 @@ namespace LiveRaid.Client.Bots
 
         private static readonly Dictionary<string, string> _chosen = new Dictionary<string, string>();
         private static readonly Dictionary<string, int> _used = new Dictionary<string, int>();
+        private static readonly HashSet<string> _carNoted = new HashSet<string>();
+
+        // A squadmate farther than this from a car (straight line, about 40 s at a run) will not be at it in time
+        private const float CarMateReach = 200f;
 
         // The exits each spawn squad (or solo) has for this raid, set when its first member comes in - like the exits a player sees at the start
         private static readonly Dictionary<int, HashSet<string>> _cards = new Dictionary<int, HashSet<string>>();
@@ -44,6 +48,7 @@ namespace LiveRaid.Client.Bots
         {
             _chosen.Clear();
             _used.Clear();
+            _carNoted.Clear();
             _cards.Clear();
             _noCardNoted.Clear();
         }
@@ -167,6 +172,18 @@ namespace LiveRaid.Client.Bots
                     continue;
                 }
 
+                // A paid car does not wait: its clock runs for everyone from the first payment. A squad whose mate is too far to be at the car in time takes
+                // another exit (raid 2026-11-02 15:58: the car was paid for with a mate 136 m off)
+                if (CarExits.IsCar(exit) && SquadExtract.MatesTooFar(bot, ai.Position, CarMateReach, out string far))
+                {
+                    if (_carNoted.Add(bot.ProfileId + exit.Settings.Name))
+                    {
+                        Log.Info($"LR Extract: {bot.Profile?.Nickname} leaves the car at {exit.Settings.Name.Localized()} alone - its squad is too far from it to be there in time ({far})");
+                    }
+
+                    continue;
+                }
+
                 float d = Vector3.Distance(bot.Position, ai.Position);
                 string name = exit.Settings.Name;
                 if (!open.TryGetValue(name, out var have) || d < have.dist)
@@ -261,6 +278,28 @@ namespace LiveRaid.Client.Bots
             {
                 CachedPoint(data) = target;
             }
+        }
+
+        private static readonly AccessTools.FieldRef<PatrolExfiltrationPointsData, float> NextCheck =
+            AccessTools.FieldRefAccess<PatrolExfiltrationPointsData, float>("_nextCheck");
+
+        /// <summary>The bot's exit is gone (the car drove off): it forgets its plan and EFT's cached exit, and chooses again.</summary>
+        public static void Release(BotOwner bot)
+        {
+            if (bot == null)
+            {
+                return;
+            }
+
+            _chosen.Remove(bot.ProfileId);
+            PatrolExfiltrationPointsData data = bot.PatrollingData?.ExfiltrationData;
+            if (data != null)
+            {
+                CachedPoint(data) = null;
+                NextCheck(data) = 0f;
+            }
+
+            bot.Exfiltration?.ResetLeaveTime();
         }
 
         private static float DistanceToSegment(Vector3 p, Vector3 a, Vector3 b)

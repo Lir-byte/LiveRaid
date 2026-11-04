@@ -31,6 +31,30 @@ namespace LiveRaid.Client.Patches
         /// </summary>
         private static readonly double[][] BiggerLobbyGroupSizes = { new[] { 1d, 45 }, new[] { 2d, 26 }, new[] { 3d, 17 }, new[] { 4d, 8 }, new[] { 5d, 4 } };
 
+        /// <summary>
+        /// The squad size mix of QuestingBots: lone PMCs get the share set in F12 ("Lone PMCs among groups"), the twos to fives share the rest in the
+        /// proportion of the mix in use (the bigger lobby's or the online one). Traces 31.10-02.11 (118 groups): 50 % of the groups were solos, which is 28 % of the PMCs.
+        /// </summary>
+        public static double[][] GroupSizes()
+        {
+            double[][] mix = Settings.BiggerLobby.Value ? BiggerLobbyGroupSizes : OnlineGroupSizes;
+            double solo = Math.Max(0d, Math.Min(100d, Settings.PmcSoloShare?.Value ?? 45));
+            double rest = 0d;
+            for (int i = 1; i < mix.Length; i++)
+            {
+                rest += mix[i][1];
+            }
+
+            double[][] sizes = new double[mix.Length][];
+            sizes[0] = new[] { 1d, solo };
+            for (int i = 1; i < mix.Length; i++)
+            {
+                sizes[i] = new[] { mix[i][0], rest > 0d ? Math.Round((100d - solo) * mix[i][1] / rest, 2) : 0d };
+            }
+
+            return sizes;
+        }
+
         /// <summary>QuestingBots' client config (its ConfigUtil is internal, the config classes are public).</summary>
         public static ModConfig QuestingBots()
         {
@@ -102,7 +126,7 @@ namespace LiveRaid.Client.Patches
             Own("QB lobby: fraction of max players", lobby, () => pmcs.FractionOfMaxPlayers, v => pmcs.FractionOfMaxPlayers = v, 1f, changed);
             Own("QB lobby: always full", lobby, () => pmcs.LobbySizeReduction.AlwaysUseFullLobbies, v => pmcs.LobbySizeReduction.AlwaysUseFullLobbies = v, true, changed);
             Own("QB lobby: squad sizes", lobby, () => pmcs.BotsPerGroupDistribution, v => pmcs.BotsPerGroupDistribution = v,
-                Settings.BiggerLobby.Value ? BiggerLobbyGroupSizes : OnlineGroupSizes, changed);
+                GroupSizes(), changed);
 
             // Scavs roam the map: QuestingBots must let scavs quest at all (which quests they get is LiveRaid's choice)
             bool roam = on && (Settings.ScavsQuest.Value || Settings.ScavPatrol.Value);

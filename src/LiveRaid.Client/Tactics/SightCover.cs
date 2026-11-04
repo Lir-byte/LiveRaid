@@ -167,13 +167,52 @@ namespace LiveRaid.Client.Tactics
             return true;
         }
 
+        /// <summary>
+        /// FrozenWatch: the bot stood for ten seconds where it wanted to leave from - out of the enemy's sight at once, and not to the nearest hidden place (3 m
+        /// away: the one SAIN led it back from) but to one 8-30 m away.
+        /// </summary>
+        public static bool Escape(BotOwner bot, Enemy e, string why)
+        {
+            if (bot == null || e == null || bot.IsDead)
+            {
+                return false;
+            }
+
+            Vector3? seen = e.EnemyPlayer != null ? e.EnemyPlayer.Position : e.LastKnownPosition;
+            if (seen == null)
+            {
+                return false;
+            }
+
+            if (!_states.TryGetValue(bot.ProfileId, out State s))
+            {
+                _states[bot.ProfileId] = s = new State { StillAt = bot.Position, StillSince = Time.time };
+            }
+
+            Vector3 pos = bot.Position;
+            Vector3? spot = FindSpot(pos, seen.Value + Vector3.up * 1.5f, new[] { 8f, 12f, 18f, 25f, 30f }, 45f);
+            if (spot == null)
+            {
+                NoSpot++;
+                Log.Detail("combat", $"{bot.Profile.Nickname} {why}, but no spot out of {e.EnemyPlayer?.Profile?.Nickname}'s sight within 30 m");
+                return false;
+            }
+
+            s.Target = spot;
+            s.Until = Time.time + 14f;
+            s.NextTry = Time.time + 20f;
+            Hidden++;
+            Log.Info($"LR Combat: {bot.Profile.Nickname} {why} - runs out of {e.EnemyPlayer?.Profile?.Nickname}'s sight to a spot {Vector3.Distance(pos, spot.Value):0} m away");
+            return true;
+        }
+
         /// <summary>The nearest point (walking) within 15 m that the eye cannot see.</summary>
-        private static Vector3? FindSpot(Vector3 pos, Vector3 eye)
+        private static Vector3? FindSpot(Vector3 pos, Vector3 eye, float[] rings = null, float maxLength = 25f)
         {
             Vector3? best = null;
-            float bestLength = 25f;
+            float bestLength = maxLength;
             var path = new NavMeshPath();
-            foreach (float r in new[] { 3f, 6f, 10f, 15f })
+            foreach (float r in rings ?? new[] { 3f, 6f, 10f, 15f })
             {
                 foreach (Vector3 d in _dirs)
                 {

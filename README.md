@@ -1,6 +1,6 @@
 # LiveRaid - bots that play like people online (SPT 4.1.6)
 
-**Version 1.0.5** · by **Lir** · [CC BY-NC-SA 4.0](LICENSE)
+**Version 1.2.4** · by **Lir** · [CC BY-NC-SA 4.0](LICENSE)
 
 LiveRaid does **not** replace QuestingBots, SAIN or LootingBots. They keep doing what they do - walk quests, shoot, pick things up - and I added the part none of them has: **who each bot is, what it carries, and what it decides to do with the raid around it.** It sits on top of them (no code of theirs inside) and keeps every switch in one F12 menu. Same goal as ORBIT, different way: ORBIT replaces those mods, LiveRaid extends them.
 
@@ -144,7 +144,7 @@ By **Lir**. Licensed under [Creative Commons Attribution-NonCommercial-ShareAlik
 
 # LiveRaid - боты как в онлайне (SPT 4.1.6)
 
-**Версия 1.0.5** · автор **Lir** · лицензия [CC BY-NC-SA 4.0](LICENSE)
+**Версия 1.2.4** · автор **Lir** · лицензия [CC BY-NC-SA 4.0](LICENSE)
 
 LiveRaid **не заменяет** QuestingBots, SAIN и LootingBots. Они делают то же, что и делали - ходят по квестам, стреляют, подбирают вещи, - а я добавил то, чего нет ни в одном из них: **кто такой каждый бот, что у него с собой и что он решает делать с рейдом вокруг.** Мод стоит поверх них (их кода в нём нет), а все выключатели собраны в одном меню F12. Цель та же, что у ORBIT, путь другой: ORBIT заменяет эти моды, LiveRaid их расширяет.
 

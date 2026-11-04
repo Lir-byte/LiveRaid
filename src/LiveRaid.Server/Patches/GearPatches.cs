@@ -39,6 +39,22 @@ public class PrepareAndGenerateBotPatch : AbstractPatch
         }
     }
 
+    [PatchPostfix]
+    public static void Postfix(BotBase __result)
+    {
+        try
+        {
+            if (GenContext.Current?.IsPackrat == true && __result != null)
+            {
+                Packrat.Generated(__result.Id.ToString(), __result.Info?.Nickname);
+            }
+        }
+        catch (Exception e)
+        {
+            LrState.Error("packrat bookkeeping failed", e);
+        }
+    }
+
     [PatchFinalizer]
     public static Exception Finalizer(Exception __exception)
     {
@@ -72,7 +88,10 @@ public class FilterBotEquipmentPatch : AbstractPatch
         {
             Random rng = Random.Shared;
             ctx.DisplayLevel = botGenerationDetails.BotLevel;
-            Archetype arch = shaper.Choose(botGenerationDetails.BotLevel, botGenerationDetails.BotDifficulty, rng);
+            // The raid's packrat: a lone PMC with a pistol and the biggest bag (Packrat.cs, at most one per raid)
+            Archetype packrat = Packrat.TryTake(botGenerationDetails) ? shaper.ById(Packrat.ArchetypeId) : null;
+            ctx.IsPackrat = packrat != null;
+            Archetype arch = packrat ?? shaper.Choose(botGenerationDetails.BotLevel, botGenerationDetails.BotDifficulty, rng);
             ctx.Archetype = arch;
             if (arch == null)
             {

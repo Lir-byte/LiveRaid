@@ -31,6 +31,7 @@ namespace LiveRaid.Client.Bots
         }
 
         private static readonly Dictionary<string, Waiting> _waiting = new Dictionary<string, Waiting>();
+        private static readonly Dictionary<string, float> _allowNote = new Dictionary<string, float>();
         private static readonly AccessTools.FieldRef<PatrolExfiltrationPointsData, AIExfiltrationPoint> CachedPoint =
             AccessTools.FieldRefAccess<PatrolExfiltrationPointsData, AIExfiltrationPoint>("_cachedExfiltrationPoint");
 
@@ -47,6 +48,7 @@ namespace LiveRaid.Client.Bots
         public static void Clear()
         {
             _waiting.Clear();
+            _allowNote.Clear();
             _next = 0f;
             Synced = WaitedFor = FollowersHeld = 0;
         }
@@ -65,7 +67,82 @@ namespace LiveRaid.Client.Bots
                 squad.AddRange(leader.Boss.Followers.Where(f => f != null && !f.IsDead && f != leader));
             }
 
+            // QuestingBots splits a squad into groups of its own (a hurt member, a lone errand) and Boss.Followers then lists the wrong people: the
+            // squad is the one it spawned with (SquadTies), as everywhere else (raid 2026-11-02 15:58: Therkelsen paid for the car with his mate 136 m away)
+            GameWorld world = Singleton<GameWorld>.Instance;
+            if (world != null)
+            {
+                foreach (string id in SquadTies.MatesOf(bot.ProfileId))
+                {
+                    if (id == bot.ProfileId || squad.Any(s => s.ProfileId == id))
+                    {
+                        continue;
+                    }
+
+                    BotOwner m = world.AllAlivePlayersList.FirstOrDefault(pl => pl != null && pl.ProfileId == id)?.AIData?.BotOwner;
+                    if (m != null && !m.IsDead && m.BotState == EBotState.Active)
+                    {
+                        squad.Add(m);
+                    }
+                }
+            }
+
             return squad;
+        }
+
+        /// <summary>
+        /// The mates that are not at the bot's side yet (farther than <see cref="Together"/>), with their distances; empty = the squad is whole or the bot
+        /// is alone. Exits that start a clock for everyone (the paid car) ask this before the first payment.
+        /// </summary>
+        public static bool SquadIsThere(BotOwner bot, out string missing)
+        {
+            missing = null;
+            if (!Settings.ExtractTogether.Value || bot == null)
+            {
+                return true;
+            }
+
+            List<BotOwner> squad = Squad(bot);
+            if (squad.Count <= 1 || Assembled(bot, squad))
+            {
+                return true;
+            }
+
+            missing = string.Join(", ", squad.Where(m => m != bot && !m.IsDead).Select(m => $"{m.Profile?.Nickname} {Vector3.Distance(m.Position, bot.Position):0} m"));
+            return false;
+        }
+
+        /// <summary>The squad's mates alive and farther from the point than <paramref name="reach"/> metres (straight line), for choosing an exit with a clock.</summary>
+        public static bool MatesTooFar(BotOwner bot, Vector3 point, float reach, out string who)
+        {
+            who = null;
+            if (!Settings.ExtractTogether.Value || bot == null)
+            {
+                return false;
+            }
+
+            List<string> far = new List<string>();
+            foreach (BotOwner m in Squad(bot))
+            {
+                if (m == bot || m.IsDead)
+                {
+                    continue;
+                }
+
+                float d = Vector3.Distance(m.Position, point);
+                if (d > reach)
+                {
+                    far.Add($"{m.Profile?.Nickname} {d:0} m");
+                }
+            }
+
+            if (far.Count == 0)
+            {
+                return false;
+            }
+
+            who = string.Join(", ", far);
+            return true;
         }
 
         /// <summary>QuestingBots asks whether the bot is ready to leave: a follower is ready only when its leader is.</summary>
@@ -157,6 +234,12 @@ namespace LiveRaid.Client.Bots
             if (squad.Count <= 1 || Assembled(bot, squad))
             {
                 _waiting.Remove(bot.ProfileId);
+                if (squad.Count > 1 && (!_allowNote.TryGetValue(bot.ProfileId, out float noted) || Time.time - noted > 20f))
+                {
+                    _allowNote[bot.ProfileId] = Time.time;
+                    Log.Detail("extract", () => $"{bot.Profile?.Nickname}: its exit timer may run - the squad is there ({string.Join(", ", squad.Where(m => m != bot).Select(m => $"{m.Profile?.Nickname} {Vector3.Distance(m.Position, bot.Position):0} m"))})");
+                }
+
                 return true;
             }
 

@@ -44,6 +44,37 @@ namespace LiveRaid.Client.Tactics
             Stopped = Refused = 0;
         }
 
+        /// <summary>
+        /// Nerve at the loot (F12 -> 7 "Nerve at the loot"), 0.05-0.85: how much it takes to make this bot leave a body or a drawer. A player's tester
+        /// (2026-11-02): "bots stop looting to fight whenever they hear noise". Traces of 31.10-02.11: 322 of 771 looting stops were steps heard 20-50 m
+        /// off. Greedy and bold ones (looters, rushers, hunters) go on looting through distant steps and only stop for someone close, shots near them or
+        /// an enemy in sight; rats and campers keep the old wariness. The hearing ranges, the "someone ahead" range, the gunfire radius and the quiet time
+        /// before looting again all shrink with it (nerve 0.6: steps from 32 m instead of 50, quiet again after 5 s).
+        /// </summary>
+        public static float Nerve(BotOwner bot, BotProfile p)
+        {
+            if (!Settings.LootNerve.Value || p == null)
+            {
+                return 0f;
+            }
+
+            float n = 0.2f + 0.18f * Mathf.Clamp(p.LootGreed - 1f, -0.6f, 1.2f) + 0.45f * p.Aggression;
+            if (p.Style == PlayStyle.Rat)
+            {
+                n -= 0.15f;
+            }
+            else if (p.Style == PlayStyle.Camper)
+            {
+                n -= 0.1f;
+            }
+
+            // A steady per-bot spread, so two looters are not alike
+            n += ((bot.ProfileId.GetHashCode() & 0xFF) / 255f - 0.5f) * 0.2f;
+            return Mathf.Clamp(n, 0.05f, 0.85f);
+        }
+
+        private static float Ear(float nerve) => 1f - 0.6f * nerve;
+
         /// <summary>Why the bot must not loot right now, or null. Cached for a quarter of a second (LootingBots asks often).</summary>
         public static string Why(BotOwner bot)
         {
@@ -64,10 +95,11 @@ namespace LiveRaid.Client.Tactics
                 return c.why;
             }
 
-            string why = Check(bot);
+            float nerve = Nerve(bot, p);
+            string why = Check(bot, nerve);
             if (why != null)
             {
-                _dangerUntil[bot.ProfileId] = now + QuietSeconds;
+                _dangerUntil[bot.ProfileId] = now + QuietSeconds * (1.2f - 0.6f * nerve);
             }
             else if (_dangerUntil.TryGetValue(bot.ProfileId, out float until) && now < until)
             {
@@ -78,8 +110,9 @@ namespace LiveRaid.Client.Tactics
             return why;
         }
 
-        private static string Check(BotOwner bot)
+        private static string Check(BotOwner bot, float nerve)
         {
+            float ear = Ear(nerve);
             float now = Time.time;
             if (HitReaction.SinceHit(bot) < 10f)
             {
@@ -94,7 +127,7 @@ namespace LiveRaid.Client.Tactics
 
             Vector3 pos = bot.Position;
             HashSet<string> squad = LootBrain.SquadIds(bot);
-            if (WorldEvents.ShotPressure(pos, HearRange, 8f, squad) > 0.05f)
+            if (WorldEvents.ShotPressure(pos, HearRange * (1f - 0.35f * nerve), 8f, squad) > 0.05f)
             {
                 return "shooting nearby";
             }
@@ -114,18 +147,18 @@ namespace LiveRaid.Client.Tactics
                         return $"{e.EnemyPlayer.Profile?.Nickname ?? "an enemy"} in sight";
                     }
 
-                    if (e.RealDistance < HearRange && e.Heard && e.TimeSinceHeard < 10f)
+                    if (e.RealDistance < HearRange * ear && e.Heard && e.TimeSinceHeard < 10f)
                     {
                         return $"heard {e.EnemyPlayer.Profile?.Nickname ?? "an enemy"} {e.RealDistance:0} m away";
                     }
                 }
             }
 
-            return Stranger(bot, pos, squad);
+            return Stranger(bot, pos, squad, ear, nerve);
         }
 
         /// <summary>A stranger close enough to be heard (or seen standing in front) - what SAIN may not have registered yet.</summary>
-        private static string Stranger(BotOwner bot, Vector3 pos, HashSet<string> squad)
+        private static string Stranger(BotOwner bot, Vector3 pos, HashSet<string> squad, float ear, float nerve)
         {
             GameWorld world = Singleton<GameWorld>.Instance;
             BotsGroup group = bot.BotsGroup;
@@ -167,7 +200,7 @@ namespace LiveRaid.Client.Tactics
                 }
 
                 // Through a floor footsteps carry half as far
-                float range = Mathf.Abs(d.y) > 3f ? 0.5f : 1f;
+                float range = (Mathf.Abs(d.y) > 3f ? 0.5f : 1f) * ear;
                 Vector3 v = other.Velocity;
                 v.y = 0f;
                 float speed = v.magnitude;
@@ -188,7 +221,7 @@ namespace LiveRaid.Client.Tactics
                 }
 
                 // Standing in front of it in plain view
-                if (dist < 40f && facing.sqrMagnitude > 0.01f)
+                if (dist < 40f * (1f - 0.4f * nerve) && facing.sqrMagnitude > 0.01f)
                 {
                     Vector3 flat = d;
                     flat.y = 0f;
@@ -265,7 +298,7 @@ namespace LiveRaid.Client.Tactics
                 if (busy)
                 {
                     Stopped++;
-                    Log.Info($"LR Loot: {bot.Profile?.Nickname} stops looting - {why}");
+                    Log.Info($"LR Loot: {bot.Profile?.Nickname} stops looting - {why}{(Settings.LootNerve.Value ? $" (nerve {Nerve(bot, BotProfiles.Get(bot)):0.00})" : "")}");
                     LootingBots.External.PreventBotFromLooting(bot, QuietSeconds);
 
                     // Heard someone: a player freezes and listens that way, he does not walk off (the body / the room is taken up again when it is quiet)
