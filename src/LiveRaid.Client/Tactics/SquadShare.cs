@@ -598,6 +598,30 @@ namespace LiveRaid.Client.Tactics
                 .FirstOrDefault(it => recv.FindGridToPickUp(it) != null);
         }
 
+        /// <summary>
+        /// SquadKeys: a key a squadmate found goes to the leader (the same walk-up, throw and pick-up as for meds and loot). False when it is not the moment:
+        /// too far, one of them busy or in a handover, the key not in reach (in the secure container it cannot be thrown).
+        /// </summary>
+        public static bool HandOverKey(BotOwner giver, BotOwner receiver, string keyId)
+        {
+            if (giver == null || receiver == null || giver.IsDead || receiver.IsDead || OnCooldown(giver) || OnCooldown(receiver) || InHandover(giver) || InHandover(receiver))
+            {
+                return false;
+            }
+
+            if ((giver.Position - receiver.Position).sqrMagnitude > Range * Range)
+            {
+                return false;
+            }
+
+            if (Busy(giver, false, false, false) != null || Busy(receiver, false, true, false) != null)
+            {
+                return false;
+            }
+
+            Item key = giver.GetPlayer?.InventoryController?.Inventory?.Equipment?.GetItemComponentsInChildren<KeyComponent>(false).FirstOrDefault(k => k.Template.KeyId == keyId)?.Item;
+            return key != null && Start(giver, receiver, key, "key", "key");
+        }
         // ---------------- the scene ----------------
 
         private static bool Start(BotOwner giver, BotOwner receiver, Item item, string what, string need)

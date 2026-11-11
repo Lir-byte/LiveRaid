@@ -25,10 +25,42 @@ namespace LiveRaid.Client
         public static ConfigEntry<float> PmcKeyChance;
         public static ConfigEntry<float> ScavKeyChance;
         public static ConfigEntry<int> MaxKeysPerBot;
+        public static ConfigEntry<float> PmcKeyHiddenChance;
+        public static ConfigEntry<float> ScavKeyHiddenChance;
         public static ConfigEntry<bool> ContainerKeys;
         public static ConfigEntry<bool> PrizeKeys;
         public static ConfigEntry<float> PrizeKeyChance;
         public static ConfigEntry<float> PrizeKeyStep;
+        public static ConfigEntry<bool> KeyErrand;
+        public static ConfigEntry<bool> AtlasMemory;
+        public static ConfigEntry<bool> FollowerSweep;
+        public static ConfigEntry<bool> KeyLeaderHolds;
+        public static ConfigEntry<bool> DoorOnTheWay;
+        public static ConfigEntry<bool> PackratVacuum;
+        public static ConfigEntry<bool> AgendaOn;
+        public static ConfigEntry<float> AgendaChance;
+        public static ConfigEntry<bool> VerticalPull;
+        public static ConfigEntry<int> VerticalStrength;
+        public static ConfigEntry<bool> ColdPull;
+        public static ConfigEntry<bool> FreshSteps;
+        public static ConfigEntry<int> FreshStepsStrength;
+        public static ConfigEntry<bool> DepthPull;
+        public static ConfigEntry<int> DepthStrength;
+        public static ConfigEntry<int> ScavWanderers;
+        public static ConfigEntry<int> PScavToFight;
+        public static ConfigEntry<bool> PackratFromStart;
+        public static ConfigEntry<bool> BackpackExits;
+        public static ConfigEntry<bool> ExitCover;
+        public static ConfigEntry<float> ExitCoverChance;
+        public static ConfigEntry<float> TrainChance;
+        public static ConfigEntry<int> BackpackExitChance;
+        public static ConfigEntry<bool> DangerMemory;
+        public static ConfigEntry<bool> CautiousChoice;
+        public static ConfigEntry<int> DangerStrength;
+        public static ConfigEntry<bool> FullBagLeave;
+        public static ConfigEntry<bool> KeyToSquad;
+        public static ConfigEntry<bool> RoomMemory;
+        public static ConfigEntry<float> KeyErrandChance;
         public static ConfigEntry<bool> DoorAssist;
         public static ConfigEntry<bool> FreeShutIn;
 
@@ -68,6 +100,7 @@ namespace LiveRaid.Client
         public static ConfigEntry<bool> RoomSweep;
         public static ConfigEntry<bool> ThoroughLooting;
         public static ConfigEntry<bool> LearnFromMyRoute;
+        public static ConfigEntry<bool> AutoLinks;
         public static ConfigEntry<bool> BotsVisitLearned;
         public static ConfigEntry<bool> UseLearnedShortcuts;
 
@@ -91,6 +124,15 @@ namespace LiveRaid.Client
         public static ConfigEntry<bool> BiggerLobby;
         public static ConfigEntry<int> BiggerLobbyCount;
         public static ConfigEntry<int> PackratChance;
+        public static ConfigEntry<int> PackratAlarmMeters;
+        public static ConfigEntry<bool> ModWeaponsOn;
+        public static ConfigEntry<bool> ModClothesOn;
+        public static ConfigEntry<bool> WeaponWearOn;
+        public static ConfigEntry<int> WeaponNewChance;
+        public static readonly ConfigEntry<int>[] WeaponBandMin = new ConfigEntry<int>[4];
+        public static readonly ConfigEntry<int>[] WeaponBandMax = new ConfigEntry<int>[4];
+        public static readonly ConfigEntry<int>[] WeaponBandWeight = new ConfigEntry<int>[4];
+        public static ConfigEntry<int> WeaponMaxAbove;
         public static ConfigEntry<int> PmcSoloShare;
 
         public static ConfigEntry<bool> LootThinking;
@@ -110,6 +152,16 @@ namespace LiveRaid.Client
         public static ConfigEntry<bool> MapBalance;
         public static ConfigEntry<int> MapBalanceStrength;
         public static ConfigEntry<int> MapBalanceUneven;
+        public static ConfigEntry<bool> CoverageBalance;
+        public static ConfigEntry<int> CoverageStrength;
+        public static ConfigEntry<int> ReserveDelayMin;
+        public static ConfigEntry<bool> LateWaves;
+        public static ConfigEntry<int> LateWaveFirstMin;
+        public static ConfigEntry<int> LateWaveEveryMin;
+        public static ConfigEntry<int> LateWaveBots;
+        public static ConfigEntry<int> StartApartMeters;
+        // True when this start the 'Online-like spawns' switch was found off by the one-time check and turned back on (see Bind)
+        public static bool OnlineSpawnsRestored;
         public static ConfigEntry<float> LootSpeed;
         public static ConfigEntry<bool> DropCheapForBetter;
         public static ConfigEntry<bool> SquadShare;
@@ -188,6 +240,11 @@ namespace LiveRaid.Client
         public static ConfigEntry<bool> SteadyWeapons;
         public static ConfigEntry<bool> ReturnFire;
         public static ConfigEntry<bool> FreeStuckHands;
+        public static ConfigEntry<bool> LooseCollar;
+        public static ConfigEntry<bool> SquadBreathe;
+        public static ConfigEntry<bool> DynamicRoles;
+        public static ConfigEntry<bool> ArenaFightFix;
+        public static ConfigEntry<bool> SpawnRotation;
         public static ConfigEntry<bool> SurgeryWhenSafe;
         public static ConfigEntry<bool> ReloadUnderFire;
         public static ConfigEntry<bool> FightRoles;
@@ -200,6 +257,8 @@ namespace LiveRaid.Client
         public static ConfigEntry<bool> ShortQbHolds;
         public static ConfigEntry<bool> SpawnAllPoints;
         public static ConfigEntry<bool> PmcAlwaysHostile;
+        public static ConfigEntry<bool> RaidersHostileToPScavs;
+        public static ConfigEntry<bool> GluharHostileToAll;
         public static ConfigEntry<float> OnlineSpawnMinDistance;
         public static ConfigEntry<bool> LobbyLikeOnline;
         public static ConfigEntry<bool> LivelyMap;
@@ -236,9 +295,13 @@ namespace LiveRaid.Client
 
         public static ConfigEntry<bool> SpectateAfterDeath;
         public static ConfigEntry<bool> ObserverFromStart;
+        public static ConfigEntry<bool> PlayerGodMode;
+        public static ConfigEntry<bool> PlayerInvisible;
         public static ConfigEntry<bool> ObserverFollowAtStart;
         public static ConfigEntry<bool> ObserverFollowPackrat;
         public static ConfigEntry<bool> TakeOverBots;
+        public static ConfigEntry<bool> SmoothieGuard;
+        public static ConfigEntry<bool> KeepCulling;
         public static ConfigEntry<bool> EndRaidWhenTakenBotDies;
         public static ConfigEntry<bool> SpectatorBotNames;
         public static ConfigEntry<float> FreeCameraSpeed;
@@ -354,6 +417,9 @@ namespace LiveRaid.Client
             var prizeKeys = Level(cfg, "Prize keys", "Призовые ключи у ЧВК",
                 "Ключ от самого богатого места карты (меченая комната, КИБА, карта Лабы...) в подсумке ЧВК - его не видно и не снять. Редко: 40 % на рейд. " +
                 "Обычно: 75 %. Часто: всегда. Каждый следующий носитель в рейде реже");
+            var keyHiding = Level(cfg, "Hidden keys", "Ключи в подсумке",
+                "Как часто ключ бота, с которым он вышел в рейд, лежит в защищённом подсумке (не видно и не снять), а не в карманах. На виду: ключи всегда в карманах. " +
+                "Редко: ЧВК 40 %, дикие 20 %. Как онлайн: ЧВК 85 %, дикие 50 %. Почти всегда: 100 % / 90 %");
 
             _cat = CMap;
             var packMap = Pack(cfg, "Map life pack", "Передвижение по карте",
@@ -435,7 +501,13 @@ namespace LiveRaid.Client
                 "Шанс, что дикий появится с ключом от двери этой карты", new AcceptableValueRange<float>(0, 1));
             MaxKeysPerBot = B(cfg, "2. Keys and locked doors", "Max keys per bot", 3, "Ключей на бота, не больше",
                 "Сколько ключей от этой карты может нести один бот", new AcceptableValueRange<int>(0, 6));
-            DoorManners = B(cfg, "2. Keys and locked doors", "Door manners", true, "Двери как у игроков",
+            PmcKeyHiddenChance = B(cfg, "2. Keys and locked doors", "PMC key hidden chance", 0.85f, "Ключ ЧВК в подсумке, шанс",
+                "Шанс, что ключ, с которым ЧВК вышел в рейд, лежит в защищённом подсумке: его не видно на теле и не снять. Иначе (по умолчанию 15 %) ключ в карманах, разгрузке или рюкзаке. " +
+                "Касается и ключей, выданных модом, и тех, что бот получил при появлении от SPT", new AcceptableValueRange<float>(0, 1));
+            ScavKeyHiddenChance = B(cfg, "2. Keys and locked doors", "Scav key hidden chance", 0.5f, "Ключ дикого в подсумке, шанс",
+                "То же для диких: шанс, что ключ, с которым дикий появился, лежит в его защищённом подсумке (по умолчанию 50 на 50). Ключ дикого в подсумке тоже не видно и не снять",
+                new AcceptableValueRange<float>(0, 1));
+            DoorManners =B(cfg, "2. Keys and locked doors", "Door manners", true, "Двери как у игроков",
                 "Вошёл в здание - иногда закрывает дверь за собой (если товарищей у двери не осталось), подходит к закрытой двери - замирает на 1-2 с послушать. " +
                 "Крысы и чёткие отряды чаще, рашеры почти никогда");
             RoomPeek = B(cfg, "2. Keys and locked doors", "Look into a room you unlocked", true, "Заходить в отпертую комнату",
@@ -468,6 +540,26 @@ namespace LiveRaid.Client
             PrizeKeyStep = B(cfg, "2. Keys and locked doors", "Prize key chance drop per carrier", 0.2f, "Снижение шанса на носителя",
                 "Каждый следующий носитель в рейде на столько менее вероятен (0,75: первый 75 %, второй 55 %, третий 35 %, четвёртый 15 %)",
                 new AcceptableValueRange<float>(0.05f, 1f));
+
+            KeyErrand = B(cfg, "2. Keys and locked doors", "Own key errand", true, "Свой ключ - своя дверь",
+                "Бот, у которого есть ключ от запертой комнаты, с шансом (ниже) считает её своим делом на рейд: квест этой двери для него в 3,5 раза желаннее. Без этого ключи " +
+                "носили 18-25 ботов за рейд, а двери открывали 0-2. Бот сам идёт, проверяет путь и ключ; открытая комната обыскивается целиком");
+            KeyErrandChance = B(cfg, "2. Keys and locked doors", "Own key errand chance", 0.85f, "Шанс «своего» дела с ключом",
+                "Шанс, что бот с ключом от двери этой карты возьмёт эту дверь своим делом на рейд (бросок один раз на бота)", new AcceptableValueRange<float>(0f, 1f));
+
+            KeyToSquad = B(cfg, "2. Keys and locked doors", "Found key goes to the squad", true, "Найденный ключ - отряду",
+                "Бот отряда нашёл ключ от двери этой карты: отряд узнаёт, а ключ уходит лидеру (на ходу, в тишине), у которого квест комнаты и выбирается");
+            KeyLeaderHolds = B(cfg, "2. Keys and locked doors", "The squad keys go to the leader", true, "Ключи отряда - у лидера",
+                "Ключ от двери этой карты, который выпал бойцу отряда (не лидеру), с шансом 85 % сразу кладётся лидеру в защищённый контейнер (не виден и не лутается; нет контейнера или места - ключ остаётся у бойца): квесты отряда ведёт лидер, а подчинённые " +
+                "сами к двери не идут (в рейдах 1.2.9 у подчинённых 0 выполненных шагов, двери ими не открывались)");
+            DoorOnTheWay = B(cfg, "2. Keys and locked doors", "A door on the way", true, "Дверь по пути",
+                "Бот, у которого есть ключ от двери, охотнее берёт её квест, когда дверь рядом (до 60 м - в 1,8 раза, до 150 м - в 1,3), и неохотно - когда она за 300 м; " +
+                "бот не отказывается от квеста двери раньше 5,5 минут без сближения");
+            RoomMemory = B(cfg, "2. Keys and locked doors", "The squad remembers emptied buildings", true, "Отряд помнит обысканное",
+                "Здание, которое член отряда прошёл до конца, и комната, отпертая ключом и найденная пустой, - остальные бойцы отряда не лутают повторно (10 минут)");
+            FullBagLeave = B(cfg, "2. Keys and locked doors", "A full bag is a reason to leave", true, "Полный рюкзак - повод уйти",
+                "Бот с полным рюкзаком охотнее идёт к выходу, но не всегда: жадный с дешёвым содержимым остаётся искать ценнее (обмен дешёвого на дорогое уже есть), с богатым - уходит; " +
+                "осторожные и крысы уходят раньше");
 
             _cat = CMap;
             BtrPatience = B(cfg, "3. Map-wide movement", "Wait out the BTR only briefly", true, "Пережидать БТР недолго",
@@ -511,6 +603,45 @@ namespace LiveRaid.Client
             MapBalanceUneven = B(cfg, "3. Map-wide movement", "Spread unevenness, %", 35, "Неровность распределения, %",
                 "Насколько положенная доля районов в этом рейде отличается от «по лутовой ценности»: 0 - строго по ценности, 35 - заметный крен в одну-две части карты (меняется каждые 6 минут), " +
                 "100 - сильный", new AcceptableValueRange<int>(0, 100));
+            CoverageBalance = B(cfg, "3. Map-wide movement", "Even out the walk of the map", true, "Обходить всю карту поровну",
+                "Район делится на несколько заданий, которые вместе охватывают ВСЕ его места (раньше бралось 8-20 мест, в большом районе - треть), а боты " +
+                "помнят, где уже кто-то был: задание с нетронутой землёй весит больше, с недавно обойдённой - меньше. Никого не двигает силой");
+            CoverageStrength = B(cfg, "3. Map-wide movement", "Fresh ground pull, %", 60, "Тяга к нетронутой земле, %",
+                "Как сильно нетронутые места манят, а недавно обойдённые отпугивают. 0 - выкл., 60 - нетронутое задание весит ~1,7 раза больше, обойдённое ~0,7; 100 - сильно. " +
+                "Каждый бот следует этому по характеру", new AcceptableValueRange<int>(0, 100));
+            AgendaOn = B(cfg, "3. Map-wide movement", "Aims of the raid", true, "Цели рейда",
+                "У ЧВК и игроков-диких есть 2-4 цели на рейд: залутать район, выполнить свой квест, подняться на высоту, добраться до нетронутого угла. Цели лишь делают подходящие " +
+                "квесты желаннее (в 1,6-2,4 раза), бот по-прежнему дерётся, лутает по дороге и выбирает заново после каждого квеста; цели пересматриваются каждые 70-110 с по тому, " +
+                "как карта выглядит сейчас (район уже обошли другие - цель снимается)");
+            AgendaChance = B(cfg, "3. Map-wide movement", "Aims of the raid, share of bots", 0.7f, "Цели рейда: доля ботов",
+                "Какая часть ботов играет «по целям» (бросок один раз за рейд); остальные ходят как раньше", new AcceptableValueRange<float>(0f, 1f));
+            VerticalPull = B(cfg, "3. Map-wide movement", "Pull of the upper floors", true, "Тяга к верхним этажам",
+                "Пока боты проводят наверху меньше времени, чем там лута, квесты с местами на верхних этажах и крышах весят больше (до x2); пока толпятся наверху - меньше. Каждый бот " +
+                "по своей тяге к высоте (снайпер и исследователь лезут чаще, кемпер реже). Лестницу выбирает QuestingBots, никого силой не ведут");
+            VerticalStrength = B(cfg, "3. Map-wide movement", "Pull of the upper floors, %", 100, "Тяга к верхним этажам, %",
+                "Сила поправки. 0 - выкл., 100 - как описано, до 100 - слабее", new AcceptableValueRange<int>(0, 100));
+            ColdPull = B(cfg, "3. Map-wide movement", "Pull of the cold corners", true, "Тяга к холодным углам",
+                "Места, где не бывал ни один бот, манят сильнее по ходу рейда (с 4-й минуты до +45 % к 12-й)");
+
+            FreshSteps = B(cfg, "3. Map-wide movement", "Skip places just checked", true, "Не ходить туда, где только что были",
+                "Точку задания, у которой за последние 10 минут уже побывал любой бот, бот по шансу пропускает и берёт следующую - шаги уходят на места, где ещё никто не был. " +
+                "Открытое место пропускается чаще, место с лутом реже (пройти мимо - не обыскать), исследователи пропускают охотнее");
+            FreshStepsStrength = B(cfg, "3. Map-wide movement", "Skip places just checked, %", 80, "Пропуск проверенных мест, %",
+                "Сила правила: 0 - выкл., 100 - открытое место пропускается в 90 % случаев, место с лутом в 55 %", new AcceptableValueRange<int>(0, 100));
+            DepthPull = B(cfg, "3. Map-wide movement", "Pull of the depths", true, "Тяга в подземелья",
+                "Бункеры, подвалы, тоннели: задания, у которых треть точек и больше лежит на 3,5 м ниже земли своей части карты, весят больше, пока там не побывали " +
+                "(до x2,3). У каждого бота свой аппетит: исследователи, лутеры и крысы спускаются охотно, снайперы и кемперы редко");
+            DepthStrength = B(cfg, "3. Map-wide movement", "Pull of the depths, %", 100, "Тяга в подземелья, %",
+                "Сила поправки. 0 - выкл., 100 - как описано", new AcceptableValueRange<int>(0, 100));
+            ScavWanderers = B(cfg, "3. Map-wide movement", "Wandering scav groups, %", 25, "Бродячие группы диких, %",
+                "Доля групп ИИ-диких, которые не держатся своего района, а ходят по всей карте (нужно «Дикие патрулируют свой район»). " +
+                "0 - все сидят в районах, 100 - все бродят", new AcceptableValueRange<int>(0, 100));
+
+            AtlasMemory = B(cfg, "3. Map-wide movement", "The map remembers cold places", true, "Карта помнит холодные места",
+                "Между рейдами карта запоминает, какие места ни разу не посещал ни один бот (learned/<карта>.atlas.json, отчёт - atlas/<карта>.csv с причиной по каждому месту). " +
+                "Места, не посещённые в последних рейдах, собираются в отдельные квесты «LR Explore S…» по зданиям (снизу вверх) и весят больше; каждый рейд остаётся случайным, а за несколько рейдов обходится вся карта");
+            FollowerSweep = B(cfg, "3. Map-wide movement", "Squadmates look into nearby rooms", true, "Подчинённые осматривают соседние комнаты",
+                "Боец отряда, пока лидер занят, ненадолго (до 40 с) отходит осмотреть непосещённое место в 15-35 м от лидера (в том числе этажом выше) и возвращается: отряд покрывает втрое больше площади");
             Overwatch = B(cfg, "3. Map-wide movement", "Long gun takes the high ground", true, "Дальнобой на высоте",
                 "Боец отряда с длинным стволом время от времени коротко (15-30 с) занимает высоту над маршрутом отряда и прикрывает его, потом догоняет");
             AirdropEvent = B(cfg, "3. Map-wide movement", "Airdrop fights", true, "Аирдроп как событие",
@@ -551,9 +682,18 @@ namespace LiveRaid.Client
                 "Квесты исследования отправляют ботов и в места с ваших маршрутов (со следующего рейда). Выкл.: места пишутся, но не используются");
 
             _cat = CChars;
+            DangerMemory = B(cfg, "4. Bot characters", "Remembers where people died", true, "Помнит, где погибали люди",
+                "Места, где за последние 8 минут погиб товарищ (считается вдвое) или кто-то из людей в пределах слышимости, бот помнит. По характеру (бросок на бота): " +
+                "осторожные (крысы, кемперы, лутеры) обходят их - задания там весят до x0,35; охотники и раши тянутся туда - до x1,6; остальным почти всё равно");
+            DangerStrength = B(cfg, "4. Bot characters", "Remembers where people died, %", 100, "Память о местах гибели, %",
+                "Сила поправки. 0 - выкл., 100 - как описано", new AcceptableValueRange<int>(0, 100));
             RaidMoods = B(cfg, "4. Bot characters", "Moods over the raid", true, "Настроение за рейд",
                 "У каждого бота по шансу своя натура: мстительный ищет того, кто в него стрелял; чудом выживший становится осторожным и раньше уходит; " +
                 "после серии убийств - кураж (смелее, но небрежнее); с дорогим лутом - бережёт его, избегает драк и торопится к выходу. Не у всех и не всё");
+            CautiousChoice = B(cfg, "4. Bot characters", "Careful choice", true, "Осторожный выбор",
+                "ЧВК и игроки-дикие осторожничают как игроки: одиночка (и тем более раненый, новичок, крыса) реже идёт на услышанный бой и на места, где гибли люди; отряд - реже, " +
+                "бывалый отряд почти никогда, но отряд с раненым или новичком ведёт себя как одиночка. Все знают, где в начале рейда стоят босс и охрана (первые 7 минут там осторожнее), " +
+                "а смерть от босса или рейдеров запоминается шире и весит вдвое. Только решения «куда идти», никого не разворачивает по дороге", simple: true);
             SelfPreservation = B(cfg, "4. Bot characters", "Flee when the squad is wiped", true, "Бегство, когда отряд погиб",
                 "Последний живой из отряда (2+) с высоким шансом бросает бой и уходит к выходу - инстинкт самосохранения есть у всех");
             Personalities = B(cfg, "4. Bot characters", "Characters", true, "Характеры",
@@ -584,6 +724,22 @@ namespace LiveRaid.Client
             SpecialExits = B(cfg, "8. Squads", "Paid and conditional exits", true, "Платные и особые выходы",
                 "Боты уходят и через выходы с условием, если выполняют его как игрок: машина - если есть нужные рубли (сервер даёт половине ЧВК 6-40k в подсумок), " +
                 "выход без рюкзака, спуск по скале и т.п. - по собственной проверке игры. Выходы с рубильником - как раньше, совместные, поезд и события ботам не доступны");
+            BackpackExits = B(cfg, "8. Squads", "Leave the backpack for an exit", true, "Сбросить рюкзак ради выхода",
+                "Выход «без рюкзака» (люк на Резерве и подобные): бот, который по шансу на это согласен, идёт к нему и сбрасывает рюкзак за 25 м до точки. " +
+                "Нужны «Платные и особые выходы»");
+            BackpackExitChance = B(cfg, "8. Squads", "Leave the backpack, chance %", 60, "Сбросить рюкзак, шанс %",
+                "Шанс для бота с дешёвым рюкзаком (до 80k); с добычей 80-250k - вдвое реже, дороже - впятеро; жадные и Барахольщик - почти никогда",
+                new AcceptableValueRange<int>(0, 100));
+            ExitCover = B(cfg, "8. Squads", "Slip out through an exit someone opened", true, "Выйти «под шумок»",
+                "Как онлайн: когда кто-то включает выход на время (гермозатвор после рычага, Д-2, поезд - любой выход, закрытый в начале рейда), свободные ЧВК и игроки-дикие " +
+                "(не в бою, не лечатся, в рейде не меньше 2,5 мин) с чуть повышенным шансом решают выйти через него, пока он открыт; отряд идёт за лидером. Шанс падает с расстоянием, дальше 700 м - никто. Нужны «Выходы с рубильником»");
+            ExitCoverChance = B(cfg, "8. Squads", "Slip out, chance %", 12f, "Выйти под шумок, шанс %",
+                "Шанс для каждого свободного бота на каждое открытие выхода (дальше умножается на путь до выхода и характер: крысы и добычливые охотнее, рашеры и охотники реже)",
+                new AcceptableValueRange<float>(0f, 60f));
+            TrainChance = B(cfg, "8. Squads", "Armoured train, chance %", 70f, "Бронепоезд, шанс %",
+                "Когда на Резерве приходит бронепоезд (его можно ждать на посадке до отправления), свободные ЧВК и игроки-дикие в пределах 1500 м бегут к нему с этим шансом " +
+                "(дальше шанс падает); сели в поезд - ждут отправления и уходят из рейда. 0 - никто не едет. Нужны «Выходы с рубильником»",
+                new AcceptableValueRange<float>(0f, 100f));
             ExitArrival = B(cfg, "8. Squads", "Leave when standing at the exit", true, "Выход засчитан у точки",
                 "Игра запускает таймер выхода у бота только в 1 м от точки выхода; у некоторых выходов бот упирается в 1-4 м (забор, бордюр) и стоит. " +
                 "Простоял 3 с у самой точки - таймер идёт и бот выходит (отряд по-прежнему ждёт друг друга)");
@@ -605,6 +761,10 @@ namespace LiveRaid.Client
                 "Никогда - на вашу точку и ближе 25 м к ней");
             BalancedSpawnSides = B(cfg, "6. Spawns", "Spread squads over the map sides", true, "Разносить отряды по сторонам",
                 "Как онлайн, лобби делится по карте: длинные карты (Таможня, Берег, Маяк) - на две половины, остальные - на четыре четверти. Каждый отряд идёт туда, где ЧВК меньше");
+            SpawnRotation = B(cfg, "6. Spawns", "Rotate the starting zones", true, "Чередовать зоны старта",
+                "Внутри стороны карты отряд вставал на случайную точку, так что зоны с 9 точками выпадали втрое чаще зон с 3, а терминал, гаражи и середина карты месяцами оставались без стартов. " +
+                "Теперь у каждой зоны (90 м) помнится, сколько отрядов в ней стартовало за прошлые рейды (learned/<карта>.spawns.json, забывается на 15 % за рейд): зона выбирается с весом " +
+                "1/(1+стартов)^1,2, зоны не по числу точек, а поровну; больше шансов у зон рядом с холодными углами атласа и запертыми комнатами квестов (терминал Таможни)");
             BiggerLobby = B(cfg, "6. Spawns", "Bigger lobby", true, "Лобби больше онлайна",
                 "Больше ЧВК со старта (число ниже), с большей долей одиночек: около 45 % групп - одиночки, остальные двойки-пятёрки. Выкл.: размер онлайн-лобби. Со следующего рейда");
             BiggerLobbyCount = B(cfg, "6. Spawns", "Extra PMCs at raid start", 5, "Добавочных ЧВК",
@@ -616,9 +776,120 @@ namespace LiveRaid.Client
                 "ЧВК на старте = онлайн-лобби карты (между мин. и макс. игроков), все сразу; позже заходят только запасные");
             PmcReserve = B(cfg, "6. Spawns", "Reserve PMCs", 3, "Запасные ЧВК",
                 "Сколько ЧВК зайдёт позже, когда погибнут ЧВК стартового лобби (нужен перезапуск игры)", new AcceptableValueRange<int>(0, 8), simple: true);
+            // 1.2.6, one time: raids of 2026-11-05..07 showed the switch off in a config whose default is on (nobody remembered turning it off) - the spread of
+            // squads over the map sides, the player scavs' help at fights and the minimum distance all hang on it. The marker keeps a later, deliberate "off".
+            ConfigEntry<int> spawnRevision = cfg.Bind("0. Internal", "Spawn settings revision", 0,
+                new ConfigDescription("Internal marker of one-time settings fixes, do not change", null, new ConfigurationManagerAttributes { Browsable = false }));
+            if (spawnRevision.Value < 1)
+            {
+                if (!OnlineSpawns.Value)
+                {
+                    OnlineSpawns.Value = true;
+                    OnlineSpawnsRestored = true;
+                }
+
+                spawnRevision.Value = 1;
+                cfg.Save();
+            }
+
+            ReserveDelayMin = B(cfg, "6. Spawns", "Reserve PMCs not before (min)", 5, "Запасные не раньше, мин",
+                "Запасные ЧВК заходят не раньше этой минуты рейда, даже если кто-то из стартового лобби погиб в первые секунды (на Ground Zero гибнут в первую минуту). 0 - сразу, как раньше",
+                new AcceptableValueRange<int>(0, 20));
+            LateWaves = B(cfg, "6. Spawns", "Late PMC waves", false, "Поздние заходы ЧВК",
+                "Вкл.: кроме запасных (они заходят после потерь) на карту по расписанию заходят новые отряды ЧВК - первый на заданной минуте, дальше с интервалом (на 9-й, 15-й, 21-й, 27-й...), " +
+                "пока не выйдут все. Нужно, когда стартовые ЧВК гибнут слишком быстро и карта пустеет. Работает только при «Лобби как онлайн». Выкл. - как раньше");
+            LateWaveFirstMin = B(cfg, "6. Spawns", "Late PMC wave: first at minute", 9, "Первый поздний заход, мин",
+                "Минута рейда, на которой заходит первый поздний отряд ЧВК", new AcceptableValueRange<int>(3, 60));
+            LateWaveEveryMin = B(cfg, "6. Spawns", "Late PMC wave: every (min)", 6, "Интервал поздних заходов, мин",
+                "Через сколько минут заходит следующий поздний отряд (каждый заход - один отряд QuestingBots, 1-3 человека)", new AcceptableValueRange<int>(1, 30));
+            LateWaveBots = B(cfg, "6. Spawns", "Late PMC wave: PMCs in all", 8, "Поздние заходы: ЧВК всего",
+                "Сколько ЧВК всего зайдёт поздними заходами (добавляется к запасным). Заходят отрядами по порядку, пока не кончатся; если на карте уже полное лобби, заход ждёт", new AcceptableValueRange<int>(1, 40));
+            StartApartMeters = B(cfg, "6. Spawns", "Starting squads apart (m)", 120, "Стартовые отряды врозь, м",
+                "На старте рейда отряд не появляется ближе этого расстояния к другим стартовым отрядам (если свободных точек не хватает, расстояние уменьшается ступенями). 0 - как раньше, только 25 м от вас",
+                new AcceptableValueRange<int>(0, 400));
+            PackratVacuum = B(cfg, "6. Spawns", "Packrat is a vacuum", true, "Барахольщик - пылесос",
+                "Барахольщик выбирает ближайшие богатые здания и вычищает их целиком (все комнаты и этажи, контейнеры, куртки, тела), вместо дальних шагов разведки; " +
+                "после контакта уходит из зоны боя и пережидает (на выход, если ранен или была вторая встреча за 3 минуты). Оружие ему не усиливается");
+            PackratAlarmMeters = B(cfg, "6. Spawns", "Packrat alarm distance (m)", 70, "Барахольщик: тревога с, м",
+                "С какого расстояния Барахольщик бросает всё и убегает от замеченного врага. Дальше этой дистанции он врага «не принимает всерьёз» и продолжает лутать, пока тот не стрелял по нему, " +
+                "не подошёл ближе и рядом нет двоих и более. Меньше - смелее и больше лута, больше - осторожнее (раньше был 170+ - бегал, не лутая)", new AcceptableValueRange<int>(15, 300));
             PackratChance = B(cfg, "6. Spawns", "Packrat chance, %", 15, "Шанс Барахольщика, %",
                 "Шанс, что в рейде появится Барахольщик: ЧВК-одиночка с пистолетом и самым большим рюкзаком, который пришёл только за лутом - " +
                 "избегает встреч, уходит от стрельбы и шума, дерётся только загнанным в угол. Не больше одного за рейд. 0 - не появляется", new AcceptableValueRange<int>(0, 100), simple: true);
+            // The state of PMC guns (the server rolls it at the generation of every PMC; the values go to it at the start of the game and on every change)
+            WeaponWearOn = B(cfg, "6. Spawns", "PMC gun condition like online", true, "Состояние оружия ЧВК как онлайн",
+                "Вкл.: ЧВК выходят в рейд с оружием в разной целостности, как у людей онлайн: шанс совсем нового ствола, четыре уровня износа (границы и вес каждого) и «ремонты» ниже. Выкл.: как у SPT - почти новое (95-100 %). " +
+                "Со следующего рейда (значения уходят на сервер сразу и меняются прямо в игре)", simple: true);
+            WeaponNewChance = B(cfg, "6. Spawns", "Brand-new gun chance, %", 15, "Шанс совсем нового оружия, %",
+                "Какая часть стволов ЧВК (основной, второй, пистолет - каждый отдельно) совсем новая, 100/100. Остальные - по полосам целостности ниже",
+                new AcceptableValueRange<int>(0, 100));
+            WeaponBandMin[0] = B(cfg, "6. Spawns", "Gun condition band 1: from, %", 80, "Целостность оружия, уровень 1 (самые целые): от, %",
+                "Нижняя граница уровня 1: целостность ствола ЧВК, процент от нового. Бот выбирает уровень по весу, а целостность - случайно между границами", new AcceptableValueRange<int>(1, 100));
+            WeaponBandMax[0] = B(cfg, "6. Spawns", "Gun condition band 1: to, %", 95, "Целостность оружия, уровень 1 (самые целые): до, %",
+                "Верхняя граница уровня 1", new AcceptableValueRange<int>(1, 100));
+            WeaponBandWeight[0] = B(cfg, "6. Spawns", "Gun condition band 1: weight", 22, "Целостность оружия, уровень 1 (самые целые): вес",
+                "Как часто выпадает уровень 1 против остальных (по умолчанию 22 / 60 / 14 / 4). 0 - уровень не выпадает", new AcceptableValueRange<int>(0, 100));
+            WeaponBandMin[1] = B(cfg, "6. Spawns", "Gun condition band 2: from, %", 65, "Целостность оружия, уровень 2 (обычные): от, %",
+                "Нижняя граница уровня 2: целостность ствола ЧВК, процент от нового. Бот выбирает уровень по весу, а целостность - случайно между границами", new AcceptableValueRange<int>(1, 100));
+            WeaponBandMax[1] = B(cfg, "6. Spawns", "Gun condition band 2: to, %", 80, "Целостность оружия, уровень 2 (обычные): до, %",
+                "Верхняя граница уровня 2", new AcceptableValueRange<int>(1, 100));
+            WeaponBandWeight[1] = B(cfg, "6. Spawns", "Gun condition band 2: weight", 60, "Целостность оружия, уровень 2 (обычные): вес",
+                "Как часто выпадает уровень 2 против остальных (по умолчанию 22 / 60 / 14 / 4). 0 - уровень не выпадает", new AcceptableValueRange<int>(0, 100));
+            WeaponBandMin[2] = B(cfg, "6. Spawns", "Gun condition band 3: from, %", 50, "Целостность оружия, уровень 3 (потёртые): от, %",
+                "Нижняя граница уровня 3: целостность ствола ЧВК, процент от нового. Бот выбирает уровень по весу, а целостность - случайно между границами", new AcceptableValueRange<int>(1, 100));
+            WeaponBandMax[2] = B(cfg, "6. Spawns", "Gun condition band 3: to, %", 65, "Целостность оружия, уровень 3 (потёртые): до, %",
+                "Верхняя граница уровня 3", new AcceptableValueRange<int>(1, 100));
+            WeaponBandWeight[2] = B(cfg, "6. Spawns", "Gun condition band 3: weight", 14, "Целостность оружия, уровень 3 (потёртые): вес",
+                "Как часто выпадает уровень 3 против остальных (по умолчанию 22 / 60 / 14 / 4). 0 - уровень не выпадает", new AcceptableValueRange<int>(0, 100));
+            WeaponBandMin[3] = B(cfg, "6. Spawns", "Gun condition band 4: from, %", 35, "Целостность оружия, уровень 4 (сильно изношенные): от, %",
+                "Нижняя граница уровня 4: целостность ствола ЧВК, процент от нового. Бот выбирает уровень по весу, а целостность - случайно между границами", new AcceptableValueRange<int>(1, 100));
+            WeaponBandMax[3] = B(cfg, "6. Spawns", "Gun condition band 4: to, %", 50, "Целостность оружия, уровень 4 (сильно изношенные): до, %",
+                "Верхняя граница уровня 4", new AcceptableValueRange<int>(1, 100));
+            WeaponBandWeight[3] = B(cfg, "6. Spawns", "Gun condition band 4: weight", 4, "Целостность оружия, уровень 4 (сильно изношенные): вес",
+                "Как часто выпадает уровень 4 против остальных (по умолчанию 22 / 60 / 14 / 4). 0 - уровень не выпадает", new AcceptableValueRange<int>(0, 100));
+
+            // 1.2.6: the sliders of one band keep "from" at or below "to" (in the config of 2026-11-07 band 2 stood at 95-80): moving one drags the other along
+            for (int bandNo = 0; bandNo < 4; bandNo++)
+            {
+                ConfigEntry<int> lo = WeaponBandMin[bandNo], hi = WeaponBandMax[bandNo];
+                lo.SettingChanged += (sender, args) =>
+                {
+                    if (hi.Value < lo.Value)
+                    {
+                        hi.Value = lo.Value;
+                    }
+                };
+                hi.SettingChanged += (sender, args) =>
+                {
+                    if (lo.Value > hi.Value)
+                    {
+                        lo.Value = hi.Value;
+                    }
+                };
+                if (lo.Value > hi.Value)
+                {
+                    int t = lo.Value;
+                    lo.Value = hi.Value;
+                    hi.Value = t;
+                }
+            }
+            WeaponMaxAbove = B(cfg, "6. Spawns", "Repairs: max above current, points", 8, "Ремонты: максимум выше текущего, пунктов",
+                "Максимальная целостность ствола выше текущей не более чем на столько пунктов (оружие чинили: каждый ремонт отъедает максимум). 0 - максимум равен текущей",
+                new AcceptableValueRange<int>(0, 100));
+
+            // Only when the content mod is installed: without it there is nothing to switch, and the setting does not exist
+            if (Bots.ContentGuns.Installed())
+            {
+                ModWeaponsOn = B(cfg, "6. Spawns", "Content mod guns for bots", true, "Оружие из мода «Content Backport» у ботов",
+                    "Установлен WTT Content Backport: его оружие 1.0 (M16A1/A2, QBZ-191, HK 416A5, TKPD, SR-25, P90, AK-308, Marlin и др.), ножи и патроны попадают в наборы ботов - " +
+                    "ЧВК берут всё, дикие только дешёвое. Выкл.: у ботов только оружие SPT (убирается из наборов при следующем рейде). Список и веса - в серверном data/config.json, bots.modWeapons",
+                    simple: true);
+                ModClothesOn = B(cfg, "6. Spawns", "Content mod clothes for bots", true, "Одежда из мода «Content Backport» у ботов",
+                    "Установлен WTT Content Backport: его комплекты одежды (Black Division, RUAF, гражданские, Kord и др.) попадают во внешний вид ЧВК-ботов - " +
+                    "USEC носят комплекты для USEC и общие, BEAR - для BEAR и общие; верх идёт со своими руками. Все образы - и SPT, и WTT - выбираются с одинаковым шансом. " +
+                    "Выкл.: у ботов только одежда SPT. Значение уходит на сервер сразу, одежда меняется со следующего появления ботов", simple: true);
+            }
+
             PmcSoloShare = B(cfg, "6. Spawns", "Lone PMCs among groups, %", 45, "Одиночек среди групп ЧВК, %",
                 "Какая доля групп ЧВК - одиночки (остальные - двойки, тройки, четвёрки и пятёрки в прежней пропорции). 45 - как было с «Лобби больше онлайна»; " +
                 "0 - одиночек почти нет, 100 - все ЧВК поодиночке. Доля ЧВК-одиночек из всех ЧВК заметно меньше доли групп (по трассам 31.10-02.11: 50 % групп = 28 % ЧВК). " +
@@ -633,6 +904,11 @@ namespace LiveRaid.Client
                 "Когда ЧВК выбиты или вышли и «людей» (ЧВК, игроки-дикие, вы и ваша группа) меньше доли лобби, раньше своего часа заходит ближайшая по расписанию группа игроков-диких - "+
                 "до последних 10 минут рейда. Новых ботов не создаётся (группы QuestingBots расписаны на весь рейд), потолок одновременных игроков-диких - «Живой карты». "+
                 "После громкого боя заходят быстрее и с его стороны карты (не ближе 150 м к игроку). Нужна «Живая карта»");
+            PScavToFight = B(cfg, "6. Spawns", "Replacements to the fight, %", 35, "Замена идёт к бою, %",
+                "После громкого боя игроки-дикие на замену с этим шансом заходят со стороны боя (к свежим телам). Остальные заходят в ту часть карты, где ещё никто не был, " +
+                "подальше от боёв - они дольше живут, и карта обходится целиком. 0 - всегда в непосещённые места, 100 - всегда к бою", new AcceptableValueRange<int>(0, 100));
+            PackratFromStart = B(cfg, "6. Spawns", "Packrat from the start", true, "Барахольщик с начала рейда",
+                "Группа Барахольщика заходит первой из тех, что ещё не зашли, а не в запасе на 5-й минуте");
             PeopleShare = B(cfg, "6. Spawns", "People share of the lobby, %", 60, "Доля людей, %",
                 "Сколько «людей» держать на карте от лобби, пока не начались последние 10 минут. Действует, когда «Умный баланс численности» выключен " +
                 "(включённый сам меняет долю по ходу рейда и по карте)", new AcceptableValueRange<int>(20, 100));
@@ -708,8 +984,17 @@ namespace LiveRaid.Client
             SquadTactics = B(cfg, "8. Squads", "Squad tactics", true, "Тактика отряда",
                 "Роли в отряде ЧВК (лидер, головной, прикрытие, стрелок, замыкающий - перераздаются при гибели лидера), лут места вместе, помощь товарищу в бою, квесты по вкусу всего отряда");
             TightSquads = B(cfg, "8. Squads", "Stay together", true, "Держаться вместе",
-                "Ведомые держатся рядом, как отряд игроков: 4-12 м в движении (QuestingBots: 7-20), 8-22 м в бою (15-35); лидер ждёт отставших дальше 10 м и собирает дальше 18 м; " +
+                "Ведомые держатся рядом, как отряд игроков, но свободнее: 6-22 м в движении (QuestingBots: 7-20), 10-35 м в бою (15-35); лидер ждёт отставших дальше 24 м и собирает дальше 42 м; " +
                 "никто не уходит за лутом дальше 30 м и по поручению дальше 25 м");
+            LooseCollar = B(cfg, "8. Squads", "A loose collar", true, "Свободный «ошейник»",
+                "Лидер останавливается и ждёт отставших не сразу, а когда они остаются далеко дольше 3,5 с подряд (раньше - в ту же секунду: он упирался в лимит, разворачивался к ведомому, " +
+                "шёл дальше и снова упирался). Остановившись, ждёт, пока все подтянутся на обычное расстояние");
+            SquadBreathe = B(cfg, "8. Squads", "The formation breathes", true, "Строй дышит",
+                "Ведомые держатся шире, чем слоты доктрины (рыхлый отряд - до 1,55 раза, «кучей» - как раньше), строй медленно расширяется и сжимается на волне 40-70 с и " +
+                "смыкается вокруг лидера при опасности и после боя");
+            DynamicRoles = B(cfg, "8. Squads", "Roles change on the way", true, "Роли меняются по ходу",
+                "Раз в 45-135 с спокойного момента роли отряда (головной, прикрытие, разведчик, фланговый, замыкающий, стрелок) тянутся заново по весам: оружие, стиль, агрессия, любопытство, здоровье; " +
+                "нынешняя роль весит в 2,2 раза больше (дрейф, а не лотерея); у обученных отрядов реже");
             SquadLootWait = B(cfg, "8. Squads", "Wait for squadmates who loot", true, "Ждать лутающих",
                 "Лидер не уходит, пока рядом лутает товарищ: ждёт (и возвращается к ушедшим на 20+ м) 100-190 с (40 с, если лутающий дальше 25 м), потом зовёт - лут прекращается, они идут следом");
             SquadLootSpread = B(cfg, "8. Squads", "Squad loot spread, m", 60f, "Разнос отряда при луте, м",
@@ -801,6 +1086,11 @@ namespace LiveRaid.Client
                 "Множитель дальности, на которой слышен выстрел (дальность SAIN; глушители остаются тихими). Не больше 300 м", new AcceptableValueRange<float>(0.5f, 3f), simple: true);
             PmcAlwaysHostile = B(cfg, "9. Combat morale", "PMC squads always hostile", true, "ЧВК враждебны всем",
                 "Как онлайн, отряд ЧВК - враг любому другому отряду ЧВК, включая свою сторону (BEAR-BEAR, USEC-USEC). Товарищи по отряду - свои", simple: true);
+            GluharHostileToAll = B(cfg, "9. Combat morale", "Gluhar and guard are enemies of all bots", true, "Глухарь и свита - враги всем ботам",
+                "Глухарь, его охрана, рейдеры и изгои - враги ИИ-диким, диким-игрокам («челоботам») и ИИ-ЧВК, и те отвечают тем же. В ванили EFT они дружат с ИИ-дикими, а остальных сперва «предупреждают» " +
+                "(минуту стоят в слое Warn, не стреляя), поэтому реакция была вялой", simple: true);
+            RaidersHostileToPScavs = B(cfg, "9. Combat morale", "Raiders attack player scavs", true, "Рейдеры против игроков-диких",
+                "Как онлайн: рейдеры и изгои (pmcBot) - враги диких, играющих за игрока («челоботов»), и те отвечают тем же. В ванили EFT они дружат с ИИ-дикими и пропускали такого мимо", simple: true);
             DistantFightRange = B(cfg, "9. Combat morale", "Distant fights are not my fight (m)", 100f, "Далёкий бой не мой, м",
                 "SAIN считает врагом всякого, о ком слышал, и боты минутами стояли в бою из-за перестрелки в 250 м. Дальше этого враг, которого бот не видел минуту и который в него не стреляет, " +
                 "отдаётся «Реакции на стрельбу». 0 = как в SAIN", new AcceptableValueRange<float>(0f, 400f));
@@ -909,6 +1199,9 @@ namespace LiveRaid.Client
             AimWithoutShotWatch = B(cfg, "9. Combat morale", "Watch for aiming without a shot", true, "Следить за прицелом без выстрела",
                 "Любой бот (и боссы с охраной), 6 с державший врага на виду и в досягаемости без выстрела: пустой или не дослан - перезарядка, зависшая перезарядка - снимается, " +
                 "состояние рук, ствола и магазинов - в журнал («LR Weapon: ... aims at ... without a shot»)");
+            ArenaFightFix = B(cfg, "9. Combat morale", "Arena fighters fight back", true, "Бойцы арены стреляют в ответ",
+                "Бойцы события «арена» (Хардбасс, Михалыч, Кулёк, Лобстер...) стояли в патрульном слое, целились без выстрела и погибали, не ответив: SAIN снимает у них ванильные боевые слои, " +
+                "а свои не ставит. Ванильные боевые слои им возвращаются (перед каждым рейдом)");
             FreeStuckHands = B(cfg, "9. Combat morale", "Free stuck hands", true, "Освобождать зависшие руки",
                 "EFT снимает «перезарядку» только по концу анимации; если её прервали аптечка, смена оружия или лут, флаг висит вечно: бот не стреляет, не меняет оружие и не лечится. " +
                 "Здесь висящий флаг снимается, пустые руки получают ствол обратно, незавершённая смена отпускается");
@@ -942,8 +1235,27 @@ namespace LiveRaid.Client
                 "Бот, которого никто не видит, сразу переносится в конец маршрута; тот, кого видно, лезет по точкам");
             RouteAreaBots = B(cfg, "10. Quests and routes", "Bots sent up a route per raid", 2, "Ботов на маршрут за рейд",
                 "Места, куда ведёт только маршрут («Утёс» на Эпицентре), получают цели не больше чем для стольких разных ботов за рейд. 0 = никого", new AcceptableValueRange<int>(0, 10));
-            UseLearnedShortcuts = B(cfg, "10. Quests and routes", "Use learned shortcuts", false, "Использовать найденные срезки",
-                "Экспериментально. Залезы из ваших маршрутов (learned/<карта>.shortcuts.json) становятся маршрутами, как записанные. Сначала просмотрите файл - вы могли залезть туда, куда ботам не надо");
+            UseLearnedShortcuts = B(cfg, "10. Quests and routes", "Use learned shortcuts", true, "Использовать найденные срезки",
+                "Залезы из ваших маршрутов (learned/<карта>.shortcuts.json) становятся маршрутами, как записанные: боты ходят туда, куда навмеш не ведёт. " +
+                "Мод сам отсеивает сомнительные (короче 3 м и длиннее 45 м, концы вне навмеша, вертикаль выше 9 м); ненужную срезку отключите в файле (\"Enabled\": false)");
+            // 1.3.0, one time: the shortcuts from the player's trail are on by default now; a config made before has the old default (off) written in it
+            ConfigEntry<int> shortcutRevision = cfg.Bind("0. Internal", "Learned shortcuts revision", 0,
+                new ConfigDescription("Internal marker of one-time settings fixes, do not change", null, new ConfigurationManagerAttributes { Browsable = false }));
+            if (shortcutRevision.Value < 1)
+            {
+                UseLearnedShortcuts.Value = true;
+                if (System.Math.Abs(KeyErrandChance.Value - 0.65f) < 0.001f)
+                {
+                    KeyErrandChance.Value = 0.85f;
+                }
+
+                shortcutRevision.Value = 1;
+                cfg.Save();
+            }
+
+            AutoLinks = B(cfg, "10. Quests and routes", "Link my routes into the navmesh", true, "Связывать мои проходы с навмешем",
+                "После рейда мод смотрит ваш след: где вы прошли между кусками навмеша, не связанными друг с другом (перемычка, порожек, узкий проход), там он сам " +
+                "вписывает связку в studio/edits/<карта>.json (Id «auto-…»); а где вы шли там, где у ботов навмеша нет совсем (лестница, пандус, доска, проход, который не запёкся), он строит полосу навмеша по вашим шагам от меша до меша. Со следующего рейда боты там ходят. Прыжки и падения не трогает. Работает вместе с «Записывать мой маршрут»", synced: false);
             RouteRecorder = B(cfg, "10. Quests and routes", "Route recorder", false, "Запись маршрута",
                 "Записать маршрут самому: встаньте перед препятствием и нажмите «Точка», жмите на каждой опоре (присесть - низкая точка, «Точка с прыжком» - где нужен прыжок), " +
                 "закончите на полу за препятствием и нажмите «Сохранить». Маршрут работает сразу", synced: false);
@@ -1005,9 +1317,21 @@ namespace LiveRaid.Client
                 "Свободный полёт (WASD) отменяет слежение, «Следующий бот» переключает. Нет ЧВК за первую минуту - остаётся свободная камера", simple: true, synced: false);
             ObserverFollowPackrat = B(dcfg, death, "Follow the packrat at the start", false, "В начале следить за Барахольщиком",
                 "Только для проверки (виден лишь в режиме разработчика). С «Начинать рейд наблюдателем»: камера в начале рейда ждёт Барахольщика (до 3 минут: он приходит с группами ЧВК), " +
-                "прыгает к нему и следит за ним. Не появился - к случайному ЧВК, как обычно. Шанс его появления - в разделе «Спавн»", synced: false);
+                "прыгает к нему и следит за ним. Работает сам по себе (без «В начале следить за случайным ЧВК»). Не появился - свободная камера, а при включённом слежении за случайным ЧВК - он. Шанс его появления - в разделе «Спавн»", synced: false);
             TakeOverBots = B(dcfg, death, "Take over a bot", false, "Вселяться в бота",
                 "Жизнь после смерти: в свободной камере наведитесь на любого бота и нажмите «Вселиться» - играете им с его снаряжением и инвентарём, пока он не погибнет или не выйдет, потом можно вселиться в следующего. Если у вселённого не работают руки (оружие не стреляет, не перезаряжается) - выйдите из него и вселитесь снова. Его убийства, лут и выход в профиль не идут", simple: true, synced: false);
+            // Only when Smoothie is installed: without it there is nothing to pause, and the setting does not exist
+            if (Spectator.SmoothieGuard.Installed())
+            {
+            SmoothieGuard = B(dcfg, death, "Pause Smoothie culling after a take-over", true, "Выключать скрытие объектов Smoothie после вселения",
+                "Если стоит мод Smoothie: после первого вселения в рейде его экспериментальное скрытие закрытых объектов и пропуск LOD выключаются до конца рейда (только в памяти, файл настроек Smoothie не меняется, ваши значения возвращаются). " +
+                "Они считают видимое для одной камеры рейда, а вселение пересоздаёт камеру - дома и текстуры после смерти бота не возвращались", synced: false);
+            }
+
+            KeepCulling = B(dcfg, death, "Keep level culling alive through a take-over", true, "Не гасить окклюзию уровня при вселении",
+                "Вселение заставляет EFT пересоздать камеру, а система окклюзии уровня (Perfect Culling) сидит на самой камере: со старой она закрывалась вместе с общими таблицами карты, " +
+                "и содержимое уровня (дома, объекты, детали) переставало переключаться - «текстуры не грузятся» после вселения и смерти бота. Теперь закрытие пропускается, новая камера получает свой экземпляр",
+                synced: false);
             EndRaidWhenTakenBotDies = B(dcfg, death, "End the raid when the taken bot dies", false, "Конец рейда со смертью бота",
                 "Выкл.: назад в свободную камеру, можно вселиться в другого. Вкл.: рейд сразу заканчивается", synced: false);
             SpectatorBotNames = B(dcfg, death, "Bot names in the free camera", true, "Имена ботов в камере",
@@ -1027,6 +1351,11 @@ namespace LiveRaid.Client
             SpectatorToggleView = B(dcfg, death, "Watch through the bot eyes", new KeyboardShortcut(KeyCode.Home), "Глазами бота",
                 "При слежении (без вселения): камера за ботом или его глазами", synced: false);
 
+            PlayerGodMode = B(dcfg, death, "God mode", false, "Бессмертие игрока",
+                "Вкл.: ваш персонаж не получает урона и не умирает (пули, взрывы, падения, кровотечения). Для проверок мода; на рейд и опыт не влияет", simple: true, synced: false);
+            PlayerInvisible = B(dcfg, death, "Invisible to bots", false, "Невидимость для ботов",
+                "Вкл.: боты не считают вас врагом и не замечают вас (как скрытое тело наблюдателя). Те, кто уже вас видел и воюет с вами, могут продолжить бой", simple: true, synced: false);
+
 #if LIVERAID_ONLINE
             SpectateAfterDeath.Value = false;
             ObserverFromStart.Value = false;
@@ -1034,31 +1363,54 @@ namespace LiveRaid.Client
 #endif
 
             // What each pack and level of the compact menu stands for
-            SettingsMenu.PackOf(packKeys, RealKeys, FoundKeys, DoorManners, RoomPeek, DoorAssist, FrozenWatch, LayerCalm, FreeShutIn, BackOffWhenStuck, ContainerKeys);
+            SettingsMenu.PackOf(packKeys, RealKeys, FoundKeys, KeyErrand, KeyErrandChance, KeyLeaderHolds, DoorOnTheWay, KeyToSquad, RoomMemory, FullBagLeave, DoorManners, RoomPeek, DoorAssist, FrozenWatch, LayerCalm, FreeShutIn, BackOffWhenStuck, ContainerKeys);
             SettingsMenu.LevelOf(keyAmount, new ConfigEntryBase[] { PmcKeyChance, ScavKeyChance, MaxKeysPerBot },
                 (SettingsMenu.Level.Low, "Мало", new object[] { 0.3f, 0.1f, 2 }),
                 (SettingsMenu.Level.Normal, "Как онлайн", new object[] { 0.6f, 0.25f, 3 }),
                 (SettingsMenu.Level.High, "Много", new object[] { 0.85f, 0.45f, 4 }));
+            SettingsMenu.LevelOf(keyHiding, new ConfigEntryBase[] { PmcKeyHiddenChance, ScavKeyHiddenChance },
+                (SettingsMenu.Level.Off, "На виду", new object[] { 0f, 0f }),
+                (SettingsMenu.Level.Low, "Редко", new object[] { 0.4f, 0.2f }),
+                (SettingsMenu.Level.Normal, "Как онлайн", new object[] { 0.85f, 0.5f }),
+                (SettingsMenu.Level.High, "Почти всегда", new object[] { 1f, 0.9f }));
             SettingsMenu.LevelOf(prizeKeys, new ConfigEntryBase[] { PrizeKeys, PrizeKeyChance, PrizeKeyStep },
                 (SettingsMenu.Level.Off, "Нет", new object[] { false, null, null }),
                 (SettingsMenu.Level.Low, "Редко", new object[] { true, 0.4f, 0.25f }),
                 (SettingsMenu.Level.Normal, "Обычно", new object[] { true, 0.75f, 0.2f }),
                 (SettingsMenu.Level.High, "Часто", new object[] { true, 1f, 0.15f }));
 
-            SettingsMenu.PackOf(packMap, NeverIdle, MapWideQuests, MapBalance, MapBalanceStrength, MapBalanceUneven, DatabaseLootSpots, ScavsQuest, ScavPatrol, PlayerScavLife, CoverRoutes, PeopleCorridors, CorridorStrength, TempoLikePlayers, Swivel, Overlook, Overwatch, AirdropEvent, HotZones, MoveOn, HotDrop, KeyPlaces, ThoroughLooting,
+            SettingsMenu.PackOf(packMap, NeverIdle, AgendaOn, AgendaChance, VerticalPull, VerticalStrength, ColdPull, FreshSteps, FreshStepsStrength, DepthPull, DepthStrength, ScavWanderers, AtlasMemory, FollowerSweep, MapWideQuests, MapBalance, MapBalanceStrength, MapBalanceUneven, CoverageBalance, CoverageStrength, DatabaseLootSpots, ScavsQuest, ScavPatrol, PlayerScavLife, CoverRoutes, PeopleCorridors, CorridorStrength, TempoLikePlayers, Swivel, Overlook, Overwatch, AirdropEvent, HotZones, MoveOn, HotDrop, KeyPlaces, ThoroughLooting,
                 BtrPatience, ShortQbHolds, RoamRegionSize, RoamDesirability);
             SettingsMenu.AmountOf(eviction, Eviction, EvictionMinutes, 3);
             SettingsMenu.PackOf(packLearn, LearnFromMyRoute, BotsVisitLearned, UseLearnedShortcuts);
 
-            SettingsMenu.PackOf(packChars, Personalities, SkillSpread, MemoryMultiplier, MaxSearchWait, RaidMoods, SelfPreservation);
-            SettingsMenu.PackOf(packExfil, PersonalExtract, ExtractCurve, SwitchExits, SpecialExits, CarLeaves, ExitArrival, ExitWait, EarlyExit, BodiesBeforeLeaving, ExitsBySide, ExtractTogether);
+            SettingsMenu.PackOf(packChars, Personalities, SkillSpread, MemoryMultiplier, MaxSearchWait, RaidMoods, DangerMemory, DangerStrength, CautiousChoice, SelfPreservation);
+            SettingsMenu.PackOf(packExfil, PersonalExtract, ExtractCurve, SwitchExits, SpecialExits, BackpackExits, BackpackExitChance, ExitCover, ExitCoverChance, TrainChance, CarLeaves, ExitArrival, ExitWait, EarlyExit, BodiesBeforeLeaving, ExitsBySide, ExtractTogether);
 
-            SettingsMenu.PackOf(packSpawn, OnlineSpawns, SpawnAllPoints, BalancedSpawnSides, LobbyLikeOnline, GroupFillsLobby, LivelyMap, PScavReplace, PeopleShare, PopulationBalance, PopulationDensity, PopulationStrength, CrowdCap, OnlineSpawnMinDistance);
+            var spawnEntries = new System.Collections.Generic.List<ConfigEntryBase> { WeaponWearOn, WeaponNewChance, WeaponMaxAbove, ReserveDelayMin, LateWaves, LateWaveFirstMin, LateWaveEveryMin, LateWaveBots, StartApartMeters, OnlineSpawns, SpawnAllPoints, BalancedSpawnSides, SpawnRotation, LobbyLikeOnline, GroupFillsLobby, LivelyMap, PScavReplace, PScavToFight, PackratFromStart, PeopleShare, PopulationBalance, PopulationDensity, PopulationStrength, CrowdCap, OnlineSpawnMinDistance };
+            for (int i = 0; i < 4; i++)
+            {
+                spawnEntries.Add(WeaponBandMin[i]);
+                spawnEntries.Add(WeaponBandMax[i]);
+                spawnEntries.Add(WeaponBandWeight[i]);
+            }
+
+            if (ModWeaponsOn != null)
+            {
+                spawnEntries.Add(ModWeaponsOn);
+            }
+
+            if (ModClothesOn != null)
+            {
+                spawnEntries.Add(ModClothesOn);
+            }
+
+            SettingsMenu.PackOf(packSpawn, spawnEntries.ToArray());
             SettingsMenu.AmountOf(extraPmcs, BiggerLobby, BiggerLobbyCount, 1);
 
-            SettingsMenu.PackOf(packLoot, LootThinking, LootRightSide, NoLootInDanger, LootNerve, LootWalk, WoundedLoot, CleanUpAfterFight, NoticeBodies, LootGivenFirst, RoomSweep, DropCheapForBetter, WeightMatters, ShedWeight, ShedWeightChance,
+            SettingsMenu.PackOf(packLoot, PackratVacuum, PackratAlarmMeters, LootThinking, LootRightSide, NoLootInDanger, LootNerve, LootWalk, WoundedLoot, CleanUpAfterFight, NoticeBodies, LootGivenFirst, RoomSweep, DropCheapForBetter, WeightMatters, ShedWeight, ShedWeightChance,
                 LootStill, LootProne, LootProneChance);
-            SettingsMenu.PackOf(packSquad, SquadTactics, TightSquads, SquadLootWait, HelpSquadmates, RecoverFallenMate, MateFullKit, MateStashChance, MateStashRadius, SquadFormation, SquadShare, SquadVoice,
+            SettingsMenu.PackOf(packSquad, SquadTactics, LooseCollar, SquadBreathe, DynamicRoles, TightSquads, SquadLootWait, HelpSquadmates, RecoverFallenMate, MateFullKit, MateStashChance, MateStashRadius, SquadFormation, SquadShare, SquadVoice,
                 SquadDoctrines, SquadPlaybook, SquadListen, SquadComms, PeekBait, ThirdPartyTurn, SmokeScreens, BossHunts, SquadFlanking, SquadSpreadOut, SquadTrade, SquadLootSpread);
 
             SettingsMenu.PackOf(packFight, CombatMorale, SmoothCombatDecisions, GunfireResponse, NoiseResponse, Intercept, InterceptWeight, FightLikePlayer, GrenadeHabit, StormStims, NightDiscipline, SearchFullPace, FightRoles, ReturnFire, GunRange, SidearmCare, DogFightSanity, BushSight, LongGunHolds,
@@ -1075,11 +1427,11 @@ namespace LiveRaid.Client
                 (SettingsMenu.Level.High, "Долго", new object[] { true, 2f }));
 
             SettingsMenu.PackOf(packHeal, HealFirst, HealBreakOff, TreatLegs, LegSprintLimit, SurgeryFromBag, UsableMedkit, SurgeryWhenSafe, ExfilPatchUp, NoJumpOnBrokenLegs);
-            SettingsMenu.PackOf(packFixes, GuardsCare, KeepMagazines, AimWithoutShotWatch, FreeStuckHands, SteadyWeapons, SquadmatesNeverEnemies, Harmonize, SmoothDecisions);
+            SettingsMenu.PackOf(packFixes, ArenaFightFix, GuardsCare, KeepMagazines, AimWithoutShotWatch, FreeStuckHands, SteadyWeapons, SquadmatesNeverEnemies, Harmonize, SmoothDecisions);
             SettingsMenu.AmountOf(bottomless, BottomlessAmmo, BottomlessReserve, 10);
 
             SettingsMenu.PackOf(packQuests, QuestDriveOn, QuestSpread, QuestAudit, QuestPointFix, QuestSimulation, QuestAnimations, QuestStepGiveUpMin);
-            SettingsMenu.PackOf(packRoutes, Routes, RouteTeleportUnseen, RouteAreaBots, RouteRecorder, RouteRecordPoint, RouteRecordJump, RouteUndo, RouteSave, MapEdits, MapEditsAutoReload, MapEditsDump, MapEditsRedump, MapEditsOverlay, MapEditsReloadKey, MapEditsOverlayKey);
+            SettingsMenu.PackOf(packRoutes, Routes, RouteTeleportUnseen, RouteAreaBots, AutoLinks, RouteRecorder, RouteRecordPoint, RouteRecordJump, RouteUndo, RouteSave, MapEdits, MapEditsAutoReload, MapEditsDump, MapEditsRedump, MapEditsOverlay, MapEditsReloadKey, MapEditsOverlayKey);
 
             Presets.Setup(cfg, new[] { packKeys, packMap, packLearn, packChars, packExfil, packSpawn, packLoot, packSquad, packFight, packHeal, packFixes, packQuests, packRoutes }, packHeal, packFixes);
             SettingsMenu.Finish(cfg);

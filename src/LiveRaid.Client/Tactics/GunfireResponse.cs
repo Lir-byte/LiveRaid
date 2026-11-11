@@ -448,6 +448,9 @@ namespace LiveRaid.Client.Tactics
             // The raid's moods: a close call, a kill streak, a rich bag (RaidMood)
             RaidMood.Gunfire(bot, w);
 
+            // Prudence by squad, health, skill and style (Caution): a lone or hurt one keeps out of a fight it hears, a trained squad hardly ever
+            Caution.Gunfire(bot, p, w, danger);
+
             // Never walk into a fight that sounds like a war with a weak kit
             if (danger > 0.7f && conf < 0.4f)
             {

@@ -74,7 +74,7 @@ namespace LiveRaid.Client.Spectator
             _dyingText = text;
             _freeAt = Time.time + seconds;
             _follow = null;
-            _autoFollowUntil = SpectatorSession.Observer && Settings.ObserverFollowAtStart.Value ? Time.time + (Settings.ObserverFollowPackrat.Value ? 180f : 60f) : 0f;
+            _autoFollowUntil = SpectatorSession.Observer && (Settings.ObserverFollowAtStart.Value || Settings.ObserverFollowPackrat.Value) ? Time.time + (Settings.ObserverFollowPackrat.Value ? 180f : 60f) : 0f;
             SpectatorSession.State = SpectatorState.Dying;
             if (_speed <= 0f)
             {
@@ -400,6 +400,7 @@ namespace LiveRaid.Client.Spectator
                 // From now on LiveRaid moves the camera; your body is seen from outside (first person draws only its shadow)
                 _ownCameraTaken = true;
                 Player me = SpectatorSession.Original;
+                CullingGuard.MarkRebuild();
                 PlayerCameraController.Destroy(me);
                 try
                 {
@@ -629,12 +630,14 @@ namespace LiveRaid.Client.Spectator
                 return;
             }
 
-            if (SpectatorSession.State != SpectatorState.FreeCam || Time.time > _autoFollowUntil || !Settings.ObserverFollowAtStart.Value
+            if (SpectatorSession.State != SpectatorState.FreeCam || Time.time > _autoFollowUntil || !(Settings.ObserverFollowAtStart.Value || Settings.ObserverFollowPackrat.Value)
                 || Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.D))
             {
                 if (Time.time > _autoFollowUntil && SpectatorSession.State == SpectatorState.FreeCam)
                 {
-                    Log.Info("LR Spectator: no PMC in the raid in the first minute - the camera stays free");
+                    Log.Info(Settings.ObserverFollowPackrat.Value && !Settings.ObserverFollowAtStart.Value
+                        ? "LR Spectator: no packrat came in the first 3 minutes - the camera stays free"
+                        : "LR Spectator: no PMC in the raid in the first minute - the camera stays free");
                 }
 
                 _autoFollowUntil = 0f;
@@ -660,8 +663,9 @@ namespace LiveRaid.Client.Spectator
             {
                 pick = pmcs.FirstOrDefault(x => BotProfiles.Get(x.AIData.BotOwner)?.Packrat == true);
                 packrat = pick != null;
-                if (pick == null && Time.time < _autoFollowUntil - 1f)
+                if (pick == null && (Time.time < _autoFollowUntil - 1f || !Settings.ObserverFollowAtStart.Value))
                 {
+                    // 1.3.3: the packrat switch works on its own - with "Follow a random PMC" off the camera waits for the packrat only and stays free if it does not come
                     return;
                 }
             }

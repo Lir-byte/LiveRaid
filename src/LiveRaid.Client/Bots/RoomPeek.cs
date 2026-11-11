@@ -190,6 +190,11 @@ namespace LiveRaid.Client.Bots
                     else
                     {
                         Log.Info($"LR Key: {name} looks round the room behind {door.Id} - {why ?? "nothing in it worth taking"}");
+                        if (why == null && Settings.RoomMemory.Value)
+                        {
+                            // Nothing in it: the squad does not walk in to see (RoomSweep keeps it 10 minutes)
+                            RoomSweep.RememberForSquad(b, inside, Time.time + 600f);
+                        }
                     }
                 },
             };

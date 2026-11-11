@@ -223,7 +223,7 @@ namespace LiveRaid.Client.Patches
         {
             _approach.Clear();
             _nearEnough.Clear();
-            Unspun = GaveUp = 0;
+            Unspun = GaveUp = PileSkipped = 0;
             LbNoSlowEndPatch.Fast = SainLootPatrolPatch.Held = 0;
         }
 
@@ -289,6 +289,35 @@ namespace LiveRaid.Client.Patches
             }
         }
 
+        private static readonly Collider[] _pile = new Collider[48];
+        public static int PileSkipped { get; private set; }
+
+        /// <summary>
+        /// A thing on another floor the bot could not get to seldom lies alone (a weapon rack, a shelf of parts): raid 2026-11-10 12:37, Лаша Трехсотый stood
+        /// under one for 40 s giving up a handguard, a barrel and a muzzle device 5 m above it one after another, 10 s each. The loose things within 2 m of
+        /// the one given up (the same height) go with it for this bot.
+        /// </summary>
+        private static int IgnorePile(LootingBots.Components.LootingBrain brain, Vector3 at)
+        {
+            int n = 0;
+            int hits = Physics.OverlapSphereNonAlloc(at, 2f, _pile, LootingBots.Utilities.LootUtils.LootMask, QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < hits; i++)
+            {
+                EFT.Interactive.LootItem item = _pile[i] != null ? _pile[i].gameObject.GetComponentInParent<EFT.Interactive.LootItem>() : null;
+                string id = item?.ItemOwner?.RootItem?.Id;
+                if (id == null || item is EFT.Interactive.Corpse || Mathf.Abs(item.transform.position.y - at.y) > 1.2f || id == brain.ActiveLootId || brain.IsLootIgnored(id))
+                {
+                    continue;
+                }
+
+                brain.IgnoreLoot(id);
+                n++;
+            }
+
+            PileSkipped += n;
+            return n;
+        }
+
         private static void Unstall(BotOwner bot, LootingBots.Components.LootingBrain brain, Vector3 destination, float flat, float dy)
         {
             float now = Time.time;
@@ -337,7 +366,9 @@ namespace LiveRaid.Client.Patches
             {
                 GaveUp++;
                 _approach.Remove(bot.ProfileId);
-                Log.Detail("loot", $"{bot.Profile?.Nickname} cannot get to {brain.ActiveLoot?.name ?? "its loot"} ({flat:0.0} m, {dy:0.0} m up/down) - gives it up");
+                int pile = dy > 2.5f ? IgnorePile(brain, brain.LootObjectPosition) : 0;
+                Log.Detail("loot", $"{bot.Profile?.Nickname} cannot get to {brain.ActiveLoot?.name ?? "its loot"} ({flat:0.0} m, {dy:0.0} m up/down) - gives it up" +
+                                   (pile > 0 ? $" with {pile} more thing(s) lying next to it" : ""));
                 brain.CleanupLoot(true);
                 Bots.ShutIn.PathFailed(bot, $"loot {flat:0} m away");
             }

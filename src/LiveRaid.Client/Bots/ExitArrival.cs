@@ -22,6 +22,7 @@ namespace LiveRaid.Client.Bots
         }
 
         private static readonly Dictionary<string, Stand> _stands = new Dictionary<string, Stand>();
+        private static readonly List<BotOwner> _leaving = new List<BotOwner>();
         private static float _next;
 
         public static int Left { get; private set; }
@@ -111,9 +112,24 @@ namespace LiveRaid.Client.Bots
                 {
                     _stands.Remove(bot.ProfileId);
                     Left++;
-                    bot.LeaveData.RemoveFromMap();
+                    _leaving.Add(bot);
                 }
             }
+
+            // Taken off the map after the walk: BotDespawn takes the bot out of the very list the loop above goes through
+            foreach (BotOwner bot in _leaving)
+            {
+                try
+                {
+                    bot.LeaveData.RemoveFromMap();
+                }
+                catch (System.Exception e)
+                {
+                    Diag.Report("ExitArrival", e);
+                }
+            }
+
+            _leaving.Clear();
         }
     }
 }

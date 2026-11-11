@@ -24,18 +24,51 @@ namespace LiveRaid.Client.Patches
         private const float StartGuardMeters = 25f;
         // Where the human players started (yours; in LiveRaid Online every player of the group)
         internal static readonly System.Collections.Generic.List<Vector3> HumanStarts = new System.Collections.Generic.List<Vector3>();
+        // Where the squads of this raid's start were put (one point per squad): the next squad keeps its distance from them (Settings.StartApartMeters)
+        internal static readonly System.Collections.Generic.List<Vector3> PlacedStarts = new System.Collections.Generic.List<Vector3>();
         internal static int Picked;
         internal static int ExtraPicked;
+        internal static int ApartKept;
+        internal static int ApartRelaxed;
 
         internal static void Clear()
         {
             HumanStarts.Clear();
+            PlacedStarts.Clear();
+            ApartKept = ApartRelaxed = 0;
+            QbReserveDelayPatch.Held = 0;
+            QbLateWavesPatch.Clear();
+            QbPmcReservePatch.StartedPmcs = 0;
             Picked = ExtraPicked = 0;
             QbStartLobbyGroupPatch.Cut = 0;
             SpawnSides.Clear();
+            SpawnZones.Clear();
         }
 
-        internal static string Summary => $"{Picked} squads placed on random points, {ExtraPicked} of them on group / opposite / PMC-bot points; {SpawnSides.Summary}; starting groups cut to fit the starting lobby {QbStartLobbyGroupPatch.Cut}";
+        internal static string Summary => $"{Picked} squads placed on random points, {ExtraPicked} of them on group / opposite / PMC-bot points; {SpawnSides.Summary}; starting groups cut to fit the starting lobby {QbStartLobbyGroupPatch.Cut}; " +
+                                          $"{StartSpreadSummary}; reserve held back until minute {Settings.ReserveDelayMin.Value} {QbReserveDelayPatch.Held} times";
+
+        private static string StartSpreadSummary
+        {
+            get
+            {
+                if (PlacedStarts.Count < 2)
+                {
+                    return "start spread: too few squads placed";
+                }
+
+                var nn = PlacedStarts.Select((a, i) => PlacedStarts.Where((b, j) => j != i).Min(b => Vector3.Distance(a, b))).OrderBy(d => d).ToList();
+                // 1.2.8: how close the squads started to you - the answer to "did anyone spawn on my side, or does my spawn forbid it" (only the 25 m round your point is kept free)
+                string near = "";
+                if (HumanStarts.Count > 0)
+                {
+                    var toYou = PlacedStarts.Select(st => HumanStarts.Min(h => Vector3.Distance(st, h))).OrderBy(d => d).ToList();
+                    near = $"; nearest squad start to you {toYou[0]:0} m, squads within 150 m / 300 m of you {toYou.Count(d => d <= 150f)} / {toYou.Count(d => d <= 300f)} (only {StartGuardMeters:0} m round your point is kept free)";
+                }
+
+                return $"start spread: {PlacedStarts.Count} squads, nearest neighbour min {nn[0]:0} m / median {nn[nn.Count / 2]:0} m (kept {Settings.StartApartMeters.Value} m apart {ApartKept} times, distance relaxed {ApartRelaxed}){near}";
+            }
+        }
 
         protected override MethodBase GetTargetMethod() =>
             AccessTools.Method(typeof(LocationData), nameof(LocationData.TryGetFurthestSpawnPointFromPositions),
@@ -107,6 +140,34 @@ namespace LiveRaid.Client.Patches
                 return true;
             }
 
+            // The start of the raid: the squads keep apart from each other (a gap that shrinks in steps when there are not enough free points)
+            bool beginning = RaidHelpers.IsBeginningOfRaid();
+            if (beginning && Settings.StartApartMeters.Value > 0 && PlacedStarts.Count > 0)
+            {
+                float gap = Settings.StartApartMeters.Value;
+                SpawnPointParams[] apart = null;
+                for (int step = 0; step < 5 && gap >= 20f; step++, gap *= 0.7f)
+                {
+                    float g = gap;
+                    apart = eligible.Where(sp => PlacedStarts.All(s => Vector3.Distance(sp.Position, s) > g)).ToArray();
+                    if (apart.Length > 0)
+                    {
+                        if (step > 0)
+                        {
+                            ApartRelaxed++;
+                        }
+
+                        break;
+                    }
+                }
+
+                if (apart != null && apart.Length > 0)
+                {
+                    eligible = apart;
+                    ApartKept++;
+                }
+            }
+
             // Player scavs brought in after a loud fight (PScavReplacement) come in on its side: 90-350 m from it, never within 150 m of a human player
             if (Bots.PScavReplacement.FightPoint(out Vector3 fight))
             {
@@ -125,14 +186,40 @@ namespace LiveRaid.Client.Patches
                 }
             }
 
+            // 1.4.0: ... or at the part of the map nobody has been to (the nearest free points to it, never within 150 m of a human or 60 m of a living bot)
+            if (Bots.PScavReplacement.ColdPoint(out Vector3 cold))
+            {
+                List<Vector3> humans = Net.Humans().Select(h => h.Position).ToList();
+                List<Vector3> living = Comfort.Common.Singleton<GameWorld>.Instance?.AllAlivePlayersList.Where(pl => pl != null).Select(pl => pl.Position).ToList() ?? new List<Vector3>();
+                SpawnPointParams[] byCold = eligible
+                    .Where(sp => humans.All(h => Vector3.Distance(sp.Position, h) > 150f) && living.All(b => Vector3.Distance(sp.Position, b) > 60f))
+                    .OrderBy(sp => Vector3.Distance(sp.Position, cold))
+                    .Take(4)
+                    .Where(sp => Vector3.Distance(sp.Position, cold) < 260f)
+                    .ToArray();
+                if (byCold.Length > 0)
+                {
+                    __result = byCold[Random.Range(0, byCold.Length)];
+                    Bots.PScavReplacement.ColdUsed();
+                    Picked++;
+                    Log.Debug($"online spawn: player scavs at ground nobody has been to round ({cold.x:0}, {cold.z:0}) - {__result.Value.Id}, {Vector3.Distance(__result.Value.Position, cold):0} m from it");
+                    return false;
+                }
+            }
+
             // Like online, squads start spread over the map's sides (Customs: half at one end, half at the other), not all on one
-            __result =Settings.BalancedSpawnSides.Value && SpawnSides.PlacingPmcs
+            __result = Settings.BalancedSpawnSides.Value && SpawnSides.PlacingPmcs
                 ? SpawnSides.Pick(valid, eligible, all, extraMask)
-                : eligible[Random.Range(0, eligible.Length)];
+                : (Settings.SpawnRotation.Value && SpawnSides.PlacingPmcs ? SpawnZones.Pick(eligible) : eligible[Random.Range(0, eligible.Length)]);
             bool extra = (__result.Value.Categories & allowedCategories) == 0 || (__result.Value.Sides & allowedSides) == 0;
             if (extra)
             {
                 ExtraPicked++;
+            }
+
+            if (beginning)
+            {
+                PlacedStarts.Add(__result.Value.Position);
             }
 
             Picked++;
@@ -210,6 +297,8 @@ namespace LiveRaid.Client.Patches
     public class QbPmcReservePatch : ModulePatch
     {
         internal static int InitialCount;
+        // PMC bots activated in this raid (the starting lobby first, then the reserve): the reserve phase begins when the lobby is all in
+        internal static int StartedPmcs;
 
         protected override MethodBase GetTargetMethod() =>
             AccessTools.Method(AccessTools.TypeByName("QuestingBots.Components.Spawning.PMCGenerator"), "GetMaxGeneratedBots");
@@ -262,8 +351,118 @@ namespace LiveRaid.Client.Patches
             InitialCount = Raid.PopulationBalance.StartCount(vanilla);
             // Lively map: in co-op every player beyond the first brings two more PMCs to come in later
             int reserve = Settings.PmcReserve.Value + (Settings.LivelyMap.Value && players > 1 ? 2 * (players - 1) : 0);
+            // Late waves (F12): more PMCs generated, to come in on a schedule (QbLateWavesPatch gives each reserve squad its minute)
+            if (Settings.LateWaves.Value)
+            {
+                reserve += Settings.LateWaveBots.Value;
+            }
+
             __result = InitialCount + reserve;
             Log.Info($"LR Population: {InitialCount} PMCs at raid start{(InitialCount != vanilla ? $" (QuestingBots' {qb} + {extra} bigger lobby = {vanilla}, balanced to the map)" : extra > 0 ? $" (lobby {InitialCount - extra} + {extra})" : "")} + {reserve} in reserve");
+        }
+    }
+
+    /// <summary>
+    /// The reserve PMCs come in "when the starting lobby loses people" - but on a small map the lobby loses them in the first minute (Ground Zero, raid
+    /// 2026-11-07 16:56: three dead by 1:21, a reserve squad of three at once, 13 PMCs against a lobby of 10). Online nobody joins; here nobody joins
+    /// before the set minute (F12 -> 6 "Reserve PMCs not before").
+    /// </summary>
+    public class QbReserveDelayPatch : ModulePatch
+    {
+        internal static int Held;
+
+        protected override MethodBase GetTargetMethod() =>
+            AccessTools.Method(AccessTools.TypeByName("QuestingBots.Components.Spawning.PMCGenerator"), "GetNumberOfBotsAllowedToSpawn");
+
+        [PatchPostfix]
+        protected static void PatchPostfix(ref int __result)
+        {
+            try
+            {
+                if (__result <= 0 || Settings.ReserveDelayMin.Value <= 0 || !Settings.LobbyLikeOnline.Value)
+                {
+                    return;
+                }
+
+                int start = QbPmcReservePatch.InitialCount;
+                if (start > 0 && QbPmcReservePatch.StartedPmcs >= start && RaidHelpers.GetRaidElapsedSeconds() < Settings.ReserveDelayMin.Value * 60f)
+                {
+                    __result = 0;
+                    Held++;
+                }
+            }
+            catch (System.Exception e)
+            {
+                Diag.Report("QbReserveDelayPatch", e);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Late waves (1.4.9, F12 -> 6 "Late PMC waves"): the PMC squads QuestingBots generated beyond the starting lobby are given a minute each - the first at the set minute,
+    /// the rest at the set interval - instead of "whenever a place is free after minute 5" (the map was empty: the starting PMCs die in 6-9 minutes, half the lobby by minute 9).
+    /// A squad whose minute has come still waits while the map holds the full lobby (QuestingBots' alive limit). The reserve of F12 stays as it was, the late squads are added to it.
+    /// </summary>
+    public class QbLateWavesPatch : ModulePatch
+    {
+        private static bool _scheduled;
+        public static int Waves { get; private set; }
+
+        public static void Clear()
+        {
+            _scheduled = false;
+            Waves = 0;
+        }
+
+        protected override MethodBase GetTargetMethod() =>
+            AccessTools.Method(AccessTools.TypeByName("QuestingBots.Components.Spawning.PMCGenerator"), "GetNumberOfBotsAllowedToSpawn");
+
+        [PatchPostfix]
+        protected static void PatchPostfix(object __instance)
+        {
+            try
+            {
+                if (_scheduled || !Settings.LateWaves.Value || !Settings.LobbyLikeOnline.Value)
+                {
+                    return;
+                }
+
+                int start = QbPmcReservePatch.InitialCount;
+                var generator = __instance as QuestingBots.Components.Spawning.BotGenerator;
+                if (start <= 0 || generator == null || !generator.HasGeneratedBots)
+                {
+                    return;
+                }
+
+                int total = 0;
+                int index = 0;
+                foreach (QuestingBots.Models.BotSpawnInfo group in generator.GetBotGroups())
+                {
+                    int before = total;
+                    total += group.GeneratedBotCount;
+                    if (before < start || group.HasSpawnStarted)
+                    {
+                        continue;
+                    }
+
+                    // The reserve squads in their generated order: the first at the first minute, the rest each an interval later
+                    double at = (Settings.LateWaveFirstMin.Value + index * Settings.LateWaveEveryMin.Value) * 60.0;
+                    // A wave later than 4 minutes before the end of the raid would only be fodder: it does not come (raid 2026-11-11 17:27: waves at 41 and 49 minutes of a 40-minute raid)
+                    bool tooLate = at > RaidHelpers.OriginalEscapeTimeSeconds - 240.0;
+                    group.RaidETRangeToSpawn.Min = tooLate ? RaidHelpers.OriginalEscapeTimeSeconds + 3600.0 : System.Math.Max(group.RaidETRangeToSpawn.Min, at);
+                    index++;
+                    Log.Info(tooLate ? $"LR Population: late wave {index}: a squad of {group.GeneratedBotCount} PMC(s) at minute {at / 60.0:0.#} is too late for this raid - it does not come"
+                        : $"LR Population: late wave {index}: a squad of {group.GeneratedBotCount} PMC(s) comes in at minute {at / 60.0:0.#}");
+                }
+
+                Waves = index;
+                _scheduled = true;
+            }
+            catch (System.Exception e)
+            {
+                _scheduled = true;
+                Diag.Report("QbLateWavesPatch", e);
+            }
         }
     }
 
@@ -598,7 +797,7 @@ namespace LiveRaid.Client.Patches
                     continue;
                 }
 
-                SpawnPointParams chosen = there[Random.Range(0, there.Length)];
+                SpawnPointParams chosen = Settings.SpawnRotation.Value ? SpawnZones.Pick(there) : there[Random.Range(0, there.Length)];
                 int size = Mathf.Max(1, PendingGroupSize);
                 _sides[side].Placed += size;
                 _sides[side].Squads++;
@@ -638,6 +837,192 @@ namespace LiveRaid.Client.Patches
         protected static void PatchPostfix()
         {
             SpawnSides.PlacingPmcs = false;
+        }
+    }
+}
+
+namespace LiveRaid.Client.Patches
+{
+    /// <summary>
+    /// Starting zones take turns (F12 -> 6 "Rotate the starting zones", 1.3.3). Inside its side of the map a PMC squad stood on a random free point, so a zone of 9 points (Customs, east: 400, -100) came up three times
+    /// as often as one of 3, and whole parts - the terminal with the garages, the middle - went months with a start now and then (10 raids of 2026-11-08 / 09: 34 % of the squads started in the west half, 48 % in
+    /// the east end, 14 % in x 60-300). The zones are cells of 90 m; the history of the starts (learned/&lt;map&gt;.spawns.json, faded by 15 % a raid) gives each its weight 1 / (1 + starts)^1.2, zones are equal whatever
+    /// the number of their points, and a zone near cold corners of the atlas or near the locked room of an EFT quest (the terminal of Customs, the key of "A package from the past") weighs up to twice as much.
+    /// </summary>
+    public static class SpawnZones
+    {
+        private const float Cell = 90f;
+
+        private class History
+        {
+            public string LocationId;
+            public Dictionary<string, float> Uses = new Dictionary<string, float>();
+        }
+
+        private static History _h;
+        private static string _loc;
+        private static List<Vector2> _cold = new List<Vector2>();
+        private static List<Vector2> _wanted = new List<Vector2>();
+
+        public static int Picks { get; private set; }
+        public static int Steered { get; private set; }
+
+        public static string Summary => _h == null ? "spawn zones not used" : $"spawn zones: {Picks} squads placed by rotation ({Steered} in a zone used less than the average of the map), {_h.Uses.Count} zones in the history";
+
+        public static void Clear()
+        {
+            _h = null;
+            _loc = null;
+            _cold = new List<Vector2>();
+            _wanted = new List<Vector2>();
+            Picks = Steered = 0;
+        }
+
+        private static string PathOf(string loc) => System.IO.Path.Combine(Plugin.PluginDir, "learned", loc + ".spawns.json");
+
+        private static string Key(Vector3 p) => Mathf.FloorToInt(p.x / Cell) + "_" + Mathf.FloorToInt(p.z / Cell);
+
+        private static void Ensure()
+        {
+            string loc = Raid.MapIntel.Current?.LocationId;
+            if (string.IsNullOrEmpty(loc) || (_h != null && _loc == loc))
+            {
+                return;
+            }
+
+            _loc = loc;
+            _h = new History { LocationId = loc };
+            try
+            {
+                string path = PathOf(loc);
+                if (System.IO.File.Exists(path))
+                {
+                    _h = Newtonsoft.Json.JsonConvert.DeserializeObject<History>(System.IO.File.ReadAllText(path)) ?? _h;
+                }
+
+                // The old starts fade: 15 % a raid
+                foreach (string k in _h.Uses.Keys.ToList())
+                {
+                    _h.Uses[k] *= 0.85f;
+                }
+            }
+            catch (System.Exception e)
+            {
+                Log.Warn($"LR Spawn: the start history of {loc} is unreadable, starting a new one: {e.Message}");
+            }
+
+            _cold = Raid.Atlas.ColdSpots(loc).Select(s => new Vector2(s.X, s.Z)).ToList();
+            _wanted = new List<Vector2>();
+            Raid.MapIntel intel = Raid.MapIntel.Current;
+            if (intel != null)
+            {
+                foreach (List<Raid.LockedSpot> spots in intel.SpotsByKey.Values)
+                {
+                    foreach (Raid.LockedSpot s in spots)
+                    {
+                        if (Raid.QuestAudit.QuestDoors.Contains(s.Id) && s.Outside != null && s.Outside.Length >= 3)
+                        {
+                            _wanted.Add(new Vector2(s.Outside[0], s.Outside[2]));
+                        }
+                    }
+                }
+            }
+        }
+
+        private static int Near(List<Vector2> list, Vector3 p, float r)
+        {
+            int n = 0;
+            float r2 = r * r;
+            foreach (Vector2 v in list)
+            {
+                float dx = v.x - p.x, dz = v.y - p.z;
+                if (dx * dx + dz * dz <= r2)
+                {
+                    n++;
+                }
+            }
+
+            return n;
+        }
+
+        /// <summary>One of the free points: a zone by its weight, then a random point of it.</summary>
+        internal static SpawnPointParams Pick(SpawnPointParams[] points)
+        {
+            try
+            {
+                Ensure();
+                if (_h == null || points.Length < 2)
+                {
+                    return points[Random.Range(0, points.Length)];
+                }
+
+                Dictionary<string, int> size = new Dictionary<string, int>();
+                foreach (SpawnPointParams sp in points)
+                {
+                    string k = Key(sp.Position);
+                    size[k] = size.TryGetValue(k, out int n) ? n + 1 : 1;
+                }
+
+                Dictionary<string, float> weight = new Dictionary<string, float>();
+                Dictionary<string, Vector3> sample = new Dictionary<string, Vector3>();
+                foreach (KeyValuePair<string, int> z in size)
+                {
+                    Vector3 at = points.First(sp => Key(sp.Position) == z.Key).Position;
+                    sample[z.Key] = at;
+                    _h.Uses.TryGetValue(z.Key, out float uses);
+                    float cold = 1f + Mathf.Min(1f, Near(_cold, at, 150f) / 10f);
+                    float wanted = 1f + Mathf.Min(1f, 0.6f * Near(_wanted, at, 160f));
+                    weight[z.Key] = Mathf.Pow(1f / (1f + uses), 1.2f) * cold * wanted;
+                }
+
+                float total = weight.Values.Sum();
+                float roll = Random.value * total;
+                string chosen = weight.Keys.Last();
+                foreach (KeyValuePair<string, float> w in weight)
+                {
+                    roll -= w.Value;
+                    if (roll <= 0f)
+                    {
+                        chosen = w.Key;
+                        break;
+                    }
+                }
+
+                SpawnPointParams[] there = points.Where(sp => Key(sp.Position) == chosen).ToArray();
+                SpawnPointParams result = there[Random.Range(0, there.Length)];
+
+                _h.Uses.TryGetValue(chosen, out float before);
+                float avg = _h.Uses.Count > 0 ? _h.Uses.Values.Average() : 0f;
+                Picks++;
+                if (before < avg)
+                {
+                    Steered++;
+                }
+
+                _h.Uses[chosen] = before + 1f;
+                Save();
+                Log.Debug($"spawn zone {chosen}: {there.Length} of {points.Length} free points, starts so far {before:0.0} (average {avg:0.0}), {weight.Count} zones to choose from");
+                return result;
+            }
+            catch (System.Exception e)
+            {
+                Diag.Report("SpawnZones", e);
+                return points[Random.Range(0, points.Length)];
+            }
+        }
+
+        private static void Save()
+        {
+            try
+            {
+                string path = PathOf(_loc);
+                System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path));
+                System.IO.File.WriteAllText(path, Newtonsoft.Json.JsonConvert.SerializeObject(_h));
+            }
+            catch (System.Exception e)
+            {
+                Log.Warn($"LR Spawn: the start history could not be saved: {e.Message}");
+            }
         }
     }
 }

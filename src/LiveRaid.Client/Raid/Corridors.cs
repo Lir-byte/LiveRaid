@@ -231,9 +231,10 @@ namespace LiveRaid.Client.Raid
 
             List<Vector3> places = KeyPlaces.Places.OrderByDescending(p => p.Weight).Take(6).Select(p => p.Center).ToList();
             float size = Settings.RoamRegionSize.Value;
-            foreach (KeyValuePair<string, float> h in QuestFactory.Heat.OrderByDescending(kv => kv.Value).Take(5))
+            foreach ((int rx, int rz, float heat) h in QuestFactory.HottestRegions(5))
             {
-                if (QuestFactory.TryParseRegion(h.Key, out int rx, out int rz) && h.Value >= 0.6f)
+                int rx = h.rx, rz = h.rz;
+                if (h.heat >= 0.6f)
                 {
                     Vector3 c = new Vector3((rx + 0.5f) * size, 0f, (rz + 0.5f) * size);
                     if (NavMesh.SamplePosition(c + Vector3.up * 30f, out NavMeshHit hit, 60f, NavMesh.AllAreas))
@@ -429,7 +430,7 @@ namespace LiveRaid.Client.Raid
             }
 
             _next[bot.ProfileId] = Time.time + 20f;
-            Vector3 dest = bot.Mover.RealDestPoint;
+            Vector3 dest = MoveGoal.Of(bot);
             if (_detouredFor.TryGetValue(bot.ProfileId, out Vector3 done) && (done - dest).sqrMagnitude < 15f * 15f)
             {
                 return true;

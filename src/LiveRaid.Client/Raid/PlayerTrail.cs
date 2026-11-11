@@ -68,6 +68,9 @@ namespace LiveRaid.Client.Raid
         private const float StopSeconds = 8f;
         private const float StopRadius = 3f;
 
+        // A stop longer than this is a pause, a menu or a wait, not loot (the old file had a 2424 s one): it counts as this
+        private const float MaxDwell = 90f;
+
         private static string _location;
         private static LearnedFile _file;
         private static readonly Queue<Candidate> _pending = new Queue<Candidate>();
@@ -99,6 +102,7 @@ namespace LiveRaid.Client.Raid
         public static void Begin(string location)
         {
             _location = location;
+            TrainArea.Begin(location);
             _file = null;
             _walkers.Clear();
             _pending.Clear();
@@ -156,6 +160,11 @@ namespace LiveRaid.Client.Raid
 
                 FlushCsv();
                 Save();
+                if (Settings.AutoLinks.Value)
+                {
+                    AutoLinks.Run(_location, _walkers.Values.Select(w => w.Trail.Select(t => (t.Pos, t.Air, t.OnNav)).ToList()).ToList());
+                }
+
                 if (TrailPoints > 0)
                 {
                     Log.Info($"LR Trail on {_location}: {TrailPoints} trail points{(_walkers.Count > 1 ? $" of {_walkers.Count} players" : "")}, {_added} new places for the bots, {_merged} known learned places visited again, " +
@@ -241,13 +250,98 @@ namespace LiveRaid.Client.Raid
             try
             {
                 string path = ShortcutPath(location);
-                return File.Exists(path) ? JsonConvert.DeserializeObject<RouteFile>(File.ReadAllText(path))?.Routes ?? new List<Route>() : new List<Route>();
+                List<Route> all = File.Exists(path) ? JsonConvert.DeserializeObject<RouteFile>(File.ReadAllText(path))?.Routes ?? new List<Route>() : new List<Route>();
+
+                // On by default since 1.3.0, so the doubtful ones are dropped here: too short or too long, a rise a bot would not manage, broken numbers
+                List<Route> kept = new List<Route>();
+                List<string> dropped = new List<string>();
+                foreach (Route r in all.Where(x => x.Enabled))
+                {
+                    string why = r.Points != null && r.Points.Any(q => TrainArea.Contains(q.Pos, 25f)) ? "in the armoured train's station" : DoubtOf(r);
+                    if (why == null)
+                    {
+                        kept.Add(r);
+                    }
+                    else
+                    {
+                        dropped.Add($"{r.Id} ({why})");
+                    }
+                }
+
+                // 1.3.0: seven of the thirteen climbs of Customs lie within 8 x 18 m at (618-625, 0, -97 .. -116): a place where the player ran about off the navmesh, each "climb" a few metres
+                // long, one end of the next within 3 m of the end of the last. One of such a pocket is enough, and none that starts and ends within 4 m on the same height
+                List<Route> unique = new List<Route>();
+                foreach (Route r in kept)
+                {
+                    Vector3 a = r.Points[0].Pos, b = r.Points[r.Points.Count - 1].Pos;
+                    float dxz = Mathf.Sqrt((a.x - b.x) * (a.x - b.x) + (a.z - b.z) * (a.z - b.z));
+                    if (dxz < 4f && Mathf.Abs(a.y - b.y) < 1.5f)
+                    {
+                        dropped.Add($"{r.Id} (starts and ends within {dxz:0.0} m)");
+                        continue;
+                    }
+
+                    Route twin = unique.FirstOrDefault(u => (u.Points[0].Pos - a).sqrMagnitude < 12f * 12f || (u.Points[u.Points.Count - 1].Pos - a).sqrMagnitude < 12f * 12f);
+                    if (twin != null)
+                    {
+                        dropped.Add($"{r.Id} (same pocket as {twin.Id})");
+                        continue;
+                    }
+
+                    unique.Add(r);
+                }
+
+                kept = unique;
+                if (all.Count > 0)
+                {
+                    Log.Info($"LR Trail: {kept.Count} of {all.Count} learned shortcuts of {location} taken as routes" +
+                             (dropped.Count > 0 ? $", dropped: {string.Join("; ", dropped)}" : string.Empty));
+                }
+
+                return kept;
             }
             catch (Exception e)
             {
                 Log.Warn($"LR Trail: learned shortcuts of {location} unreadable: {e.Message}");
                 return new List<Route>();
             }
+        }
+
+        /// <summary>Why a learned climb is not worth giving to the bots (null = fine).</summary>
+        private static string DoubtOf(Route r)
+        {
+            if (r.Points == null || r.Points.Count < 2)
+            {
+                return "fewer than 2 points";
+            }
+
+            float length = 0f, rise = 0f;
+            for (int i = 0; i < r.Points.Count; i++)
+            {
+                RoutePoint q = r.Points[i];
+                if (float.IsNaN(q.X) || float.IsNaN(q.Y) || float.IsNaN(q.Z))
+                {
+                    return "broken numbers";
+                }
+
+                if (i > 0)
+                {
+                    length += Vector3.Distance(r.Points[i - 1].Pos, q.Pos);
+                }
+            }
+
+            rise = Mathf.Abs(r.Points[r.Points.Count - 1].Y - r.Points[0].Y);
+            if (length < 3f)
+            {
+                return $"only {length:0.0} m";
+            }
+
+            if (length > 45f)
+            {
+                return $"{length:0} m is too long";
+            }
+
+            return rise > 9f ? $"a rise of {rise:0} m" : null;
         }
 
         public static void Tick()
@@ -393,7 +487,7 @@ namespace LiveRaid.Client.Raid
                 if (c.Stop)
                 {
                     known.Stops++;
-                    known.Dwell = Mathf.Max(known.Dwell, c.Dwell);
+                    known.Dwell = Mathf.Max(known.Dwell, Mathf.Min(c.Dwell, MaxDwell));
                 }
 
                 known.W = Weight(known);
@@ -417,7 +511,7 @@ namespace LiveRaid.Client.Raid
                 Z = p.z,
                 Raids = 1,
                 Stops = c.Stop ? 1 : 0,
-                Dwell = c.Stop ? c.Dwell : 0f,
+                Dwell = c.Stop ? Mathf.Min(c.Dwell, MaxDwell) : 0f,
                 Last = DateTime.Now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             };
             place.W = Weight(place);
@@ -444,7 +538,7 @@ namespace LiveRaid.Client.Raid
         /// <summary>Stood there: likely loot or a good spot (1.2-3.7). Walked through: open ground worth a look (0.5), more with repeat visits.</summary>
         private static float Weight(LearnedPlace l)
         {
-            float w = l.Stops > 0 ? 1.2f + Mathf.Min(2.5f, l.Dwell / 25f) : 0.5f;
+            float w = l.Stops > 0 ? 1.2f + Mathf.Min(2.5f, Mathf.Min(l.Dwell, MaxDwell) / 25f) : 0.5f;
             return w + Mathf.Min(1f, 0.15f * (l.Raids - 1) + 0.2f * Mathf.Max(0, l.Stops - 1));
         }
 
@@ -479,6 +573,12 @@ namespace LiveRaid.Client.Raid
             }
 
             if (walked < 3f || walked > 60f)
+            {
+                return;
+            }
+
+            // The train's platform and carriage (moving, with its own navmesh cutting) are no shortcut for anybody (TrainArea)
+            if (TrainArea.Contains(start.Pos, 25f) || TrainArea.Contains(back.Pos, 25f) || stretch.Any(x => TrainArea.Contains(x.Pos, 25f)))
             {
                 return;
             }

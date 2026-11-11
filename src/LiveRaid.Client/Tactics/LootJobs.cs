@@ -166,6 +166,21 @@ namespace LiveRaid.Client.Tactics
         }
 
         /// <summary>The bot has a job it means to do now or soon: QuestingBots should not lead it (or its squad) away.</summary>
+        /// <summary>The bot is sent away from a place for good (RoamPlanner's overstay): the bodies it meant to go through there are let go, or they call it back.</summary>
+        public static int DropNear(BotOwner bot, Vector3 centre, float radius)
+        {
+            if (bot == null || !_jobs.TryGetValue(bot.ProfileId, out List<Job> list))
+            {
+                return 0;
+            }
+
+            return list.RemoveAll(j =>
+            {
+                float dx = j.Pos.x - centre.x, dz = j.Pos.z - centre.z;
+                return dx * dx + dz * dz < radius * radius;
+            });
+        }
+
         public static bool HasWorkNear(BotOwner bot, float range = 60f)
         {
             if (bot == null || !_jobs.TryGetValue(bot.ProfileId, out List<Job> list))

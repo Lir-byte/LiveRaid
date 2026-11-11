@@ -50,6 +50,16 @@ namespace LiveRaid.Client.Bots
 
                 switch (r.Requirement)
                 {
+                    case ERequirementState.Train:
+                        // The armoured train (TrainRequirement): from its arrival the bot may go and board; the game lets it go when the train pulls out
+                        if (exit.Status != EExfiltrationStatus.AwaitsManualActivation && exit.Status != EExfiltrationStatus.Countdown)
+                        {
+                            return false;
+                        }
+
+                        notes.Add("boards the train");
+                        break;
+
                     case ERequirementState.TransferItem:
                     {
                         int have = Count(bot.GetPlayer, r.Id);
@@ -63,6 +73,28 @@ namespace LiveRaid.Client.Bots
                     }
 
                     case ERequirementState.Empty:
+                        try
+                        {
+                            if (r.Met(bot.GetPlayer, exit))
+                            {
+                                notes.Add("empty");
+                                break;
+                            }
+                        }
+                        catch
+                        {
+                            return false;
+                        }
+
+                        // 1.4.0: "no backpack" - a bot that would leave its bag behind takes the exit all the same (BackpackExit)
+                        if (!BackpackExit.Willing(bot, r))
+                        {
+                            return false;
+                        }
+
+                        notes.Add("leaves its backpack");
+                        break;
+
                     case ERequirementState.NotEmpty:
                     case ERequirementState.HasItem:
                     case ERequirementState.WearsItem:

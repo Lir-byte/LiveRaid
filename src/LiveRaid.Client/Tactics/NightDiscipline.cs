@@ -3,6 +3,7 @@ using System.Linq;
 using System.Reflection;
 using Comfort.Common;
 using EFT;
+using EFT.Interactive;
 using HarmonyLib;
 using LiveRaid.Client.Bots;
 using QuestingBots.Components;
@@ -10,6 +11,7 @@ using QuestingBots.Helpers;
 using QuestingBots.Models.Questing;
 using SPT.Reflection.Patching;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace LiveRaid.Client.Tactics
 {
@@ -307,20 +309,194 @@ namespace LiveRaid.Client.Tactics
             public float Landed;
             public readonly Dictionary<int, bool> Decided = new Dictionary<int, bool>();
             public int Going;
+
+            // The crate itself (LootingBots hands it over when the drop lands) and the bots that were told to go through it
+            public LootableContainer Crate;
+            public readonly HashSet<string> Forced = new HashSet<string>();
         }
+
+        private static readonly List<LootableContainer> _pendingCrates = new List<LootableContainer>();
+        public static int Crates { get; private set; }
+        public static int ForcedLoots { get; private set; }
 
         private static readonly List<Drop> _drops = new List<Drop>();
         private static readonly System.Random _rng = new System.Random();
 
         public static int Squads { get; private set; }
 
-        public static string Summary => _drops.Count == 0 ? "airdrops: none landed" : $"airdrops: {_drops.Count} landed, squads that went for them {Squads}";
+        public static string Summary => _drops.Count == 0 ? "airdrops: none landed" : $"airdrops: {_drops.Count} landed, squads that went for them {Squads}, bots sent through the crate {ForcedLoots}";
 
         public static void Clear()
         {
             _drops.Clear();
+            _pendingCrates.Clear();
             Squads = 0;
+            Crates = ForcedLoots = 0;
         }
+
+        /// <summary>LootingBots tells us the crate once the drop has landed (its own priority queue gets it too).</summary>
+        public static void CrateLanded(LootableContainer crate)
+        {
+            if (crate != null)
+            {
+                _pendingCrates.Add(crate);
+                Crates++;
+            }
+        }
+
+        /// <summary>
+        /// A bot that has come to the crate goes through it (1.4.6). QuestingBots' "Airdrop Chaser" is only a walk to a point beside the crate, and the step is over on
+        /// arrival; LootingBots queues the crate for every bot but takes it only on a scan that finds the bot free, in range, in sight and not hurried by its quest -
+        /// the bots came, stood a moment and went on. Here a free bot within 20 m of a crate it has not been sent to is handed the crate as its loot (the same call
+        /// LootingBots makes itself, with its own bookkeeping), once.
+        /// </summary>
+        private static void SendToCrate(GameWorld world, Drop drop)
+        {
+            LootableContainer crate = drop.Crate;
+            if (crate == null || !crate.isActiveAndEnabled || crate.DoorState == EDoorState.Locked || Time.time - drop.Landed > 1500f)
+            {
+                return;
+            }
+
+            Vector3 at = crate.TrackableTransform != null ? crate.TrackableTransform.position : crate.transform.position;
+            foreach (Player player in world.AllAlivePlayersList.ToArray())
+            {
+                BotOwner bot = player?.AIData?.BotOwner;
+                if (bot == null || bot.IsDead || bot.BotState != EBotState.Active || drop.Forced.Contains(bot.ProfileId) || Spectator.TakeOver.IsTaken(bot))
+                {
+                    continue;
+                }
+
+                BotProfile p = BotProfiles.Get(bot);
+                if (p == null || p.Kind == BotKind.Other)
+                {
+                    continue;
+                }
+
+                Vector3 d = bot.Position - at;
+                if (d.y > 4f || d.y < -4f || new Vector2(d.x, d.z).sqrMagnitude > 45f * 45f || !TacticalTasks.NoThreat(bot) || HitReaction.InRealFight(bot, 15f)
+                    || bot.Medecine?.Using == true)
+                {
+                    continue;
+                }
+
+                LootingBots.Components.LootingBrain brain = player.GetComponent<LootingBots.Components.LootingBrain>();
+                // 1.4.9: only a loot job that is really running holds it off (HasActiveLootable stays set on a bot that left its target to ours), and 45 m, not 20:
+                // raid 2026-11-11 16:06 - the drop landed at 19:23, Жека Киберспортсмен came at 20:30 to the point 20 m from it and went on; the first one to loot it was at 25:22
+                if (brain == null || brain.LootTaskRunning)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    if (LootingBots.External.CheckIfInventoryFull(bot))
+                    {
+                        drop.Forced.Add(bot.ProfileId);
+                        continue;
+                    }
+
+                    string rootId = LootingBots.Utilities.LootUtils.GetRootItemId(crate);
+                    Vector3 dest = NavMesh.SamplePosition(at, out NavMeshHit hit, 3f, NavMesh.AllAreas) ? hit.position : bot.Position;
+                    if (!LootingBots.Utilities.ActiveLootCache.CacheActiveLootId(rootId, bot))
+                    {
+                        continue;
+                    }
+
+                    drop.Forced.Add(bot.ProfileId);
+                    brain.SetLoot(crate, LootingBots.Components.LootFinder.LootType.Container, at, dest, rootId, Vector3.Distance(bot.Position, at));
+                    ForcedLoots++;
+                    Log.Info($"LR Airdrop: {p.Name} ({p.Kind}) is {Vector3.Distance(bot.Position, at):0} m from the crate and goes through it");
+                }
+                catch (System.Exception e)
+                {
+                    drop.Forced.Add(bot.ProfileId);
+                    Diag.Report("AirdropEvent.SendToCrate", e);
+                }
+            }
+        }
+
+        /// <summary>
+        /// The squads near a drop that has just landed decide at once (1.4.4). Before, a squad decided only when its bot happened to choose a new quest: of the
+        /// 3 drops of the Reserve raids of 2026-11-10 none was looked at for 1-4 minutes and one not at all - online, the plane and the smoke are seen and heard
+        /// by everyone near, and who wants it goes at once. A squad that goes is given a "go and look" task to the drop (the quest weight, x3, follows as before).
+        /// </summary>
+        public static void Tick()
+        {
+            if (!Settings.Enabled.Value || !Settings.AirdropEvent.Value || (_drops.Count == 0 && _pendingCrates.Count == 0) || Time.time < _next)
+            {
+                return;
+            }
+
+            _next = Time.time + 2f;
+            GameWorld world = Singleton<GameWorld>.Instance;
+            if (world == null)
+            {
+                return;
+            }
+
+            foreach (Drop drop in _drops)
+            {
+                if (drop.Crate == null)
+                {
+                    LootableContainer near = _pendingCrates.FirstOrDefault(cr => cr != null && (cr.transform.position - drop.At).sqrMagnitude < 60f * 60f);
+                    if (near != null)
+                    {
+                        drop.Crate = near;
+                        _pendingCrates.Remove(near);
+                    }
+                }
+
+                SendToCrate(world, drop);
+                if (Time.time - drop.Landed > 150f)
+                {
+                    continue;
+                }
+
+                foreach (Player player in world.AllAlivePlayersList.ToArray())
+                {
+                    BotOwner bot = player?.AIData?.BotOwner;
+                    if (bot == null || bot.IsDead || bot.BotState != EBotState.Active || TacticalTasks.SquadLeaderOf(bot) != null || Spectator.TakeOver.IsTaken(bot))
+                    {
+                        continue;
+                    }
+
+                    BotProfile p = BotProfiles.Get(bot);
+                    int squad = SquadTies.SquadOf(bot.ProfileId);
+                    if (p == null || (p.Kind != BotKind.Pmc && p.Kind != BotKind.PlayerScav) || drop.Decided.ContainsKey(squad)
+                        || Vector3.Distance(bot.Position, drop.At) > 250f || HitReaction.InRealFight(bot, 15f))
+                    {
+                        continue;
+                    }
+
+                    bool goes = Decide(bot, drop, out string why);
+                    drop.Decided[squad] = goes;
+                    if (goes)
+                    {
+                        drop.Going++;
+                        Squads++;
+                    }
+
+                    float dist = Vector3.Distance(bot.Position, drop.At);
+                    string sent = "";
+                    if (goes)
+                    {
+                        Vector3? stand = ScavPatrol.Short(bot, drop.At, 9f);
+                        TacticalTask task = new TacticalTask
+                        {
+                            Kind = TaskKind.Investigate, StandAt = stand ?? drop.At, LookAt = drop.At, Speed = 1f, Sprint = true, SprintBeyond = 60f, MovePose = 1f,
+                            Until = Time.time + dist / 3f + 40f,
+                        };
+                        sent = TacticalTasks.Set(bot, task) ? "; sent there at once" : "; its task could not be set, the quest weight alone draws it";
+                    }
+
+                    Log.Info($"LR Airdrop: {p.Name}'s {(SquadTies.MatesOf(bot.ProfileId).Count() > 1 ? "squad" : "solo run")} {(goes ? "goes for" : "leaves")} the drop " +
+                             $"{dist:0} m away - {why}{sent}");
+                }
+            }
+        }
+
+        private static float _next;
 
         public static void Landed(Vector3 at)
         {

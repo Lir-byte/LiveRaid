@@ -75,7 +75,8 @@ namespace LiveRaid.Client
 
         private sealed class PackCombo : Combo
         {
-            private IEnumerable<Item> Switches => Children.Where(c => c.Synced && c.Entry.SettingType == typeof(bool));
+            // UseLearnedShortcuts is the one switch no pack and no preset touches: it is on everywhere ("Fixes only" included), see Presets
+            private IEnumerable<Item> Switches => Children.Where(c => c.Synced && c.Entry.SettingType == typeof(bool) && c.Entry != Settings.UseLearnedShortcuts);
 
             public override object Derive()
             {

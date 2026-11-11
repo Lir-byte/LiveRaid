@@ -39,6 +39,10 @@ namespace LiveRaid.Client.Bots
             public float RecheckAt = -1f;
             public int Rechecks;
             public string What;
+
+            // No way out was found (or the camera was on it): looked at again by itself, not only after three more failed paths (raid 2026-11-10 11:43:
+            // Юра Вольфенштейн stood 6 minutes on a navmesh island in Warehouse 17 - no quest step was handed to him any more, so nothing called this again)
+            public int Retries;
         }
 
         private static readonly Dictionary<string, State> _states = new Dictionary<string, State>();
@@ -122,13 +126,15 @@ namespace LiveRaid.Client.Bots
             s.RecheckAt = -1f;
             s.Rechecks = 0;
 
-            if (!ViewerSight.CanSee(pos + Vector3.up * 1.2f))
+            bool watched = ViewerSight.CanSee(pos + Vector3.up * 1.2f);
+            if (!watched)
             {
-                // The way it came in, newest first; for a bot that spawned in there, the navmesh around
+                // The way it came in, newest first; for a bot that spawned in there, the navmesh around. The nearest point of the open map will do: 4 m away
+                // is enough when a full path leads on from there (it used to ask for 12 m and looked only 15 and 30 m around on its own level)
                 IEnumerable<Vector3> candidates = s.Crumbs.AsEnumerable().Reverse().Concat(Around(pos));
                 foreach (Vector3 c in candidates)
                 {
-                    if ((c - pos).sqrMagnitude < 12f * 12f || ViewerSight.CanSee(c + Vector3.up * 1.2f) || !open.Any(o => Reaches(c, o)))
+                    if ((c - pos).sqrMagnitude < 4f * 4f || ViewerSight.CanSee(c + Vector3.up * 1.2f) || !open.Any(o => Reaches(c, o)))
                     {
                         continue;
                     }
@@ -136,15 +142,39 @@ namespace LiveRaid.Client.Bots
                     RouteTraverseLayer.PlaceOnNavmesh(bot, c);
                     s.Anchor = c;
                     s.Crumbs.Clear();
+                    s.Retries = 0;
                     PutOut++;
                     Log.Info($"LR Stuck: {name} is shut in at {where} - every way fails ({what}), no door to open -> put back outside at ({c.x:0}, {c.y:0}, {c.z:0}), nobody watching");
                     return;
                 }
             }
 
-            Unsolved++;
-            Log.Info($"LR Stuck: {name} is shut in at {where} - every way fails ({what}), no shut door near and no way out found");
+            // Looked at again in 15 s (up to 8 times): the camera turns away, a bot of the open map comes nearer
+            if (s.Retries < 8)
+            {
+                s.Retries++;
+                s.RecheckAt = Time.time + 15f;
+                s.What = what;
+            }
+
+            if (s.Retries <= 1)
+            {
+                Unsolved++;
+                Log.Info($"LR Stuck: {name} is shut in at {where} - every way fails ({what}), no shut door near and " +
+                         (watched ? "it is in view of the camera - waits until nobody looks" : "no way out found yet - looks again in a moment"));
+            }
         }
+
+        /// <summary>The bot stands on a piece of the navmesh from which no other bot of the open map can be reached (and there are such bots to compare with).</summary>
+        public static bool OnIsland(BotOwner bot, out List<Vector3> open)
+        {
+            open = OpenMap(bot);
+            Vector3 pos = bot.Position;
+            return open.Count > 0 && !open.Any(o => Reaches(pos, o));
+        }
+
+        /// <summary>A full navmesh path leads from the point to one of the open-map points.</summary>
+        public static bool ReachesAny(Vector3 from, List<Vector3> open) => open != null && open.Any(o => Reaches(from, o));
 
         /// <summary>Where the other bots are, 40+ m away: the open map (up to 4 of them).</summary>
         private static List<Vector3> OpenMap(BotOwner bot)
@@ -170,12 +200,12 @@ namespace LiveRaid.Client.Bots
         /// <summary>Points on the navmesh 15-30 m around (eight directions, two distances).</summary>
         private static IEnumerable<Vector3> Around(Vector3 pos)
         {
-            foreach (float r in new[] { 15f, 30f })
+            foreach (float r in new[] { 6f, 10f, 15f, 22f, 30f, 45f })
             {
                 for (int i = 0; i < 8; i++)
                 {
                     Vector3 dir = Quaternion.Euler(0f, i * 45f, 0f) * Vector3.forward;
-                    if (NavMesh.SamplePosition(pos + dir * r, out NavMeshHit hit, 4f, NavMesh.AllAreas) && Mathf.Abs(hit.position.y - pos.y) < 6f)
+                    if (NavMesh.SamplePosition(pos + dir * r, out NavMeshHit hit, 4f, NavMesh.AllAreas) && Mathf.Abs(hit.position.y - pos.y) < 9f)
                     {
                         yield return hit.position;
                     }
@@ -225,11 +255,12 @@ namespace LiveRaid.Client.Bots
                     s.RecheckAt = -1f;
                     if ((bot.Position - s.Anchor).sqrMagnitude < Spot * Spot)
                     {
-                        Free(bot, s, s.What + ", looked at again after a door");
+                        Free(bot, s, s.What != null && s.What.EndsWith("looked at again") ? s.What : s.What + ", looked at again");
                     }
                     else
                     {
                         s.Rechecks = 0;
+                        s.Retries = 0;
                     }
                 }
 

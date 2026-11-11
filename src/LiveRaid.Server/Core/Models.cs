@@ -55,11 +55,62 @@ public class BotTweaksConfig
     // Off by default since 0.4.2: EFT's bots refill from the ammo SPT already puts into their secure container, so vanilla needs no help
     public bool PmcSpareAmmo { get; set; } = false;
 
+    // Every PMC goes in with 2-5 spare magazines for its main gun (SPT leaves a fifth of them with none: no rig, full pockets). Only the starting kit is
+    // topped up - nothing is made during the raid (1.2.8)
+    public bool PmcSpareMagazines { get; set; } = true;
+
     // Every PMC is always hostile to every PMC and player outside its own squad, BEAR to BEAR and USEC to USEC included (like online)
     public bool PmcAlwaysHostile { get; set; } = true;
 
     // The state of PMC guns as online (most at 65-80 %, a new one now and then) instead of SPT's 90-100 %
     public WeaponConditionConfig PmcWeaponCondition { get; set; } = new();
+
+    // Guns of content mods (WTT-ContentBackport: the weapons of the 1.0 update) become guns of the bots - see Core/ModWeapons.cs
+    public ModWeaponsConfig ModWeapons { get; set; } = new();
+
+    // Clothing of content mods on the PMC bots - see Core/ModClothes.cs
+    public ModClothesConfig ModClothes { get; set; } = new();
+}
+
+public class ModClothesConfig
+{
+    public bool Enabled { get; set; } = true;
+
+    // Mod folders (in user/mods) whose db/CustomClothing list the outfits; empty = every WTT-style mod folder found
+    public List<string> ModFolders { get; set; } = ["WTT-ContentBackport"];
+
+    // PMC roles whose looks get the clothing (USEC pieces to usec, BEAR pieces to bear, both-faction pieces to both)
+    public List<string> PmcRoles { get; set; } = ["usec", "bear"];
+
+    // Item ids (topId / bottomId) that never go to the bots
+    public List<string> Exclude { get; set; } = new();
+}
+
+public class ModWeaponsConfig
+{
+    public bool Enabled { get; set; } = true;
+
+    // Mod folders (in user/mods) whose db/CustomItems list the content; empty = every WTT-style mod folder found
+    public List<string> ModFolders { get; set; } = ["WTT-ContentBackport"];
+
+    // Roles of PMCs that get the guns, and of the scavs that get the cheap ones
+    public List<string> PmcRoles { get; set; } = ["usec", "bear"];
+    public bool Scavs { get; set; } = true;
+    public List<string> ScavRoles { get; set; } = ["assault", "marksman"];
+
+    // A scav only gets a gun that is worth no more than this (roubles, handbook or flea, stock build): old rifles and knives yes, the HK 416A5 no
+    public double ScavMaxPrice { get; set; } = 120000;
+
+    // Weight of each new gun against the average weight of the pool it joins (1 = as likely as an average gun of the bot's pool)
+    public double WeightOfAverage { get; set; } = 1.0;
+
+    public bool Knives { get; set; } = true;
+
+    // The mod's rounds join the pools of the calibres the new guns fire
+    public bool Ammo { get; set; } = true;
+
+    // Item ids that never go to the bots
+    public List<string> Exclude { get; set; } = new();
 }
 
 public class WeaponConditionConfig

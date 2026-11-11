@@ -108,7 +108,10 @@ namespace LiveRaid.Client.Tactics
         public static int NextRooms { get; private set; }
         public static int Leaves { get; private set; }
         public static int Emptied { get; private set; }
+        public static int SharedBuildings { get; private set; }
         public static int SplitRooms { get; private set; }
+
+        public static string SharedSummary => $"emptied buildings told to squadmates {SharedBuildings}";
 
         public static string Summary => $"{Rooms} rooms gone through ({Steps} things handed over one after another), {NextRooms} times on to the next room " +
                                         $"({SplitRooms} times to a room no squadmate was in), {Leaves} times left the building, {Emptied} buildings searched to the end";
@@ -119,6 +122,7 @@ namespace LiveRaid.Client.Tactics
             _visits.Clear();
             _full.Clear();
             _done.Clear();
+            SharedBuildings = 0;
             _next = 0f;
             Rooms = Steps = NextRooms = Leaves = Emptied = SplitRooms = 0;
         }
@@ -454,7 +458,7 @@ namespace LiveRaid.Client.Tactics
                 if (!Hand(bot, brain, v, all, FullPath, out Target next))
                 {
                     Emptied++;
-                    Leave(bot, player, p, v, $"the room it opened with its key is searched to the end ({v.VisitSteps} thing(s); {Why()})");
+                    Leave(bot, player, p, v, $"the room it opened with its key is searched to the end ({v.VisitSteps} thing(s); {Why()})", true);
                     return;
                 }
 
@@ -491,7 +495,7 @@ namespace LiveRaid.Client.Tactics
             if (!Hand(bot, brain, v, rest, BuildingPath, out Target t))
             {
                 Emptied++;
-                Leave(bot, player, p, v, $"nothing left to search in the building after {v.Rooms} room(s) ({Why()})");
+                Leave(bot, player, p, v, $"nothing left to search in the building after {v.Rooms} room(s) ({Why()})", true);
                 return;
             }
 
@@ -514,6 +518,25 @@ namespace LiveRaid.Client.Tactics
             return Mathf.Clamp(basic * (0.8f + 0.2f * Mathf.Min(1f, Mathf.Clamp(greed, 0.4f, 1.6f))), 0.05f, 1f);
         }
 
+        /// <summary>The squadmates of the bot will not loot the building at this point until then (they may go through it again if a body falls in it).</summary>
+        public static void RememberForSquad(BotOwner bot, Vector3 at, float until)
+        {
+            foreach (string id in LootBrain.SquadIds(bot))
+            {
+                if (id == bot.ProfileId)
+                {
+                    continue;
+                }
+
+                if (!_done.TryGetValue(id, out List<(Vector3 at, float until)> list))
+                {
+                    _done[id] = list = new List<(Vector3, float)>();
+                }
+
+                list.Add((at, until));
+                SharedBuildings++;
+            }
+        }
         /// <summary>A squadmate is going through the room this point is in right now.</summary>
         private static bool MateRoom(BotOwner bot, Vector3 at)
         {
@@ -529,7 +552,7 @@ namespace LiveRaid.Client.Tactics
             return false;
         }
 
-        private static void Leave(BotOwner bot, Player player, BotProfile p, Visit v, string why)
+        private static void Leave(BotOwner bot, Player player, BotProfile p, Visit v, string why, bool emptied = false)
         {
             v.Mode = Mode.Done;
             Leaves++;
@@ -539,7 +562,14 @@ namespace LiveRaid.Client.Tactics
                 _done[bot.ProfileId] = done = new List<(Vector3, float)>();
             }
 
-            done.Add((v.Anchor, Time.time + DoneMemory));
+            // 1.2.9: a building gone through to the end is remembered by the whole squad for 10 minutes (F12 "The squad remembers emptied buildings"):
+            // the others do not walk in to find the drawers empty
+            float memory = emptied && Settings.RoomMemory.Value ? 600f : DoneMemory;
+            done.Add((v.Anchor, Time.time + memory));
+            if (emptied && Settings.RoomMemory.Value)
+            {
+                RememberForSquad(bot, v.Anchor, Time.time + memory);
+            }
 
             // Without a pause LootingBots would pick the next thing at once, and the bot would never leave
             player.GetComponent<LootFinder>()?.OverrideNextScanTime(20f + (float)_rng.NextDouble() * 25f);

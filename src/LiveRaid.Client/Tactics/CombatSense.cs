@@ -439,7 +439,14 @@ namespace LiveRaid.Client.Tactics
                            && LosesNerve(bot, p, s, health, enemies, allies, aliveSquad, lost, suppression, courage, active, out fleeWhy);
 
             // The packrat keeps out of fights: whoever it meets farther than 12 m off it breaks off from (again 15 s after the last time); closer - cornered, it fights
-            if (!fleeing && p.Packrat && old != CombatStance.BreakContact && closest != null && closest.RealDistance > 12f && Time.time > s.BreakCooldownUntil - 45f)
+            // 1.4.9: not from every enemy it merely sees. Raid 2026-11-11 15:23: The_Antman ran four times in five minutes (a 170 m flight, 55 s, the place shunned for 4
+            // minutes) from enemies 107-133 m away that had not noticed it, and looted ~35k in 5 minutes. Now it runs from one within the F12 distance (70 m), one that
+            // has hit it or fired at it, or when two or more are about within twice that; a farther lone enemy is no reason to leave the loot. A second flight waits
+            // 90 s after the first (not 45)
+            bool packratAlarm = p.Packrat && closest != null
+                                && (closest.RealDistance <= Settings.PackratAlarmMeters.Value || suppression >= 0.25f || healthDrop > 0.03f
+                                    || active.Count(e => e.RealDistance <= Settings.PackratAlarmMeters.Value * 2f && (e.IsVisible || e.TimeSinceSeen < 10f)) >= 2);
+            if (!fleeing && p.Packrat && packratAlarm && old != CombatStance.BreakContact && closest.RealDistance > 12f && Time.time > s.BreakCooldownUntil + 30f)
             {
                 fleeing = true;
                 fleeWhy = "the packrat keeps out of fights";
@@ -453,8 +460,27 @@ namespace LiveRaid.Client.Tactics
                 fleeWhy = "no rounds left for any of its guns";
             }
 
+            // Cornered (1.4.4): nowhere to run to - both legs blacked, a leg broken with the enemy close, or the enemy in the face - falling back, sidestepping and
+            // running only turn the back. Raid 2026-11-11: Larry (hp 40 %, legs blacked, "rat") spent a minute in Retreat / Reposition / BreakContact with Альберт Сова
+            // shooting him from 17-30 m, never fired once and was killed from 4 m; his morale (courage - danger) sat at -1.5...-2.3 the whole time
+            string corner = fleeing ? null : Cornered(bot, closest);
+            if (corner != null && old != CombatStance.Normal)
+            {
+                Log.Detail("combat", $"{p.Name} is cornered ({corner}) - fights from where it stands");
+            }
+
             CombatStance want;
-            if (fleeing)
+            if (corner != null)
+            {
+                want = CombatStance.Normal;
+                s.RetreatCooldownUntil = Mathf.Max(s.RetreatCooldownUntil, Time.time + 12f);
+                s.BreakCooldownUntil = Mathf.Max(s.BreakCooldownUntil, Time.time + 20f);
+                if (old == CombatStance.BreakContact)
+                {
+                    s.BreakUntil = 0f;
+                }
+            }
+            else if (fleeing)
             {
                 want = CombatStance.BreakContact;
             }
@@ -515,7 +541,8 @@ namespace LiveRaid.Client.Tactics
 
             if (want == CombatStance.BreakContact && old != CombatStance.BreakContact)
             {
-                s.BreakPoint = FindBreakPoint(bot, active);
+                bool packratRun = fleeing && Bots.PackratVacuum.On(p);
+                s.BreakPoint = FindBreakPoint(bot, active, packratRun ? Bots.PackratVacuum.BreakDistances : null);
                 if (s.BreakPoint == null)
                 {
                     want = CombatStance.Retreat;
@@ -523,7 +550,7 @@ namespace LiveRaid.Client.Tactics
                 }
                 else
                 {
-                    s.BreakUntil = Time.time + 25f;
+                    s.BreakUntil = Time.time + (packratRun ? Bots.PackratVacuum.BreakSeconds : 25f);
                     s.BreakCooldownUntil = Time.time + 60f;
                     if (fleeing)
                     {
@@ -532,6 +559,10 @@ namespace LiveRaid.Client.Tactics
                         Flees++;
                         EnemyLapse.Fled(bot, 45f + (float)_rng.NextDouble() * 75f);
                         Log.Info($"LR Combat: {p.Name} ({p.Style}, {p.Skill}) loses its nerve and leaves the fight: {fleeWhy}");
+                        if (p.Packrat)
+                        {
+                            Bots.PackratVacuum.OnFlight(bot, p, health, closest?.EnemyPlayer != null ? closest.EnemyPlayer.Position : bot.Position + bot.LookDirection * 20f);
+                        }
                     }
                 }
             }
@@ -567,6 +598,36 @@ namespace LiveRaid.Client.Tactics
                 Log.Info($"LR Combat: {p.Name} ({p.Style}, {p.Skill}) {old} -> {s.Stance}; {s.LastReason}");
                 Announce(bot, s.Stance);
             }
+        }
+
+        /// <summary>Why this bot cannot run from the enemy (null: it can): the enemy is in its face (10 m), both legs are gone, or one is and he is within 30 m.</summary>
+        private static string Cornered(BotOwner bot, Enemy closest)
+        {
+            if (closest == null || !(closest.IsVisible || closest.TimeSinceSeen < 6f))
+            {
+                return null;
+            }
+
+            float d = closest.RealDistance;
+            if (d <= 10f)
+            {
+                return $"the enemy is {d:0} m away";
+            }
+
+            var h = bot.GetPlayer?.ActiveHealthController;
+            if (h == null)
+            {
+                return null;
+            }
+
+            bool left = h.IsBodyPartBroken(EBodyPart.LeftLeg) || h.IsBodyPartDestroyed(EBodyPart.LeftLeg);
+            bool right = h.IsBodyPartBroken(EBodyPart.RightLeg) || h.IsBodyPartDestroyed(EBodyPart.RightLeg);
+            if (left && right && d <= 60f)
+            {
+                return $"both legs are gone, the enemy {d:0} m away";
+            }
+
+            return (left || right) && d <= 30f ? $"a leg is gone, the enemy {d:0} m away" : null;
         }
 
         /// <summary>
@@ -914,7 +975,9 @@ namespace LiveRaid.Client.Tactics
         }
 
         /// <summary>A point 45-90 m away from the enemies, reachable, preferably with walls around it.</summary>
-        private static Vector3? FindBreakPoint(BotOwner bot, List<Enemy> enemies)
+        private static readonly float[] BreakDistances = { 45f, 65f, 90f };
+
+        private static Vector3? FindBreakPoint(BotOwner bot, List<Enemy> enemies, float[] reach = null)
         {
             if (enemies.Count == 0)
             {
@@ -939,8 +1002,11 @@ namespace LiveRaid.Client.Tactics
             NavMeshPath path = new NavMeshPath();
             Vector3? best = null;
             float bestScore = float.MinValue;
-            float[] angles = { 0f, 30f, -30f, 60f, -60f };
-            float[] distances = { 45f, 65f, 90f };
+            bool packrat = reach != null;
+            // The packrat runs from the crowd too, not only from the enemy in front of it, and does not turn back on its last way (PackratVacuum.FlightScore)
+            List<Vector3> crowd = packrat ? Bots.PackratVacuum.Crowd(bot) : null;
+            float[] angles = packrat ? new[] { 0f, 30f, -30f, 60f, -60f, 90f, -90f } : new[] { 0f, 30f, -30f, 60f, -60f };
+            float[] distances = reach ?? BreakDistances;
             foreach (float angle in angles)
             {
                 Vector3 dir = Quaternion.Euler(0, angle, 0) * away;
@@ -958,12 +1024,24 @@ namespace LiveRaid.Client.Tactics
 
                     float fromEnemies = enemies.Min(e => Vector3.Distance(e.EnemyPosition, hit.position));
                     float score = fromEnemies * 0.05f + (1f - LootBrain.Openness(hit.position)) * 1.5f - Mathf.Abs(angle) * 0.01f;
+                    if (packrat)
+                    {
+                        score += Bots.PackratVacuum.FlightScore(bot, hit.position, crowd);
+                    }
+
                     if (score > bestScore)
                     {
                         bestScore = score;
                         best = hit.position;
                     }
                 }
+            }
+
+            if (packrat && best.HasValue)
+            {
+                float before = crowd.Count > 0 ? crowd.Min(p => Vector3.Distance(p, bot.Position)) : 0f;
+                float after = crowd.Count > 0 ? crowd.Min(p => Vector3.Distance(p, best.Value)) : 0f;
+                Bots.PackratVacuum.NoteFlight(bot, best.Value, crowd.Count, before, after);
             }
 
             return best;

@@ -243,7 +243,8 @@ namespace LiveRaid.Client.Tactics
             string why = Why(bot);
             if (why == null)
             {
-                return true;
+                // The packrat does not go back to the loot it has just run from (PackratVacuum)
+                return !Bots.PackratVacuum.LeavesLootAlone(bot, brain);
             }
 
             Refused++;

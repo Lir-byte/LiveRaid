@@ -23,6 +23,12 @@ namespace LiveRaid.Client.Tactics
         Marksmen,
         Speedrunners,
         Tanks,
+
+        // 1.3.0: more cards
+        Scouts,
+        Ambushers,
+        Wolves,
+        Support,
     }
 
     /// <summary>Formation a squad keeps on open ground (indoors every squad walks in a column).</summary>
@@ -33,6 +39,12 @@ namespace LiveRaid.Client.Tactics
         Pairs,
         Scout,
         Loose,
+
+        // 1.3.0: a staggered column, an echelon (a diagonal to one side), a diamond, a wide spread
+        Column,
+        Echelon,
+        Diamond,
+        Spread,
     }
 
     /// <summary>
@@ -266,6 +278,34 @@ namespace LiveRaid.Client.Tactics
                 Max = V(0.80f, 0.90f, 0.70f, 0.80f, 0.80f, 1.00f, 0.40f, 0.60f, 0.70f, 0.80f, 0.45f),
                 Shapes = new[] { SquadShape.Wedge, SquadShape.Line }, Tactics = T(1.6f, 0.6f, 0.9f, 0.9f, 1.5f, 1.6f, 1.1f, 1.4f, 0.3f, 0.4f),
             },
+            new Template
+            {
+                Kind = DoctrineKind.Scouts, Title = "Разведчики",
+                Min = V(0.30f, 0.30f, 0.60f, 0.50f, 0.50f, 0.40f, 0.50f, 0.35f, 0.30f, 0.30f, 0.30f),
+                Max = V(0.55f, 0.55f, 0.85f, 0.80f, 0.80f, 0.70f, 0.80f, 0.60f, 0.60f, 0.60f, 0.60f),
+                Shapes = new[] { SquadShape.Scout, SquadShape.Spread }, Tactics = T(0.5f, 1.4f, 1.6f, 1.2f, 0.7f, 1.8f, 0.8f, 0.9f, 1.5f, 0.9f),
+            },
+            new Template
+            {
+                Kind = DoctrineKind.Ambushers, Title = "Засадники",
+                Min = V(0.30f, 0.50f, 0.35f, 0.40f, 0.60f, 0.50f, 0.50f, 0.30f, 0.50f, 0.30f, 0.20f),
+                Max = V(0.60f, 0.80f, 0.60f, 0.70f, 0.90f, 0.80f, 0.85f, 0.60f, 0.80f, 0.60f, 0.50f),
+                Shapes = new[] { SquadShape.Line, SquadShape.Diamond }, Tactics = T(0.6f, 2.4f, 1.8f, 1.6f, 0.6f, 0.9f, 0.7f, 1.0f, 0.8f, 0.3f),
+            },
+            new Template
+            {
+                Kind = DoctrineKind.Wolves, Title = "Волчья стая",
+                Min = V(0.60f, 0.45f, 0.70f, 0.55f, 0.45f, 0.65f, 0.25f, 0.35f, 0.60f, 0.50f, 0.15f),
+                Max = V(0.90f, 0.70f, 0.95f, 0.85f, 0.75f, 0.90f, 0.55f, 0.60f, 0.90f, 0.80f, 0.40f),
+                Shapes = new[] { SquadShape.Echelon, SquadShape.Pairs, SquadShape.Spread }, Tactics = T(1.0f, 0.5f, 2.0f, 2.2f, 1.4f, 1.2f, 2.0f, 1.2f, 0.6f, 0.8f),
+            },
+            new Template
+            {
+                Kind = DoctrineKind.Support, Title = "Группа поддержки",
+                Min = V(0.40f, 0.65f, 0.45f, 0.60f, 0.50f, 0.55f, 0.40f, 0.35f, 0.35f, 0.45f, 0.25f),
+                Max = V(0.65f, 0.90f, 0.70f, 0.90f, 0.80f, 0.80f, 0.70f, 0.60f, 0.60f, 0.75f, 0.50f),
+                Shapes = new[] { SquadShape.Column, SquadShape.Diamond, SquadShape.Wedge }, Tactics = T(1.0f, 1.4f, 0.9f, 0.8f, 1.1f, 2.2f, 0.9f, 2.0f, 1.6f, 0.1f),
+            },
         };
 
         //                                                       aggr   coh    pace   comms  prec   grit   range  greed  third  reven  leave
@@ -285,6 +325,21 @@ namespace LiveRaid.Client.Tactics
             new Quirk { Title = "сами по себе", Group = 5, Delta = V(0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, -0.25f, 0f, 0.05f) },
             new Quirk { Title = "мстительные", Group = 6, Delta = V(0.05f, 0f, 0f, 0f, 0f, 0.05f, 0f, 0f, 0f, 0.35f, -0.05f) },
             new Quirk { Title = "жадные", Group = 7, Delta = V(0f, 0f, 0f, 0f, 0f, 0f, 0f, 0.30f, 0.05f, 0f, -0.10f) },
+
+            // 1.3.0: more cards (each group is drawn once per squad, two groups per squad)
+            new Quirk { Title = "растянутая цепь", Group = 3, Delta = V(0f, -0.12f, 0f, 0f, 0f, 0f, 0.10f, 0f, 0f, 0f, 0f) },
+            new Quirk { Title = "пара за парой", Group = 3, Delta = V(0f, 0.05f, 0.05f, 0.05f, 0f, 0f, 0f, 0f, 0f, 0f, 0f) },
+            new Quirk { Title = "выручают первыми", Group = 8, Delta = V(0f, 0.10f, 0f, 0.15f, 0f, 0.05f, 0f, 0f, -0.05f, 0.10f, 0f) },
+            new Quirk { Title = "каждый за себя", Group = 8, Delta = V(0f, -0.15f, 0f, -0.10f, 0f, 0f, 0f, 0.05f, 0.10f, -0.10f, 0.05f) },
+            new Quirk { Title = "лечатся первыми", Group = 9, Delta = V(-0.05f, 0f, 0f, 0f, 0f, -0.10f, 0f, 0f, 0f, 0f, 0.15f) },
+            new Quirk { Title = "терпят до конца", Group = 9, Delta = V(0.05f, 0f, 0f, 0f, 0f, 0.20f, 0f, 0f, 0f, 0.05f, -0.15f) },
+            new Quirk { Title = "шумные", Group = 10, Delta = V(0.05f, 0f, 0.10f, 0.20f, -0.10f, 0f, 0f, 0f, 0f, 0f, 0f) },
+            new Quirk { Title = "бесшумные", Group = 10, Delta = V(-0.05f, 0.05f, -0.05f, -0.15f, 0.10f, 0f, 0.10f, 0f, 0f, 0f, 0f) },
+            new Quirk { Title = "обходчики", Group = 11, Delta = V(0.05f, -0.05f, 0f, 0f, 0f, 0f, 0.05f, 0f, 0.10f, 0f, 0f) },
+            new Quirk { Title = "в лоб", Group = 11, Delta = V(0.12f, 0.05f, 0f, 0f, -0.05f, 0.10f, -0.15f, 0f, -0.05f, 0f, 0f) },
+            new Quirk { Title = "охотятся на боссов", Group = 12, Delta = V(0.10f, 0f, 0f, 0f, 0f, 0.10f, 0f, 0.10f, 0f, 0f, -0.10f) },
+            new Quirk { Title = "любопытные", Group = 13, Delta = V(0f, -0.10f, 0.05f, 0f, 0f, 0f, 0f, 0.05f, 0f, 0f, 0f) },
+            new Quirk { Title = "домоседы", Group = 13, Delta = V(-0.05f, 0.10f, -0.10f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0.05f) },
         };
 
         public static Template TemplateOf(DoctrineKind kind) => Doctrines.First(d => d.Kind == kind);
@@ -486,6 +541,10 @@ namespace LiveRaid.Client.Tactics
                 case DoctrineKind.Marksmen: return 0.4f + 2.5f * longGuns + Share(PlayStyle.Sniper);
                 case DoctrineKind.Speedrunners: return 0.7f + Share(PlayStyle.Explorer, PlayStyle.Looter, PlayStyle.Rusher);
                 case DoctrineKind.Tanks: return (0.4f + aggr) * (0.6f + skill);
+                case DoctrineKind.Scouts: return 0.5f + 1.6f * Share(PlayStyle.Explorer, PlayStyle.Hunter) + 0.4f * skill;
+                case DoctrineKind.Ambushers: return 0.4f + 2f * Share(PlayStyle.Rat, PlayStyle.Camper, PlayStyle.Sniper) + longGuns;
+                case DoctrineKind.Wolves: return (0.4f + aggr) * (1f + Share(PlayStyle.Hunter, PlayStyle.Rusher)) * (m.Count >= 2 ? 1.2f : 0.4f);
+                case DoctrineKind.Support: return (0.4f + skill) * (m.Count >= 3 ? 1.4f : m.Count == 2 ? 0.9f : 0.3f);
                 default: return 1f;
             }
         }

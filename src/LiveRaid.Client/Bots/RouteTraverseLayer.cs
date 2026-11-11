@@ -193,7 +193,7 @@ namespace LiveRaid.Client.Bots
                 return true;
             }
 
-            Vector3 dest = mover.RealDestPoint;
+            Vector3 dest = MoveGoal.Of(BotOwner);
             if ((dest - BotOwner.Position).sqrMagnitude < 2f * 2f)
             {
                 return false;

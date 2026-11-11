@@ -220,6 +220,12 @@ namespace LiveRaid.Client.Bots
                 return false;
             }
 
+            if (_strikes >= 3 && RescueOffMesh(pos, MoveGoal.Of(BotOwner), name))
+            {
+                _strikes = 0;
+                return false;
+            }
+
             if (_strikes >= 4)
             {
                 GaveUp++;
@@ -228,7 +234,7 @@ namespace LiveRaid.Client.Bots
                 return false;
             }
 
-            Vector3 dest = BotOwner.Mover.RealDestPoint;
+            Vector3 dest = MoveGoal.Of(BotOwner);
             if (_strikes == 3 && !ViewerSight.CanSee(pos + Vector3.up * 1.2f) && TryNudge(pos))
             {
                 Nudged++;
@@ -252,6 +258,83 @@ namespace LiveRaid.Client.Bots
             return true;
         }
 
+        public static int OffMeshRescued { get; private set; }
+        private static readonly HashSet<string> _gripless = new HashSet<string>();
+
+        /// <summary>
+        /// EFT's ExecuteInteraction throws on a door with no handle on record (WorldInteractiveObject.GetClosestGrip, raid 2026-11-10 12:37, Reserve: DoorManners - fixed
+        /// there already, the same call is here): such a door is noted and left to the bots' own way past it.
+        /// </summary>
+        internal static bool SafeInteract(Player player, WorldInteractiveObject door, InteractionResult result)
+        {
+            if (door != null && _gripless.Contains(door.Id))
+            {
+                return false;
+            }
+
+            try
+            {
+                player.ExecuteInteraction(door, result);
+                return true;
+            }
+            catch (NullReferenceException)
+            {
+                if (door != null)
+                {
+                    _gripless.Add(door.Id);
+                }
+
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// A bot that cannot get on and stands OFF the navmesh (a hole in it: the ditch by the rails, a cut the train made, a gap a learned shortcut was meant to bridge) is
+        /// put back on the mesh - at the point within 10 m that is nearest to where it wants to go, so a gap of a few metres is crossed, not stood in (raid 2026-11-11,
+        /// Кайл Беспредельщик: 70 s at (162, -5, -152), 3 m from the mesh, until the raid ended). Nobody must see it happen.
+        /// </summary>
+        private bool RescueOffMesh(Vector3 pos, Vector3 goal, string name)
+        {
+            if (NavMesh.SamplePosition(pos, out _, 1.2f, NavMesh.AllAreas) || ViewerSight.CanSee(pos + Vector3.up * 1.2f))
+            {
+                return false;
+            }
+
+            Vector3? best = null;
+            float bestD = Vector3.Distance(pos, goal);
+            foreach (float radius in new[] { 2.5f, 4.5f, 7f, 10f })
+            {
+                for (int a = 0; a < 12; a++)
+                {
+                    float rad = a * Mathf.PI / 6f;
+                    Vector3 probe = pos + new Vector3(Mathf.Cos(rad), 0f, Mathf.Sin(rad)) * radius;
+                    if (!NavMesh.SamplePosition(probe, out NavMeshHit hit, 1.5f, NavMesh.AllAreas) || Mathf.Abs(hit.position.y - pos.y) > 2.5f)
+                    {
+                        continue;
+                    }
+
+                    // On the way to the goal, not back the way it came: nearer to the goal than it stands now
+                    float d = Vector3.Distance(hit.position, goal);
+                    if (d < bestD)
+                    {
+                        bestD = d;
+                        best = hit.position;
+                    }
+                }
+            }
+
+            if (!best.HasValue)
+            {
+                return false;
+            }
+
+            RouteTraverseLayer.PlaceOnNavmesh(BotOwner, best.Value);
+            OffMeshRescued++;
+            Log.Info($"LR Stuck: {name} stood OFF the navmesh at ({pos.x:0.0}, {pos.y:0.0}, {pos.z:0.0}) and cannot get on - put back on it at ({best.Value.x:0.0}, {best.Value.y:0.0}, {best.Value.z:0.0}), " +
+                     $"{Vector3.Distance(pos, best.Value):0.0} m on");
+            return true;
+        }
+
         private bool HandleDoor(Door door, string name)
         {
             string id = door.Id;
@@ -268,7 +351,7 @@ namespace LiveRaid.Client.Bots
             {
                 Job = JobKind.OpenDoor;
                 Door = door;
-                Resume = BotOwner.Mover.RealDestPoint;
+                Resume = MoveGoal.Of(BotOwner);
                 JobUntil = Time.time + 2.5f;
                 Log.Info($"LR Door: {name} stuck at door {id} (Shut) -> opens it");
                 return true;
@@ -407,7 +490,7 @@ namespace LiveRaid.Client.Bots
                 return false;
             }
 
-            return (mover.RealDestPoint - BotOwner.Position).sqrMagnitude > 2.5f * 2.5f;
+            return (MoveGoal.Of(BotOwner) - BotOwner.Position).sqrMagnitude > 2.5f * 2.5f;
         }
 
         /// <summary>A navmesh spot 1.2 m to the side of the way (alternating sides), on the same level and reachable in a straight line.</summary>
@@ -611,7 +694,11 @@ namespace LiveRaid.Client.Bots
                 return false;
             }
 
-            player.ExecuteInteraction(door, result.Value);
+            if (!SafeInteract(player, door, result.Value))
+            {
+                return false;
+            }
+
             Opened++;
             return true;
         }
@@ -765,7 +852,11 @@ namespace LiveRaid.Client.Bots
             if (result.Succeeded)
             {
                 layer.Ignore(door.Collider);
-                player.ExecuteInteraction(door, result.Value);
+                if (!DoorAssistLayer.SafeInteract(player, door, result.Value))
+                {
+                    return;
+                }
+
                 layer.CountOpened();
             }
         }

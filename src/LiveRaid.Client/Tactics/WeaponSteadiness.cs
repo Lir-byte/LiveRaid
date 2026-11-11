@@ -395,6 +395,12 @@ namespace LiveRaid.Client.Tactics
         {
             try
             {
+                // At the close of the game (settings already gone) LootingBots may still ask: nothing is held then
+                if (Settings.SteadyWeapons == null || __instance == null)
+                {
+                    return true;
+                }
+
                 return WeaponSteadiness.AllowRedraw(BotOwnerField?.GetValue(__instance) as BotOwner);
             }
             catch (System.Exception e)

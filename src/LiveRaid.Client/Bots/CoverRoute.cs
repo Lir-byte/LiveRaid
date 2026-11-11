@@ -93,7 +93,7 @@ namespace LiveRaid.Client.Bots
                 return true;
             }
 
-            Vector3 dest = bot.Mover.RealDestPoint;
+            Vector3 dest = MoveGoal.Of(bot);
             if ((dest - bot.Position).sqrMagnitude < 60f * 60f || !NavMesh.CalculatePath(bot.Position, dest, NavMesh.AllAreas, _path) || _path.corners.Length < 2)
             {
                 return true;

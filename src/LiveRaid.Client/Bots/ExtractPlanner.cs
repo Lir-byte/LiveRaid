@@ -18,6 +18,9 @@ namespace LiveRaid.Client.Bots
     /// </summary>
     public static class ExtractPlanner
     {
+        /// <summary>1.4.9: nobody's hour comes later than this many seconds before the end (raid 2026-11-11 16:06: two late player scavs set out for the bunker door 516 m away at "3 % left" = 72 s, and the raid ended on the way).</summary>
+        private const float LastCallSeconds = 210f;
+
         private const float MinAliveSeconds = 300f;
         private static readonly HashSet<string> _sent = new HashSet<string>();
         private static float _nextCheck;
@@ -29,8 +32,10 @@ namespace LiveRaid.Client.Bots
             _leaveSoon.Clear();
             _initialSize.Clear();
             _nextWeigh.Clear();
+            _fullSince.Clear();
             EarlyLeavers = 0;
             ExtractClock.Clear();
+            NoWayOut.Clear();
             _nextCheck = 0;
             _listed = false;
         }
@@ -54,6 +59,7 @@ namespace LiveRaid.Client.Bots
                 // Once per raid, early: which switch exits this map has (logged), so the choice later is quick
                 _listed = true;
                 SwitchExtract.Exits();
+                Raid.LongPath.EnsureBuilt();
             }
 
             float remaining = RaidHelpers.GetRaidTimeRemainingFraction();
@@ -89,7 +95,7 @@ namespace LiveRaid.Client.Bots
                     early = soon.why;
                     urgent = true;
                 }
-                else if (remaining > profile.ExtractAtRemaining)
+                else if (remaining > Mathf.Max(profile.ExtractAtRemaining, Mathf.Min(0.5f, LastCallSeconds / Mathf.Max(600f, RaidHelpers.OriginalEscapeTimeSeconds))))
                 {
                     // Not its hour yet - unless the raid has gone so that it leaves anyway
                     if (!Settings.EarlyExit.Value || profile.ActivatedAt < 0 || Time.time - profile.ActivatedAt < MinAliveSeconds || remaining < 0.08f
@@ -154,6 +160,23 @@ namespace LiveRaid.Client.Bots
                         EarlyLeavers++;
                     }
                 }
+                else
+                {
+                    // No exit is open to it (NoWayOut refused the order): it is not "leaving" - it is asked again later
+                    _sent.Remove(bot.ProfileId);
+                }
+            }
+
+            NoWayOut.Tick();
+        }
+
+        /// <summary>The bot does not leave after all (NoWayOut): it is weighed again like any other.</summary>
+        public static void NotSent(BotOwner bot)
+        {
+            if (bot != null)
+            {
+                _sent.Remove(bot.ProfileId);
+                _leaveSoon.Remove(bot.ProfileId);
             }
         }
 
@@ -345,6 +368,37 @@ namespace LiveRaid.Client.Bots
                 reasons.Add("the bags are full");
             }
 
+            // 1.2.9: the bag of the bot itself (F12 "A full bag is a reason to leave"). The weighing above counts a full bag only when half the squad has one, and
+            // 0.35 of urge rarely got over the threshold: raid 2026-11-07/08 - scavs with full bags walked from body to body for minutes. Now a full bag that has
+            // stayed full adds up to 0.4, by character: the careful and rats go early, a greedy bot whose bag holds cheap things stays to find better (MakeRoom
+            // swaps cheap for dear), one with a rich bag has no more reason to stay
+            if (Settings.FullBagLeave.Value && LootingBots.External.CheckIfInventoryFull(bot))
+            {
+                float fullFor = FullFor(bot);
+                float own = (carried / squad.Count);
+                float v = 0.15f + 0.25f * Mathf.Clamp01(fullFor / 240f);
+                bool greedy = p.LootGreed >= 1.2f || p.Style == PlayStyle.Looter;
+                if (greedy && own < 60000f)
+                {
+                    v -= 0.3f;
+                }
+                else if (own >= 150000f)
+                {
+                    v += 0.1f;
+                }
+
+                v *= p.Style == PlayStyle.Rat || p.Style == PlayStyle.Camper ? 1.3f : 1f;
+                v *= Mathf.Clamp(1.25f - 0.35f * p.LootGreed, 0.6f, 1.2f);
+                if (v > 0.05f)
+                {
+                    urge += v;
+                    reasons.Add($"the bag has been full for {fullFor / 60f:0.0} min (~{own / 1000f:0}k in it)");
+                }
+            }
+            else
+            {
+                _fullSince.Remove(bot.ProfileId);
+            }
             if (initial >= 2 && squad.Count * 2 <= initial)
             {
                 urgent = true;
@@ -383,6 +437,19 @@ namespace LiveRaid.Client.Bots
             return true;
         }
 
+        private static readonly Dictionary<string, float> _fullSince = new Dictionary<string, float>();
+
+        /// <summary>How long the bot's bag has been full (seconds, counted from the first weighing that found it so).</summary>
+        private static float FullFor(BotOwner bot)
+        {
+            if (!_fullSince.TryGetValue(bot.ProfileId, out float since))
+            {
+                _fullSince[bot.ProfileId] = Time.time;
+                return 0f;
+            }
+
+            return Time.time - since;
+        }
         private static readonly Dictionary<string, (float at, string why)> _leaveSoon = new Dictionary<string, (float, string)>();
 
         /// <summary>The bot (its squad leader, when it follows one) heads for an exit some seconds from now, whatever its hour.</summary>

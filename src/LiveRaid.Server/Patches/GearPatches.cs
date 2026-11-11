@@ -47,11 +47,35 @@ public class PrepareAndGenerateBotPatch : AbstractPatch
             if (GenContext.Current?.IsPackrat == true && __result != null)
             {
                 Packrat.Generated(__result.Id.ToString(), __result.Info?.Nickname);
+                BoarHealth(__result);
             }
         }
         catch (Exception e)
         {
             LrState.Error("packrat bookkeeping failed", e);
+        }
+    }
+
+    /// <summary>
+    /// The packrat is as tough as a fat boss (1.4.12, the player's request): the body-part health of Kaban (boss Boar: chest 355, stomach 260, head 85, arms and legs 150),
+    /// current and maximum. Its gun and gear stay as poor as the server gave them.
+    /// </summary>
+    private static void BoarHealth(BotBase bot)
+    {
+        var parts = bot.Health?.BodyParts;
+        if (parts == null)
+        {
+            return;
+        }
+
+        var boar = new Dictionary<string, double> { ["Head"] = 85, ["Chest"] = 355, ["Stomach"] = 260, ["LeftArm"] = 150, ["RightArm"] = 150, ["LeftLeg"] = 150, ["RightLeg"] = 150 };
+        foreach (var kv in boar)
+        {
+            if (parts.TryGetValue(kv.Key, out var part) && part?.Health != null)
+            {
+                part.Health.Current = kv.Value;
+                part.Health.Maximum = kv.Value;
+            }
         }
     }
 

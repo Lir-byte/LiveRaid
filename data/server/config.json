@@ -28,11 +28,15 @@
     // Loot comes from searching containers, rooms and bodies during the raid
     "pmcEmptyLoot": true,
     "pmcSpareAmmo": false,
+    // Every PMC goes in with 2-5 spare magazines for its main gun (SPT leaves a fifth of them with none); only the starting kit is topped up
+    "pmcSpareMagazines": true,
     // Every PMC squad is hostile to every other squad and to you, BEAR to BEAR and USEC to USEC included (SPT: same side only 35-85 %)
     "pmcAlwaysHostile": true,
     // The state of PMC guns as online. SPT gives them 90-100 % (practically new); online most guns are at 65-80 %, a brand-new one now and then.
     // Each PMC gun rolls on its own: "pristineChance" = 100 / 100, otherwise a band by weight (current durability, %); the max durability sits
-    // up to "maxAboveCurrent" above the current one (repairs eat into it). enabled: false = SPT's values
+    // up to "maxAboveCurrent" above the current one (repairs eat into it). enabled: false = SPT's values.
+    // The client's F12 (Spawns: "PMC gun condition like online", brand-new chance, repairs and the four condition levels with their edges and weights) is
+    // sent to the server and stands over "enabled", "pristineChance", "maxAboveCurrent" and "bands" here. These values are the start ones.
     "pmcWeaponCondition": {
       "enabled": true,
       "pristineChance": 0.15,
@@ -43,6 +47,37 @@
         { "min": 50, "max": 65, "weight": 14 },
         { "min": 35, "max": 50, "weight": 4 }
       ]
+    },
+    // Guns of content mods for the bots. WTT-ContentBackport registers the weapons of the 1.0 update, but its "addtoBots" only puts items into bots' LOOT:
+    // no bot ever held one of its guns. Here every weapon, knife and round its db/CustomItems list joins the pools of the PMCs (usec, bear) and, if cheap
+    // enough, of the scavs - with a mod pool built from the gun it was cloned from and its stock build. A gun that cannot be built is left out.
+    "modWeapons": {
+      "enabled": true,
+      // mod folders in user/mods whose db/CustomItems list the content; [] = every WTT-style mod found
+      "modFolders": ["WTT-ContentBackport"],
+      "pmcRoles": ["usec", "bear"],
+      // scavs get only guns worth up to "scavMaxPrice" roubles (old rifles, knives); false = scavs keep SPT's guns
+      "scavs": true,
+      "scavRoles": ["assault", "marksman"],
+      "scavMaxPrice": 120000,
+      // weight of each new gun against the average of the pool it joins: 1 = as likely as an average gun, 0.5 = half as likely, 2 = twice
+      "weightOfAverage": 1.0,
+      "knives": true,
+      // the mod's rounds join the pools of the calibres of the new guns
+      "ammo": true,
+      // item ids that never go to bots
+      "exclude": []
+    },
+    // Clothing of content mods on the PMC bots. WTT-ContentBackport registers its outfits, but nothing puts them into the bots' looks: no PMC bot ever
+    // wore one. Here every top and bottom its db/CustomClothing list joins the looks of the PMC roles its "side" allows (tops - Body, bottoms - Feet),
+    // a top with its own hands gets them. Every new piece weighs what the pool's own looks weigh (SPT's are all 1): all looks, the mod's and
+    // SPT's, are equally likely. The client's F12 (Spawns: "Content mod clothes for bots") is sent to the server and stands over "enabled" here.
+    "modClothes": {
+      "enabled": true,
+      "modFolders": ["WTT-ContentBackport"],
+      "pmcRoles": ["usec", "bear"],
+      // item ids (topId / bottomId) that never go to bots
+      "exclude": []
     },
     // per-map total bot cap; empty = SPT/QuestingBots values
     "maxBotCapOverrides": {}

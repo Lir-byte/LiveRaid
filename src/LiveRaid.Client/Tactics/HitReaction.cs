@@ -67,6 +67,26 @@ namespace LiveRaid.Client.Tactics
             return enemy != null && (enemy.IsVisible || enemy.TimeSinceSeen < memory) && enemy.RealDistance < 150f;
         }
 
+        /// <summary>
+        /// A fight right here, for a bot that must not be drawn away from where it stands (aboard the armoured train): hit or shot at lately, or an enemy IN SIGHT
+        /// within <paramref name="closeMeters"/>. An enemy farther off, or only known, is not a reason to leave the carriage.
+        /// </summary>
+        public static bool InCloseFight(BotOwner bot, float memory, float closeMeters)
+        {
+            if (bot == null || bot.IsDead)
+            {
+                return false;
+            }
+
+            if (SinceHit(bot) < memory || (bot.Memory != null && Time.time - bot.Memory.UnderFireTime < memory * 0.5f))
+            {
+                return true;
+            }
+
+            var enemy = SainBot.Of(bot)?.GoalEnemy;
+            return enemy != null && enemy.IsVisible && enemy.RealDistance < closeMeters;
+        }
+
         public static void Tick()
         {
             if (Time.time < _next)

@@ -2,19 +2,12 @@
 
 ## English
 
-**Two editions, install one of them:**
+**One archive, two equal folders:** `LiveRaid-1.2.4.zip` holds `Single` (single player, SPT without Fika) and `Online` (**LiveRaid Online**, Project Fika co-op, [docs/FIKA.md](docs/FIKA.md), `FIKA.md` in the archive). **Unpack the contents of ONE of the two folders into the game's root** (not the folder itself and not both). Online needs Project Fika installed; if Fika is installed, the single-player edition switches itself off and says in the log that Online is needed. To change over later, unpack the other folder the same way, or start `LiveRaid Launcher.exe` (it is in both folders): it switches between "Single player" and "Online" (puts the right client DLL in place and moves Fika's files aside or back).
 
-| Archive | For |
-|---|---|
-| `LiveRaid-1.2.4.zip` | single player (SPT without Fika) |
-| `LiveRaid-Online-1.2.4.zip` | **Project Fika** co-op ([docs/FIKA.md](docs/FIKA.md), `FIKA.md` in the archive) |
-
-If Fika is installed, the single-player edition switches itself off and says in the log that Online is needed.
-
-**Requirements:** SPT **4.1.6** (EFT 0.16.9) with these mods installed first: QuestingBots 1.2.0, SAIN 4.5.1, LootingBots 1.8.0, BigBrain 1.5.0, Waypoints 1.9.0 (LiveRaid Online also needs Project Fika 2.4.x with QuestingBots Fika sync). Remove **ORBIT** - it conflicts.
+**Requirements:** SPT **4.1.6** (EFT 0.16.9) with these mods installed first: QuestingBots 1.2.0, SAIN 4.5.1, LootingBots 1.8.0, BigBrain 1.5.0, Waypoints 1.9.0 (LiveRaid Online also needs Project Fika 2.4.x with QuestingBots Fika sync). Remove **ORBIT** - it conflicts. **Strongly recommended: Smoothie 1.1.0** (by morphox, https://sp-mod.com/mod/3132/smoothie) - it renders only what you actually see; a big performance gain with no downside for LiveRaid (with 20+ bots alive it helps most). Many thanks to its author.
 
 1. **Close the game and stop the SPT server** (a running server holds its DLLs).
-2. Unpack the archive **into the game's root folder** (where `EscapeFromTarkov.exe` and `BepInEx` are), agreeing to replace files. It holds:
+2. Unpack the contents of the chosen folder (`Single` or `Online`) **into the game's root folder** (where `EscapeFromTarkov.exe` and `BepInEx` are), agreeing to replace files. It holds:
    - `BepInEx/plugins/LiveRaid/LiveRaid.Client.dll` - the client plugin;
    - `SPT_Runtime/user/mods/LiveRaid/` - the server mod (`LiveRaid.Server.dll`, `data/*.json`);
    - `LiveRaid Launcher.exe` and `LiveRaid Launcher/editions` - the mode switch (both editions are kept there, one works in the game).
@@ -30,12 +23,12 @@ Nothing needs deleting: map caches, recorded routes, learned places and your F12
 
 ## Русский
 
-**Две редакции, ставится одна:** `LiveRaid-1.2.4.zip` - одиночная игра; `LiveRaid-Online-1.2.4.zip` - кооператив через **Project Fika** ([docs/FIKA.md](docs/FIKA.md)). Если в игре стоит Fika, одиночная редакция сама выключается и пишет в лог, что нужна Online.
+**Один архив, две равноправные папки:** в `LiveRaid-1.2.4.zip` лежат `Single` (одиночная игра, SPT без Fika) и `Online` (**LiveRaid Online**, кооператив через Project Fika, [docs/FIKA.md](docs/FIKA.md)). **В корень папки игры распакуйте СОДЕРЖИМОЕ одной из двух папок** (не саму папку и не обе). Для Online должен стоять Project Fika; если Fika стоит, одиночная редакция сама выключается и пишет в лог, что нужна Online. Чтобы перейти на другую позже, распакуйте вторую папку так же или запустите `LiveRaid Launcher.exe` (он есть в обеих): он переключает «Одиночный» и «Online» (кладёт нужную DLL и убирает/возвращает файлы Fika).
 
-**Нужно:** SPT **4.1.6** (EFT 0.16.9) и заранее установленные QuestingBots 1.2.0, SAIN 4.5.1, LootingBots 1.8.0, BigBrain 1.5.0, Waypoints 1.9.0 (для Online ещё Project Fika 2.4.x и QuestingBots Fika sync). **ORBIT** удалите - конфликтует.
+**Нужно:** SPT **4.1.6** (EFT 0.16.9) и заранее установленные QuestingBots 1.2.0, SAIN 4.5.1, LootingBots 1.8.0, BigBrain 1.5.0, Waypoints 1.9.0 (для Online ещё Project Fika 2.4.x и QuestingBots Fika sync). **ORBIT** удалите - конфликтует. **Очень рекомендуется: Smoothie 1.1.0** (автор morphox, https://sp-mod.com/mod/3132/smoothie) - рисует только то, что вы реально видите; заметный прирост производительности без ущерба для LiveRaid (с 20+ живыми ботами выигрыш больше всего). Отдельное спасибо автору.
 
 1. **Закройте игру и остановите сервер SPT** (иначе DLL сервера занята).
-2. Распакуйте архив **в корень папки игры** (где `EscapeFromTarkov.exe` и `BepInEx`), согласившись на замену файлов: клиентский плагин `BepInEx/plugins/LiveRaid`, серверный мод `SPT_Runtime/user/mods/LiveRaid`, `LiveRaid Launcher.exe` и папка `LiveRaid Launcher/editions` (переключатель режимов).
+2. Распакуйте содержимое выбранной папки (`Single` или `Online`) **в корень папки игры** (где `EscapeFromTarkov.exe` и `BepInEx`), согласившись на замену файлов: клиентский плагин `BepInEx/plugins/LiveRaid`, серверный мод `SPT_Runtime/user/mods/LiveRaid`, `LiveRaid Launcher.exe` и папка `LiveRaid Launcher/editions` (переключатель режимов).
    > Если сервер лежит в `SPT`, а не в `SPT_Runtime`, скопируйте `SPT_Runtime/user/mods/LiveRaid` в `SPT/user/mods/LiveRaid`.
 3. Запустите сервер и игру.
 

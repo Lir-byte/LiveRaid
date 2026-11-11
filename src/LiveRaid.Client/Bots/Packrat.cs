@@ -23,15 +23,18 @@ namespace LiveRaid.Client.Bots
         private static bool _armed;
         private static string _chosen;
         private static string _assigned;
-        private static readonly System.Collections.Generic.List<BotOwner> _toSeparate = new System.Collections.Generic.List<BotOwner>();
         private static float _askedAt = -99f;
 
         public static string Seen { get; private set; }
+
+        /// <summary>Packrat kits that had gone into a group (they stay ordinary members of it, never the packrat).</summary>
+        public static int Leaked { get; private set; }
 
         public static string Summary => Seen != null ? $"packrat: {Seen}" : "packrat: none this raid";
 
         /// <summary>The server rolled a packrat for this raid (chance from F12), and its kit sits on a profile or two in the pool of QuestingBots.</summary>
         public static bool Armed => _armed;
+        public static int TaggedCount => _tagged.Count;
 
         /// <summary>The profile id given to a lone group as the raid's packrat (Patches/PackratPoolPatch.cs), or null.</summary>
         public static string Assigned => _assigned;
@@ -82,9 +85,10 @@ namespace LiveRaid.Client.Bots
             _armed = false;
             _assigned = null;
             _chosen = null;
-            _toSeparate.Clear();
             _askedAt = -99f;
             Seen = null;
+            Leaked = 0;
+            QbPackratFirstPatch.Moved = 0;
             Patches.PackratPool.Clear();
         }
 
@@ -136,12 +140,23 @@ namespace LiveRaid.Client.Bots
 
             if (!_tagged.Contains(bot.ProfileId))
             {
-                Refresh();
+                // Forced: a profile the server tagged a moment ago is not in the list a 2-second-old answer gave
+                Refresh(true);
             }
 
-            // Without the pool patch: the first of the server's candidates to come in is the packrat of this raid (the others are just poor PMCs with a big bag)
-            if (_tagged.Contains(bot.ProfileId) && !Patches.PackratPool.Active)
+            // Without the pool patch (or when it did not catch the profile): a tagged profile is the packrat only if it really came ALONE. 1.3.0, by the player's
+            // rule: the packrat is a lone PMC from the start - a tagged kit that got into a squad stays a plain poor PMC of that squad, it is never pulled out of the
+            // group (the 1.2.8 "leaves its group" path is gone)
+            if (_tagged.Contains(bot.ProfileId))
             {
+                int members = bot.BotsGroup?.MembersCount ?? 1;
+                if (members > 1)
+                {
+                    Leaked++;
+                    Log.Info($"LR Packrat: the profile {bot.Profile?.Nickname} with the packrat's kit got into a group of {members} - it stays an ordinary member, the packrat must come alone");
+                    return false;
+                }
+
                 _chosen = bot.ProfileId;
                 return true;
             }
@@ -165,44 +180,6 @@ namespace LiveRaid.Client.Bots
             string gun = bot.GetPlayer?.Inventory?.Equipment?.GetSlot(EquipmentSlot.Holster)?.ContainedItem?.ShortName?.Localized() ?? "no pistol";
             Seen = $"{p.Name} ({gun}, {bag})";
             Log.Info($"LR Packrat: {p.Name} is this raid's packrat - {gun}, {bag}; it loots and keeps out of fights");
-        }
-
-        /// <summary>The packrat comes alone: once active, it leaves the group it was generated in (QuestingBots separates it, the others go on without it).</summary>
-        public static void Tick()
-        {
-            if (_toSeparate.Count == 0)
-            {
-                return;
-            }
-
-            foreach (BotOwner b in _toSeparate.ToArray())
-            {
-                if (b == null || b.IsDead)
-                {
-                    _toSeparate.Remove(b);
-                    continue;
-                }
-
-                if (b.BotState != EBotState.Active)
-                {
-                    continue;
-                }
-
-                _toSeparate.Remove(b);
-                try
-                {
-                    int members = b.BotsGroup?.MembersCount ?? 1;
-                    if (members > 1)
-                    {
-                        QuestingBots.BotLogic.HiveMind.BotHiveMindMonitor.SeparateBotFromGroup(b);
-                        Log.Info($"LR Packrat: {b.Profile.Nickname} leaves its group of {members} - it goes alone");
-                    }
-                }
-                catch (System.Exception e)
-                {
-                    Diag.Report("Packrat.Separate", e);
-                }
-            }
         }
 
         private static string Field(string json, string key)

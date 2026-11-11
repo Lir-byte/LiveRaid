@@ -3,6 +3,8 @@ using System.Linq;
 using Comfort.Common;
 using EFT;
 using LiveRaid.Client.Bots;
+using SAIN.Models.Structs;
+using SAIN.Preset.Shared.Enums;
 using SAIN.SAINComponent.Classes.EnemyClasses;
 using UnityEngine;
 
@@ -25,9 +27,11 @@ namespace LiveRaid.Client.Tactics
             public float At;
             public BotOwner Mate;
             public Player Enemy;
+            public Vector3 Where;
         }
 
         private static readonly Dictionary<string, float> _called = new Dictionary<string, float>();
+        private static readonly Dictionary<string, int> _attempts = new Dictionary<string, int>();
         private static readonly List<Pending> _pending = new List<Pending>();
         private static readonly Dictionary<int, float> _lastFight = new Dictionary<int, float>();
         private static readonly HashSet<int> _regrouped = new HashSet<int>();
@@ -49,6 +53,7 @@ namespace LiveRaid.Client.Tactics
         public static void Clear()
         {
             _called.Clear();
+            _attempts.Clear();
             _pending.Clear();
             _lastFight.Clear();
             _regrouped.Clear();
@@ -79,6 +84,7 @@ namespace LiveRaid.Client.Tactics
                 {
                     p.Mate.BotsGroup.AddEnemy(p.Enemy, EBotEnemyCause.followGetHit);
                     Passed++;
+                    TellPlace(p.Mate, p.Enemy, p.Where);
                 }
             }
 
@@ -129,6 +135,30 @@ namespace LiveRaid.Client.Tactics
             }
         }
 
+        /// <summary>
+        /// The call carries WHERE, not only who: the mate's SAIN gets the place as one heard (his enemy list had the name and no position, so he stood
+        /// calm for minutes 30-50 m from his squadmate's fight - raid 21:42, 白雲もえは beside ragnaroks).
+        /// </summary>
+        private static void TellPlace(BotOwner mate, Player enemy, Vector3 where)
+        {
+            try
+            {
+                Enemy known = SainBot.Of(mate)?.EnemyController?.CheckAddEnemy(enemy);
+                known?.Hearing.SetHeard(new SAINHearingReport
+                {
+                    position = where,
+                    soundType = SAINSoundType.Generic,
+                    placeType = EEnemyPlaceType.Hearing,
+                    isDanger = true,
+                    shallReportToSquad = false,
+                }, Time.time);
+            }
+            catch (System.Exception e)
+            {
+                Diag.Report("SquadComms.TellPlace", e);
+            }
+        }
+
         private static void CallContact(BotOwner spotter, List<BotOwner> squad, DoctrineDeck.Squad doctrine)
         {
             Enemy e = SainBot.Of(spotter)?.GoalEnemy;
@@ -145,6 +175,8 @@ namespace LiveRaid.Client.Tactics
                 return;
             }
 
+            int attempt = _attempts.TryGetValue(key, out int n) ? n : 0;
+            _attempts[key] = attempt + 1;
             _called[key] = now;
             Contacts++;
             float comms = doctrine?.Values[DoctrineDeck.Comms] ?? 0.5f;
@@ -152,10 +184,12 @@ namespace LiveRaid.Client.Tactics
             string where = $"{Compass(d)}, {d.magnitude:0} m";
             SquadBrain.Say(spotter, EPhraseTrigger.OnFight, 0.3f + 0.5f * comms);
 
-            // A quiet squad does not always say it - and the ones QuestingBots put apart then only learn of him by themselves
-            if (_rng.NextDouble() > 0.15f + 0.85f * comms)
+            // A quiet squad does not always say it - and the ones QuestingBots put apart then only learn of him by themselves. But not for good:
+            // the same enemy still in sight half a minute on is a fight, and one who is shot at shouts (the second call is always made)
+            if (attempt == 0 && _rng.NextDouble() > 0.15f + 0.85f * comms)
             {
                 Silent++;
+                _called[key] = now - 20f;
                 Log.Detail("squad", () => $"{spotter.Profile.Nickname} sees {enemy.Profile?.Nickname} ({where}) and says nothing");
                 return;
             }
@@ -169,7 +203,7 @@ namespace LiveRaid.Client.Tactics
                     continue;
                 }
 
-                _pending.Add(new Pending { At = now + delay + (float)_rng.NextDouble() * 0.5f, Mate = mate, Enemy = enemy });
+                _pending.Add(new Pending { At = now + delay + (float)_rng.NextDouble() * 0.5f, Mate = mate, Enemy = enemy, Where = enemy.Position });
                 told++;
             }
 

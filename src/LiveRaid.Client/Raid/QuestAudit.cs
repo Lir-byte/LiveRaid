@@ -32,8 +32,12 @@ namespace LiveRaid.Client.Raid
         private static IEnumerator _job;
         private static bool _done;
 
+        /// <summary>1.3.3: ids of the locked doors that hold an item / zone of an EFT quest (the door is assigned to the objective) - their keys are dealt first (key dealing).</summary>
+        public static readonly HashSet<string> QuestDoors = new HashSet<string>();
+
         public static void Clear()
         {
+            QuestDoors.Clear();
             _job = null;
             _done = false;
             _qbOverrides = null;
@@ -222,6 +226,7 @@ namespace LiveRaid.Client.Raid
                 {
                     Vector3 o = door.OutsidePos.Value;
                     row.Source.DoorIDToUnlock = door.Id;
+                    QuestDoors.Add(door.Id);
                     row.Source.InteractionPositionToUnlockDoor = new SerializableVector3(o.x, o.y, o.z);
                     return $"behind locked door {door.Id} (key {door.KeyId}): door assigned to the objective";
                 }

@@ -205,7 +205,16 @@ namespace LiveRaid.Client.Bots
                 return;
             }
 
-            player.ExecuteInteraction(door, result.Value);
+            try
+            {
+                player.ExecuteInteraction(door, result.Value);
+            }
+            catch (System.NullReferenceException)
+            {
+                // A door with no handle on record (EFT's WorldInteractiveObject.GetClosestGrip throws, raid 2026-11-10 12:37, Reserve): it stays open
+                return;
+            }
+
             Shut++;
             Log.Detail("task", () => $"{p.Name} shuts the door behind it ({dist:0.0} m)");
         }

@@ -29,8 +29,10 @@ namespace LiveRaid.Client.Tactics
         public static int BeforeStorm { get; private set; }
         public static int Held { get; private set; }
         public static int HeldFar { get; private set; }
+        public static int HeldBlocked { get; private set; }
 
-        public static string Summary => $"grenades: thrown {Thrown} (before a storm {BeforeStorm}), throws held back by habit {Held} ticks, at a far or flanked enemy {HeldFar} ticks";
+        public static string Summary => $"grenades: thrown {Thrown} (before a storm {BeforeStorm}), throws held back by habit {Held} ticks, at a far or flanked enemy {HeldFar} ticks, " +
+                                        $"with a wall or the target too close to the thrower {HeldBlocked} ticks";
 
         public static bool On => Settings.Enabled.Value && Settings.GrenadeHabit.Value;
 
@@ -39,7 +41,7 @@ namespace LiveRaid.Client.Tactics
             _holdUntil.Clear();
             _primedUntil.Clear();
             _habit.Clear();
-            Thrown = BeforeStorm = Held = HeldFar = 0;
+            Thrown = BeforeStorm = Held = HeldFar = HeldBlocked = 0;
         }
 
         /// <summary>The squad goes in: each member may throw once in the next 20 s whatever his habit.</summary>
@@ -125,6 +127,14 @@ namespace LiveRaid.Client.Tactics
                 return false;
             }
 
+            // 1.2.6: four of ~190 kills on Ground Zero (2026-11-05..07) were "X killed X" in the first minutes - a grenade into a wall or a door a few metres
+            // in front of the thrower comes back. Nobody throws at a place under 9 m away or with a wall within 4 m of him in that direction
+            if (TooCloseOrBlocked(bot, enemy))
+            {
+                HeldBlocked++;
+                return false;
+            }
+
             float now = Time.time;
             if (_primedUntil.TryGetValue(bot.ProfileId, out float primed) && now < primed)
             {
@@ -138,6 +148,28 @@ namespace LiveRaid.Client.Tactics
             }
 
             return true;
+        }
+
+        private static bool TooCloseOrBlocked(BotOwner bot, Enemy enemy)
+        {
+            var place = enemy?.KnownPlaces?.LastKnownPlace;
+            if (place == null)
+            {
+                return false;
+            }
+
+            Vector3 target = place.Position;
+            Vector3 eye = bot.Position + Vector3.up * 1.5f;
+            Vector3 flat = target - eye;
+            flat.y = 0f;
+            float dist = flat.magnitude;
+            if (dist < 9f)
+            {
+                return true;
+            }
+
+            // A wall straight ahead within 4 m: the grenade would hit it and drop at the thrower's feet
+            return Physics.Raycast(eye, flat / dist, 4f, LayersMaskController.HighPolyWithTerrainMask);
         }
 
         internal static void Threw(BotOwner bot)

@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
     <SptRoot>C:\Games\SPT</SptRoot>
-    <LiveRaidVersion>1.2.4</LiveRaidVersion>
+    <LiveRaidVersion>1.4.15</LiveRaidVersion>
     <!-- Branch of the mod: empty = stable (main), test = the test branch (experimental). It marks the DLLs ("0.10.0-test" product version),
          which LiveRaid Launcher reads to tell the branches apart, and sends the builds into the launcher's "Test" folders. -->
     <LiveRaidChannel></LiveRaidChannel>

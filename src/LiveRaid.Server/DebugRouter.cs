@@ -204,6 +204,8 @@ public class DebugRouter(JsonUtil jsonUtil, BotGenerator botGenerator, SaveServe
         // State of the PMC guns (bots.pmcWeaponCondition): durability in 5 % steps, and max durability
         SortedDictionary<string, int> gunState = new();
         SortedDictionary<string, int> gunMax = new();
+        // How many spare magazines a PMC carries in rig, pockets, backpack and secure container (raid 2026-11-08: h4rd111 had none after one fight)
+        SortedDictionary<string, int> magsPerBot = new();
 
         for (int i = 0; i < count; i++)
         {
@@ -228,6 +230,7 @@ public class DebugRouter(JsonUtil jsonUtil, BotGenerator botGenerator, SaveServe
                 continue;
             }
 
+            int botMags = 0;
             foreach (string slot in containers)
             {
                 Item holder = children.GetValueOrDefault(root.Id.ToString())?.FirstOrDefault(it => it.SlotId == slot);
@@ -256,6 +259,11 @@ public class DebugRouter(JsonUtil jsonUtil, BotGenerator botGenerator, SaveServe
                         kind = "kit: exit money";
                     }
                     int pieces = (int)Math.Max(1, it.Upd?.StackObjectsCount ?? 1);
+                    if (kind == "kit: magazine")
+                    {
+                        botMags++;
+                    }
+
                     kinds[slot][kind] = kinds[slot].GetValueOrDefault(kind) + pieces;
                     if (!kind.StartsWith("kit"))
                     {
@@ -264,6 +272,9 @@ public class DebugRouter(JsonUtil jsonUtil, BotGenerator botGenerator, SaveServe
                     }
                 }
             }
+
+            string mk = botMags.ToString("00");
+            magsPerBot[mk] = magsPerBot.GetValueOrDefault(mk) + 1;
         }
 
         return JsonSerializer.Serialize(new
@@ -277,6 +288,7 @@ public class DebugRouter(JsonUtil jsonUtil, BotGenerator botGenerator, SaveServe
             notKit = lootItems.OrderByDescending(kv => kv.Value).ToDictionary(kv => kv.Key, kv => kv.Value),
             gunDurability = gunState,
             gunMaxDurability = gunMax,
+            spareMagazinesPerBot = magsPerBot,
         }, LrJson.Options);
     }
 
@@ -337,6 +349,9 @@ public class DebugRouter(JsonUtil jsonUtil, BotGenerator botGenerator, SaveServe
                 itemCount = items.Count,
                 value = Math.Round(value),
                 bagValue = Math.Round(BagValue(items)),
+                body = bot.Customization?.Body.ToString(),
+                feet = bot.Customization?.Feet.ToString(),
+                hands = bot.Customization?.Hands.ToString(),
             });
         }
 

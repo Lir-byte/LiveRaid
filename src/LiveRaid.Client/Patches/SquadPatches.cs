@@ -190,6 +190,23 @@ namespace LiveRaid.Client.Patches
             return NavMesh.SamplePosition(want, out NavMeshHit hit, 1.5f, NavMesh.AllAreas) ? hit.position : boss.Position;
         }
 
+        /// <summary>
+        /// The formation breathes (F12 -> 8 "The formation breathes", 1.3.0): a loose squad keeps up to 1.55 times wider than the doctrine's slots, a "bunch" squad (high cohesion, like
+        /// SosiskaBoss'es "keep in a heap") keeps as before; the whole thing swells and shrinks by ~28 % on a 40-70 s wave of its own, and closes up (x0.7) when there is danger or a fight
+        /// ended less than 30 s ago - the followers spread out on calm ground and gather round the leader when something is wrong.
+        /// </summary>
+        private static float Breath(BotOwner boss, Tactics.DoctrineDeck.Squad doctrine)
+        {
+            float coh = doctrine != null ? doctrine.Values[Tactics.DoctrineDeck.Cohesion] : 0.5f;
+            float widen = Mathf.Lerp(1.55f, 1f, Mathf.Clamp01((coh - 0.3f) / 0.6f));
+            int seed = boss.ProfileId.GetHashCode();
+            float phase = (seed & 0xff) / 255f * 6.28f;
+            float period = 40f + ((seed >> 8) & 0x1f);
+            float wave = 1f + 0.28f * Mathf.Sin(Time.time / period * 6.28f + phase);
+            bool calm = Tactics.TacticalTasks.NoThreat(boss) && Bots.BotMind.SinceEngaged(boss) > 30f;
+            return widen * wave * (calm ? 1f : 0.7f);
+        }
+
         public static Vector3? SlotFor(BotOwner boss, BotOwner follower, SquadRole role, int index)
         {
             Vector3 forward = role == SquadRole.Overwatch ? SlowHeading(boss) : Heading(boss);
@@ -227,6 +244,8 @@ namespace LiveRaid.Client.Patches
                     case SquadRole.Pointman: offset = forward * 8f + right * 2f * side; break;
                     case SquadRole.Overwatch: offset = -forward * 20f + right * 6f * side; break;
                     case SquadRole.Rear: offset = -forward * 9f; break;
+                    case SquadRole.Flanker: offset = right * side * 15f - forward * 2f; break;
+                    case SquadRole.Scout: offset = forward * 22f + right * 3f * side; break;
                     default: offset = -forward * 4f + right * 6f * side; break;
                 }
 
@@ -250,9 +269,26 @@ namespace LiveRaid.Client.Patches
                             }
 
                             break;
+                        case Tactics.SquadShape.Column:
+                            offset = role == SquadRole.Overwatch ? offset : -forward * (6f * (index + 1)) + right * 1.6f * side;
+                            break;
+                        case Tactics.SquadShape.Echelon:
+                            offset = role == SquadRole.Overwatch ? offset : -forward * (4.5f * (index + 1)) + right * (5.5f * (index + 1)) * ((boss.ProfileId.GetHashCode() & 1) == 0 ? 1f : -1f);
+                            break;
+                        case Tactics.SquadShape.Diamond:
+                            offset = role == SquadRole.Overwatch ? offset
+                                : index == 0 ? right * 8f : index == 1 ? -right * 8f : index == 2 ? -forward * 11f : forward * 9f + right * 3f * side;
+                            break;
+                        case Tactics.SquadShape.Spread:
+                            offset = role == SquadRole.Overwatch ? offset : right * side * (9f * (index / 2 + 1)) - forward * (2f + 2f * (index % 3));
+                            break;
                     }
 
                     offset *= spacing;
+                    if (Settings.SquadBreathe.Value)
+                    {
+                        offset *= Breath(boss, doctrine);
+                    }
                 }
 
                 // Open ground (a field, a car park): a squad spreads out so one burst or grenade does not take two

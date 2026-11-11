@@ -96,4 +96,78 @@ namespace LiveRaid.Client.Patches
             return string.IsNullOrEmpty(ownGroupId) || ownGroupId != player.GroupId;
         }
     }
+
+    /// <summary>
+    /// Raiders and rogues (pmcBot, exUsec) and the scavs that play like players (player scavs, "chelobots") are enemies, as online: EFT keeps AI scavs and
+    /// raiders friendly, and a bot that plays a player scav is an AI scav to it. Raid 2026-11-11: Гепард (pmcBot, in its Warn layer) stood 14 m from Игорян Кассир
+    /// walking to the hermetic door and let him pass. Both ways: the raider takes the player scav for an enemy and the player scav takes the raider for one.
+    /// </summary>
+    public class RaiderPScavHostilityPatch : ModulePatch
+    {
+        private static readonly AccessTools.FieldRef<BotsGroup, BotOwner> InitialBot = AccessTools.FieldRefAccess<BotsGroup, BotOwner>("_initialBot");
+
+        public static int Flipped { get; private set; }
+
+        public static string Summary => $"raiders and player scavs made enemies of each other: {Flipped}";
+
+        public static void Clear() => Flipped = 0;
+
+        protected override MethodBase GetTargetMethod() =>
+            AccessTools.Method(typeof(BotsGroup), nameof(BotsGroup.IsPlayerEnemy));
+
+        private static bool IsRaider(BotOwner bot)
+        {
+            WildSpawnType role = bot.Profile.Info.Settings.Role;
+            return role == WildSpawnType.pmcBot || role == WildSpawnType.exUsec;
+        }
+
+        /// <summary>Gluhar and his three kinds of guard (Reserve): the ones EFT keeps friendly to AI scavs and "warns first" at bots.</summary>
+        private static bool IsGluharCrew(BotOwner bot)
+        {
+            WildSpawnType role = bot.Profile.Info.Settings.Role;
+            return role == WildSpawnType.bossGluhar || role == WildSpawnType.followerGluharAssault || role == WildSpawnType.followerGluharScout
+                   || role == WildSpawnType.followerGluharSecurity || role == WildSpawnType.followerGluharSnipe;
+        }
+
+        private static bool IsLiveBot(BotOwner bot)
+        {
+            Bots.BotKind kind = Bots.BotProfiles.KindOf(bot);
+            return kind == Bots.BotKind.Scav || kind == Bots.BotKind.PlayerScav || kind == Bots.BotKind.Pmc;
+        }
+
+        [PatchPostfix]
+        protected static void PatchPostfix(BotsGroup __instance, IPlayer player, ref bool __result)
+        {
+            if (__result || player == null || !player.IsAI || (!Settings.RaidersHostileToPScavs.Value && !Settings.GluharHostileToAll.Value))
+            {
+                return;
+            }
+
+            try
+            {
+                BotOwner own = InitialBot(__instance);
+                BotOwner other = player.AIData?.BotOwner;
+                if (own == null || other == null || own.ProfileId == other.ProfileId)
+                {
+                    return;
+                }
+
+                bool raiders = Settings.RaidersHostileToPScavs.Value;
+                bool raiderVsPScav = raiders && IsRaider(own) && Bots.BotProfiles.KindOf(other) == Bots.BotKind.PlayerScav;
+                bool pscavVsRaider = raiders && IsRaider(other) && Bots.BotProfiles.KindOf(own) == Bots.BotKind.PlayerScav;
+                // Gluhar and his guard against every AI scav, player scav and AI PMC, both ways: EFT keeps them friendly to AI scavs and makes them WARN the rest
+                // (the Warn layer: Шапка stood a minute 50 m from Meldonin; a guard shot a player scav only after the warning ran out)
+                bool gluhar = Settings.GluharHostileToAll.Value && ((IsGluharCrew(own) && IsLiveBot(other)) || (IsGluharCrew(other) && IsLiveBot(own)));
+                if (raiderVsPScav || pscavVsRaider || gluhar)
+                {
+                    __result = true;
+                    Flipped++;
+                }
+            }
+            catch (System.Exception e)
+            {
+                Diag.Report("RaiderPScavHostilityPatch", e);
+            }
+        }
+    }
 }

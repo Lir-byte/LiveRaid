@@ -231,6 +231,8 @@ namespace LiveRaid.Client
             ["Редко"] = "Rarely",
             ["Обычно"] = "Usual",
             ["Часто"] = "Often",
+            ["На виду"] = "In plain sight",
+            ["Почти всегда"] = "Almost always",
             ["Никогда"] = "Never",
             ["Быстро"] = "Fast",
             ["Долго"] = "Long",

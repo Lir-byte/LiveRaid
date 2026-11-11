@@ -45,9 +45,10 @@ namespace LiveRaid.Client.Bots
         public static int Calls { get; private set; }
         public static int Answered { get; private set; }
         public static int Refused { get; private set; }
+        public static int Wanderers { get; private set; }
 
         public static string Summary =>
-            $"scav patrols: {Areas} areas (radius {(_areas.Count > 0 ? _areas.Values.Average(a => a.Radius) : 0f):0} m on average, grown for lack of work {Grown}), " +
+            $"scav patrols: {Areas} areas ({Wanderers} wander the map; radius of the rest {(_areas.Values.Any(a => a.Radius < 1000f) ? _areas.Values.Where(a => a.Radius < 1000f).Average(a => a.Radius) : 0f):0} m on average, grown for lack of work {Grown}), " +
             $"objective checks refused as outside the area {Refused}, calls for help {Calls}, groups that came {Answered}";
 
         public static void Clear()
@@ -55,7 +56,7 @@ namespace LiveRaid.Client.Bots
             _areas.Clear();
             _calledAt.Clear();
             _next = 0f;
-            Grown = Calls = Answered = Refused = 0;
+            Grown = Calls = Answered = Refused = Wanderers = 0;
         }
 
         public static bool On => Settings.Enabled.Value && Settings.ScavPatrol.Value;
@@ -83,12 +84,28 @@ namespace LiveRaid.Client.Bots
                 }
 
                 Vector3 home = p.SpawnPos != Vector3.zero ? p.SpawnPos : bot.Position;
+
+                // 1.4.0: some scav groups wander (F12 -> 3 "Wandering scav groups, %"). Online most scavs keep to their yard, but now and then a pair walks half the
+                // map; with every group tied to 70-260 m the corners between the yards (and whatever lies under them) were left to a handful of PMCs
+                bool wanders = _rng.NextDouble() * 100.0 < Settings.ScavWanderers.Value;
+                if (wanders)
+                {
+                    Wanderers++;
+                    _areas[squad] = a = new Area { Home = home, Radius = 5000f, Grown = 99 };
+                    Log.Info($"LR Scav: {p.Name}'s group wanders the map (no area of its own)");
+                    return a;
+                }
+
                 _areas[squad] = a = new Area { Home = home, Radius = r };
                 Log.Info($"LR Scav: {p.Name}'s group patrols its area: {r:0} m round ({home.x:0}, {home.z:0})");
             }
 
             return a;
         }
+
+        /// <summary>The AI scav's group wanders the map (no patrol area of its own).</summary>
+        public static bool Wanders(BotOwner bot) =>
+            bot != null && _areas.TryGetValue(SquadTies.SquadOf(bot.ProfileId), out Area a) && a.Radius >= 1000f;
 
         public static bool Inside(Area a, Vector3 pos)
         {
@@ -259,8 +276,10 @@ namespace LiveRaid.Client.Bots
             for (int i = 0; i < 12; i++)
             {
                 float angle = (float)_rng.NextDouble() * Mathf.PI * 2f;
-                float r = (float)_rng.NextDouble() * a.Radius;
-                Vector3 want = a.Home + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * r;
+                // A wandering group has no area: its next spot lies within 160 m of where it is
+                bool wanders = a.Radius >= 1000f;
+                float r = (float)_rng.NextDouble() * (wanders ? 160f : a.Radius);
+                Vector3 want = (wanders ? bot.Position : a.Home) + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * r;
                 if (!NavMesh.SamplePosition(want, out NavMeshHit hit, 6f, NavMesh.AllAreas) || (hit.position - bot.Position).sqrMagnitude < 20f * 20f
                     || !NavMesh.CalculatePath(bot.Position, hit.position, NavMesh.AllAreas, path) || path.status != NavMeshPathStatus.PathComplete)
                 {

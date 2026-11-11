@@ -104,6 +104,7 @@ namespace LiveRaid.Client.Tactics
                 info = new BotWeaponInfo(bot, gun, held.Value, wm.ChangeToMode);
                 wm.info[held.Value] = info;
                 Rebuilt++;
+                Bottomless.Poke(bot);
                 Log.Detail("weapon", () => $"{bot.Profile?.Nickname}: EFT still had its {held.Value} down as {(was ?? "nothing")} - its {gun.ShortName?.Localized()} " +
                                            $"is known anew{(reloading ? " (the old reload is dropped)" : "")}");
             }

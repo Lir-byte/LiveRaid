@@ -292,6 +292,11 @@ namespace LiveRaid.Client.Patches
                 && MapIntel.Current.SpotsById.TryGetValue(qn.Substring(QuestFactory.LockedPrefix.Length), out LockedSpot locked))
             {
                 mult *= FoundKeys.Multiplier(____botOwner, locked.KeyId);
+                // Its own key, its own errand (KeyErrand): the carrier's door weighs more than the other quests
+                if (Bots.BotSetup.HasKeyFor(____botOwner, locked.KeyId))
+                {
+                    mult *= Bots.KeyErrand.Multiplier(____botOwner, locked);
+                }
             }
 
             // An airdrop: storm squads and greedy ones run for it, the quiet ones mostly let it be (the doctrine)
@@ -346,6 +351,17 @@ namespace LiveRaid.Client.Patches
             // Squads spread over the map: a quest other PMC squads hold right now is wanted less (QuestDrive)
             string qname = quest.GetName() ?? "";
             mult *= QuestDrive.SpreadMultiplier(____botOwner, qname, KeyPlaces.TryGet(qname, out _));
+
+            // Ground nobody has visited yet is wanted more, ground just visited less (CoverageLedger)
+            mult *= CoverageLedger.Multiplier(p, quest);
+            // The aims of the bot's raid (RaidAgenda) and the pull of the upper floors (VerticalLedger)
+            mult *= RaidAgenda.Multiplier(____botOwner, p, quest);
+            mult *= VerticalLedger.Multiplier(____botOwner, p, quest);
+            // What lies under the ground (Depths) and where people have just died (DangerMemory), each bot to its own character (1.4.0)
+            mult *= Depths.Multiplier(____botOwner, p, quest);
+            mult *= DangerMemory.Multiplier(____botOwner, p, quest);
+            // The packrat: the near and rich quests first (1.3.0)
+            mult *= PackratVacuum.Multiplier(____botOwner, p, quest);
             __result *= Math.Max(0.02f, mult);
         }
 
@@ -423,6 +439,94 @@ namespace LiveRaid.Client.Patches
             }
 
             return 1f;
+        }
+    }
+
+    /// <summary>
+    /// A bot on its way to a "stand and look round" step of a LiveRaid quest may take a break like on any other step (built in, a fix).
+    ///
+    /// The open-ground steps of the exploration, sweep, locked-room and Studio-path quests are HoldAtPosition steps (the bot stops and looks about for a few
+    /// seconds). QuestingBots' BotObjectiveManager.IsAllowedToTakeABreak answers "no" for that kind of step - not only during the hold, for the whole walk to
+    /// it - and without a break the bot may loot only inside the 7-second window of a forced scan (BotQuestingDecisionMonitor: "IsForcedToSearchForLoot",
+    /// everything else is behind allowedToTakeABreak). Raid 2026-11-10 11:43 (Customs): 144 "Looting -> BotObjectiveLayer (0.1 s) -> Looting" flips, every
+    /// one of a bot with an "LR Explore S.." sweep quest (they are nearly all open ground); each flip stopped LootingBots' job ("cut short from outside" after
+    /// 3-6 s). Радик Подзаборный lay down at its squadmate's body and got up again every 7 s for eight minutes; rooms were left after one thing. The same
+    /// "no" kept QuestingBots from noticing that such a bot wants to extract, from regrouping it with its squad and from waiting for a squad in a fight.
+    /// The hold itself is QuestingBots' action and is not touched: a bot standing at the spot that goes for a thing it sees comes back to the step after it.
+    /// </summary>
+    public class QbBreakOnTheWayPatch : ModulePatch
+    {
+        public static int Allowed { get; private set; }
+
+        public static void ClearCounters() => Allowed = 0;
+
+        public static string Summary => $"breaks (loot, squad, exit) allowed on the way to a stand-and-look step {Allowed} ticks";
+
+        protected override MethodBase GetTargetMethod() =>
+            AccessTools.Method(typeof(BotObjectiveManager), nameof(BotObjectiveManager.IsAllowedToTakeABreak));
+
+        [PatchPostfix]
+        protected static void PatchPostfix(BotObjectiveManager __instance, ref bool __result)
+        {
+            if (__result)
+            {
+                return;
+            }
+
+            try
+            {
+                if (!Settings.Enabled.Value || __instance.CurrentQuestAction != QuestAction.HoldAtPosition)
+                {
+                    return;
+                }
+
+                string name = __instance.CurrentAssignment?.QuestAssignment?.GetName();
+                if (name != null && name.StartsWith("LR "))
+                {
+                    __result = true;
+                    Allowed++;
+                }
+            }
+            catch (Exception e)
+            {
+                Diag.Report("QbBreakOnTheWayPatch", e);
+            }
+        }
+    }
+
+    /// <summary>
+    /// QuestingBots sends a bot that heard something to look ("Investigate"). The packrat keeps out of fights - raid 2026-11-10 17:22 (Reserve):
+    /// Chad_Thundercock walked to the shots in QuestingBots' investigation layer and was killed there ten seconds later. Built in, with the packrat itself.
+    /// </summary>
+    public class QbNoInvestigatePatch : ModulePatch
+    {
+        private static readonly FieldInfo OwnerField = AccessTools.Field(typeof(BotObjectiveManager), "botOwner");
+
+        protected override MethodBase GetTargetMethod() =>
+            AccessTools.Method(typeof(BotObjectiveManager), nameof(BotObjectiveManager.IsAllowedToInvestigate));
+
+        [PatchPostfix]
+        protected static void PatchPostfix(BotObjectiveManager __instance, ref bool __result)
+        {
+            if (!__result)
+            {
+                return;
+            }
+
+            try
+            {
+                BotOwner bot = OwnerField?.GetValue(__instance) as BotOwner;
+                BotProfile p = bot == null ? null : BotProfiles.Get(bot);
+                if (p != null && p.Packrat && Settings.Enabled.Value)
+                {
+                    __result = false;
+                    PackratVacuum.NoiseWalksRefused++;
+                }
+            }
+            catch (Exception e)
+            {
+                Diag.Report("QbNoInvestigatePatch", e);
+            }
         }
     }
 }

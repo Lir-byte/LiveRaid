@@ -93,6 +93,7 @@ namespace LiveRaid.Client.Bots
                 }
 
                 Found++;
+                SquadKeys.Found(bot, key, spots.First(x => x.StillLocked).Id);
                 LockedSpot near = spots.Where(s => s.StillLocked).OrderBy(s => (s.Object != null ? (s.Object.transform.position - bot.Position).sqrMagnitude : float.MaxValue)).First();
                 Log.Info($"LR Key: {p.Name} found the key to {near.Id}{(near.IsContainer ? " (a container)" : "")} in the raid - wants to see what is behind it");
             }

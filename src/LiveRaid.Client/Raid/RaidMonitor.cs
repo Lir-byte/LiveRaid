@@ -29,16 +29,20 @@ namespace LiveRaid.Client.Raid
             public float Since;
             public Vector3 LastSample;
             public float StuckReportedAt = -999f;
+            public float RescuedAt = -999f;
         }
 
         private const float StuckSeconds = 90f;
         private const float StuckMove = 1.5f;
+        private const float RescueSeconds = 200f;
+        private const float RescueWatchedSeconds = 420f;
         private static readonly Dictionary<string, Track> _tracks = new Dictionary<string, Track>();
         private static float _nextSample;
         private static float _nextHealth;
         private static int _stuckReports;
 
         public static int StuckReports => _stuckReports;
+        public static int Rescued { get; private set; }
 
         private static readonly HashSet<string> _zombies = new HashSet<string>();
 
@@ -46,9 +50,11 @@ namespace LiveRaid.Client.Raid
         {
             _zombies.Clear();
             _tracks.Clear();
+            _rescueHistory.Clear();
             _nextSample = 0;
             _nextHealth = Time.time + 60f;
             _stuckReports = 0;
+            Rescued = 0;
         }
 
         public static void Tick()
@@ -156,6 +162,120 @@ namespace LiveRaid.Client.Raid
                          $"({(target.HasValue ? Vector3.Distance(bot.Position, target.Value).ToString("0") : "?")} m)");
             }
 
+            // Side steps, pushes and back-offs (DoorAssistLayer, BackOffLayer) had their turn: raid 2026-11-06 00:01, Nikita_Pls stood at one point to the centimetre for
+            // 8+ minutes after a container search (every attempt "snagged ... steps aside", "backs off 7 m", "cannot get on" - the body did not move at all, not
+            // even turn). A last step, as a player would reset: put the bot on the navmesh a few metres on its way, out of sight of the camera / players
+            if (Settings.FreeShutIn.Value && now - track.Since >= RescueSeconds && now - track.RescuedAt > 120f && Rescue(bot, objectives, track, now))
+            {
+                track.RescuedAt = now;
+                track.Pos = bot.Position;
+                track.Since = now;
+            }
+
+            return true;
+        }
+
+        /// <summary>FrozenWatch: a bot that wants to move and has not moved for minutes in any layer (no quest goal): put it back on the navmesh, as above.</summary>
+        internal static bool RescueFrozen(BotOwner bot, float since, float now)
+        {
+            if (!Settings.FreeShutIn.Value)
+            {
+                return false;
+            }
+
+            // Toward the quest goal when it has one (a bot wedged in a doorway with a task) - else the farthest free spot
+            BotObjectiveManager om = bot.GetObjectiveManager();
+            return Rescue(bot, om != null && om.IsJobAssignmentActive && om.Position.HasValue ? om : null, new Track { Since = since, Pos = bot.Position }, now);
+        }
+
+        private static readonly Dictionary<string, (Vector3 at, int n, float t)> _rescueHistory = new Dictionary<string, (Vector3, int, float)>();
+
+        /// <summary>A bot wedged for minutes: put it on the navmesh 3-8 m away, toward its goal, unseen (after 7 minutes even seen).</summary>
+        private static bool Rescue(BotOwner bot, BotObjectiveManager objectives, Track track, float now)
+        {
+            Vector3 pos = bot.Position;
+            bool watched = ViewerSight.CanSee(pos + Vector3.up * 1.2f);
+            if (watched && now - track.Since < RescueWatchedSeconds)
+            {
+                return false;
+            }
+
+            Vector3? goal = objectives?.Position;
+            Vector3 best = Vector3.zero;
+            float bestScore = float.MaxValue;
+            // 1.2.8: the first rescue at a place puts the bot 3-8 m away (as before); if it is wedged again within 15 minutes and 30 m of that, 8-16 m, then 16-32 m
+            // (raid 2026-11-08 01:29: the 7 m step left a scav in the same door trap for another 11 minutes)
+            int again = 0;
+            if (_rescueHistory.TryGetValue(bot.ProfileId, out (Vector3 at, int n, float t) hist) && now - hist.t < 900f && (hist.at - pos).sqrMagnitude < 30f * 30f)
+            {
+                again = hist.n;
+            }
+
+            float[] radii = again == 0 ? new[] { 3f, 5f, 8f } : again == 1 ? new[] { 8f, 12f, 16f } : new[] { 16f, 24f, 32f };
+            float maxDy = again == 0 ? 2.5f : 4f;
+
+            // 1.3.4: wedged on a navmesh island (no full path to any bot of the open map): a step of 3-8 m on the same island frees nothing (raid 2026-11-10
+            // 11:43: Юра Вольфенштейн, Warehouse 17 - the first rescue moved him 6 m, he stood three more minutes). It looks wider and on other levels at once,
+            // and a spot that reaches the open map beats any that does not
+            bool island = ShutIn.OnIsland(bot, out List<Vector3> open);
+            if (island)
+            {
+                radii = new[] { 4f, 8f, 12f, 16f, 24f, 32f, 45f };
+                maxDy = 9f;
+            }
+            foreach (float r in radii)
+            {
+                for (int i = 0; i < 8; i++)
+                {
+                    Vector3 dir = Quaternion.Euler(0f, i * 45f, 0f) * Vector3.forward;
+                    if (!UnityEngine.AI.NavMesh.SamplePosition(pos + dir * r, out UnityEngine.AI.NavMeshHit hit, 2f, UnityEngine.AI.NavMesh.AllAreas)
+                        || Mathf.Abs(hit.position.y - pos.y) > maxDy || (hit.position - pos).sqrMagnitude < 2.5f * 2.5f
+                        || (!watched && ViewerSight.CanSee(hit.position + Vector3.up * 1.2f)))
+                    {
+                        continue;
+                    }
+
+                    // No goal (a bot wedged in a fight): the farthest of the free spots, to get clear of whatever pinches it
+                    float score = goal.HasValue ? (hit.position - goal.Value).sqrMagnitude : -r;
+                    if (goal.HasValue)
+                    {
+                        UnityEngine.AI.NavMeshPath path = new UnityEngine.AI.NavMeshPath();
+                        if (!UnityEngine.AI.NavMesh.CalculatePath(hit.position, goal.Value, UnityEngine.AI.NavMesh.AllAreas, path)
+                            || path.status != UnityEngine.AI.NavMeshPathStatus.PathComplete)
+                        {
+                            score += 1e8f;
+                        }
+                    }
+
+                    if (island)
+                    {
+                        // Nearest first among those that lead out; the others only if none does
+                        score = ShutIn.ReachesAny(hit.position, open) ? r : 1e9f - r;
+                    }
+
+                    if (score < bestScore)
+                    {
+                        bestScore = score;
+                        best = hit.position;
+                    }
+                }
+
+                if (island && bestScore < 1e8f)
+                {
+                    break;
+                }
+            }
+
+            if (bestScore == float.MaxValue)
+            {
+                return false;
+            }
+
+            RouteTraverseLayer.PlaceOnNavmesh(bot, best);
+            _rescueHistory[bot.ProfileId] = (best, again + 1, now);
+            Rescued++;
+            Log.Info($"LR Stuck: {bot.Profile.Nickname} wedged for {now - track.Since:0} s at {Fmt(pos)} - side steps, pushes and back-offs did not free it -> put on the navmesh at {Fmt(best)} " +
+                     $"({Vector3.Distance(pos, best):0.#} m on, rescue no. {again + 1} at this place{(watched ? ", even though it was in view after 7 minutes" : ", nobody watching")})");
             return true;
         }
 

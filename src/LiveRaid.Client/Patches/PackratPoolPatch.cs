@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using Comfort.Common;
 using EFT;
+using EFT.InventoryLogic;
 using HarmonyLib;
 using LiveRaid.Client.Bots;
 using SPT.Reflection.Patching;
@@ -29,20 +30,38 @@ namespace LiveRaid.Client.Patches
         private static int _groups;
         private static int _forceAt = -1;
         private static bool _planned;
+        // 1.2.8: why an armed raid gave no packrat (raid 2026-11-05 23:48: armed, nothing delivered, and the trace did not say why)
+        private static int _noTagged;
+        private static bool _blindForced;
 
         public static bool Active { get; internal set; }
         public static int Forced { get; private set; }
         public static int Given { get; private set; }
         public static int Kept { get; private set; }
 
-        public static string Summary => $"packrat pool: {(Packrat.Armed ? "armed" : "not armed")}, lone groups made for it {Forced}, given to a lone group {Given}, kept out of groups {Kept}";
+        public static string Summary => $"packrat pool: {(Packrat.Armed ? "armed" : "not armed")}, lone groups made for it {Forced}, given to a lone group {Given}, kept out of groups {Kept}, PMC groups planned {_groups}, the tagged profile was not in the pool {_noTagged} times, kits that got into a group and stayed plain members {Packrat.Leaked}";
 
         public static void Clear()
         {
             _groups = 0;
             _forceAt = -1;
             _planned = false;
+            _noTagged = 0;
+            _blindForced = false;
             Forced = Given = Kept = 0;
+        }
+
+        private static bool HasNoLongGun(Profile p)
+        {
+            try
+            {
+                Inventory inv = p?.Inventory;
+                return inv?.Equipment?.GetSlot(EquipmentSlot.FirstPrimaryWeapon)?.ContainedItem == null && inv?.Equipment?.GetSlot(EquipmentSlot.SecondPrimaryWeapon)?.ContainedItem == null;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
 
         private static bool IsPmc(WildSpawnType type) => type == WildSpawnType.pmcBEAR || type == WildSpawnType.pmcUSEC;
@@ -62,7 +81,8 @@ namespace LiveRaid.Client.Patches
             }
 
             int index = _groups++;
-            Packrat.Refresh(index == 0);
+            // Forced while the raid is armed and the packrat not yet given: every group asks anew (the 2-second rate limit let a tagged profile pass unseen)
+            Packrat.Refresh(index == 0 || (Packrat.Armed && Packrat.Assigned == null));
             if (!Packrat.Armed || Packrat.Assigned != null || _planned)
             {
                 return;
@@ -71,6 +91,19 @@ namespace LiveRaid.Client.Patches
             Profile tagged = Pool()?.FirstOrDefault(p => p != null && Packrat.IsTagged(p.Id));
             if (tagged?.Info?.Settings == null)
             {
+                _noTagged++;
+
+                // 1.3.0: the server tags the packrat's kit in the very request that brings the first profiles of a side to the client, so at the planning of the first group the
+                // tagged profile is NOT in the pool yet - and that request is usually a squad's, which the kit never goes to (raid 2026-11-09 20:16: armed at 100 %, two kits
+                // tagged, four groups planned, none lone, no packrat). So the first PMC group of an armed raid is made a group of ONE: its request brings the kit, a lone group takes it.
+                if (index == 0 && !_blindForced && bots > 1)
+                {
+                    _blindForced = true;
+                    Forced++;
+                    Log.Info($"LR Packrat: the first PMC group is made a group of one ({bots} planned) - the packrat's kit comes with its request");
+                    bots = 1;
+                }
+
                 return;
             }
 
@@ -121,7 +154,17 @@ namespace LiveRaid.Client.Patches
                 return;
             }
 
-            Packrat.Refresh();
+            // The server tags the profile in the very request that brings it to the client, and the client draws it a moment later: an answer of /who that is up to
+            // 2 seconds old does not have it yet. A profile with no rifle in an armed raid whose id is not known is looked up at once (1.2.8)
+            if (result != null && Packrat.Armed && Packrat.Assigned == null && !Packrat.IsTagged(result.Id) && HasNoLongGun(result))
+            {
+                Packrat.Refresh(true);
+            }
+            else
+            {
+                Packrat.Refresh();
+            }
+
             int size = Sizes.TryGetValue(data._profileData, out StrongBox<int> box) ? box.Value : -1;
             bool lone = size == 1;
             bool free = Packrat.Armed && Packrat.Assigned == null;

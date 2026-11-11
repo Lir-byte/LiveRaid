@@ -130,6 +130,7 @@ namespace LiveRaid.Client.Spectator
                 Bot = bot;
                 Current = target;
                 _starting = true;
+                SmoothieGuard.Engage("take-over of " + target.Profile.Nickname);
                 SpectatorSession.State = SpectatorState.TakenOver;
                 SpectatorCamera.Instance.StartCoroutine(Finish(game, bot, target));
                 return true;
@@ -216,6 +217,7 @@ namespace LiveRaid.Client.Spectator
 
                 if (FirstPerson)
                 {
+                    CullingGuard.MarkRebuild();
                     PlayerCameraController.Create(target);
                     RefreshHands(target);
                 }
@@ -293,6 +295,7 @@ namespace LiveRaid.Client.Spectator
                 Try(() => UnityEngine.Object.Destroy(_owner));
             }
 
+            CullingGuard.MarkRebuild();
             Try(() => PlayerCameraController.Destroy(player));
 
             // The taken bot's inventory screen (opened and then the bot died, or the controls were cut) leaves the texture streaming on its "icon" settings:

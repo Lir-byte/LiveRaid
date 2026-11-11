@@ -79,7 +79,9 @@ namespace LiveRaid.Client.Tactics
 
                 bool underFire = bot.Memory != null && (bot.Memory.IsUnderFire || Time.time - bot.Memory.UnderFireTime < 4f);
                 bool shooting = enemy.IsVisible && enemy.RealDistance < 120f && WorldEvents.ShotBy(bot.ProfileId, 3f);
-                if ((underFire && enemy.RealDistance < 160f) || shooting)
+                // 1.3.0: a squadmate who is badly hurt and has an enemy in view calls for help even when no bullet has flown by just now (the raid of 2026-11-09: squads helped little)
+                bool hurt = bot.HealthController != null && bot.HealthController.GetBodyPartHealth(EBodyPart.Common).Normalized < 0.5f && enemy.IsVisible && enemy.RealDistance < 160f;
+                if ((underFire && enemy.RealDistance < 160f) || shooting || hurt)
                 {
                     Alarm(bot, enemy.EnemyPlayer, enemy.EnemyPosition);
                 }
@@ -93,7 +95,7 @@ namespace LiveRaid.Client.Tactics
                 return;
             }
 
-            if (_lastAlarm.TryGetValue(victim.ProfileId, out float last) && Time.time - last < 12f)
+            if (_lastAlarm.TryGetValue(victim.ProfileId, out float last) && Time.time - last < 7f)
             {
                 return;
             }
@@ -134,7 +136,10 @@ namespace LiveRaid.Client.Tactics
                     continue;
                 }
 
-                if (dist < MinCallRange || HitReaction.InRealFight(mate, 5f)
+                // A mate in a fight of his own helps anyway when the victim is badly hurt and his own enemy is far (over 40 m): the squad does not let a man die at 20 m
+                bool victimHurt = victim.HealthController != null && victim.HealthController.GetBodyPartHealth(EBodyPart.Common).Normalized < 0.45f;
+                bool mateFarFight = HitReaction.InRealFight(mate, 5f) && !(victimHurt && SainBot.Of(mate)?.GoalEnemy != null && SainBot.Of(mate).GoalEnemy.RealDistance > 40f);
+                if (dist < MinCallRange || mateFarFight
                     || (_busyUntil.TryGetValue(mate.ProfileId, out float busy) && Time.time < busy))
                 {
                     continue;

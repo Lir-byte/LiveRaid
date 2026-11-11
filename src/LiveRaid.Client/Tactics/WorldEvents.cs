@@ -22,6 +22,10 @@ namespace LiveRaid.Client.Tactics
         public string VictimName;
         public string KillerId;
         public bool VictimHuman;
+
+        // The killer is one of LiveRaid's "Other" bots (the boss, his guards, raiders): a death like that is heard far and talked about (Caution)
+        public bool KillerIsOther;
+
         // A PMC (BEAR/USEC), not a scav: what a player sees at a glance from the kit
         public bool VictimPmc;
 
@@ -210,6 +214,7 @@ namespace LiveRaid.Client.Tactics
                 EquipmentId = victim.Equipment?.Id,
                 VictimRole = victim.Profile?.Info?.Settings?.Role ?? WildSpawnType.marksman,
                 VictimKind = Bots.BotProfiles.TryGet(victim.ProfileId, out Bots.BotProfile vp) ? vp.Kind : Bots.BotKind.Other,
+                KillerIsOther = killer != null && !killer.IsYourPlayer && killer.IsAI && killer.AIData?.BotOwner != null && Bots.BotProfiles.KindOf(killer.AIData.BotOwner) == Bots.BotKind.Other,
             };
             _kills[victim.ProfileId] = kill;
             Diag.Guard("OnKill: loot brain", () => LootBrain.OnKill(kill, killer as Player));
@@ -221,7 +226,7 @@ namespace LiveRaid.Client.Tactics
             Diag.Guard("OnKill: boss hunts", () => Bots.BossHunt.OnKill(kill));
             Diag.Guard("OnKill: squad comms", () => SquadComms.OnKilled(victim, killer));
             Diag.Guard("OnKill: moods", () => RaidMood.OnKill(killer as Player));
-            Log.Detail("kill", () => $"{killer?.Profile?.Nickname ?? "?"} killed {victim.Profile?.Nickname} ({part}) at {victim.Position}");
+            Log.Detail("kill", () => $"{killer?.Profile?.Nickname ?? "?"} killed {victim.Profile?.Nickname} ({part}, {damageInfo.DamageType}) at {victim.Position}");
         }
     }
 

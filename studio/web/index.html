@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LiveRaid Studio</title>
+<link rel="stylesheet" href="style.css">
+<script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
+</head>
+<body>
+<div id="app">
+  <header id="top">
+    <div class="logo">LiveRaid <b>Studio</b></div>
+    <select id="mapSel" title="Карта"></select>
+    <button class="btn small" id="btnMaps" title="Обновить список карт">⟳</button>
+    <div class="sep"></div>
+    <button class="btn" id="btnUndo" title="Отменить (Ctrl+Z)">↶</button>
+    <button class="btn" id="btnRedo" title="Вернуть (Ctrl+Y)">↷</button>
+    <div class="sep"></div>
+    <div class="seg" id="viewSeg"><button data-v="plan" class="on" title="Вид сверху (Tab — переключить)">План</button><button data-v="3d" title="Объёмный вид">3D</button></div>
+    <div class="grow"></div>
+    <span class="chip" id="saveChip"></span>
+    <button class="btn" id="btnSettings" title="Папка игры">Папка игры</button>
+    <button class="btn" id="btnHelp" title="Клавиши">?</button>
+    <button class="btn primary" id="btnExport" title="Записать правки в игру (Ctrl+S)">Выгрузить в игру</button>
+  </header>
+
+  <div id="main">
+    <nav id="tools"></nav>
+    <div id="viewwrap">
+      <canvas id="view"></canvas>
+      <div id="labels"></div>
+      <div id="floor"></div>
+      <div id="hint"></div>
+      <div id="empty"><div class="box"></div></div>
+      <div id="loading">Загружаю навмеш…</div>
+    </div>
+    <aside id="side">
+      <div id="tabs"></div>
+      <div id="pane"></div>
+    </aside>
+  </div>
+
+  <footer id="status">
+    <span id="stCursor">x — · y — · z —</span>
+    <span id="stMesh"></span>
+    <span class="grow"></span>
+    <span id="stInfo"></span>
+  </footer>
+</div>
+<div id="toast"></div>
+<div id="modal"><div class="card"></div></div>
+<script type="module" src="app.js"></script>
+</body>
+</html>

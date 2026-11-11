@@ -116,7 +116,9 @@ namespace LiveRaid.Client.Tactics
                 return;
             }
 
-            if (now - s.Since < 6f)
+            // A chamber with nothing in it behind a loaded magazine is never "thinking": 2 s, not 6
+            bool dryChamber = gun.HasChambers && gun.ChamberAmmoCount == 0 && (gun.GetCurrentMagazine()?.Count ?? 0) > 0;
+            if (now - s.Since < (dryChamber ? 2f : 6f))
             {
                 return;
             }

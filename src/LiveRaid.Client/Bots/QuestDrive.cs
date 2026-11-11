@@ -40,6 +40,8 @@ namespace LiveRaid.Client.Bots
             public string Quest;
             public float BestAway;      // closest the bot has been to the step
             public float BestAt;        // when it last got 20 m closer than before
+            public float PathAt;        // 1.2.8: when the walking distance to the step was last measured
+            public float PathAway = float.NaN;
         }
 
         private static readonly Dictionary<string, State> _states = new Dictionary<string, State>();
@@ -135,6 +137,12 @@ namespace LiveRaid.Client.Bots
 
         private static void StartDrive(BotOwner bot, State s, BotProfile p, float away, string quest, string why)
         {
+            // The packrat (vacuum) loots everything it passes: no "only on the way" drive (1.3.0)
+            if (PackratVacuum.On(p))
+            {
+                return;
+            }
+
             float greed = Mathf.Clamp(p.LootGreed, 0.3f, 1.6f);
             float length = Mathf.Clamp(away / 4.5f + 20f, 40f, 150f) * (1.35f - 0.35f * greed);
             s.DriveUntil = Time.time + length;
@@ -225,19 +233,24 @@ namespace LiveRaid.Client.Bots
 
             // Not getting any closer: a step 140 m away held 8 minutes while the leader and his follower waited for each other (raid 2026-11-01 16:11, "Regroup"
             // against "FollowBoss"). Fights, loot and a visit to a room are no reason; a bot with no way to the step is.
-            if (!float.IsNaN(away))
+            // 1.2.8: progress is the WALKING distance, not the straight line. The step of "Strelba po banochkam" (the Kord on the roof of the bank, the AGS on top of Capital
+            // Insight) lies 10 m above the floor the bot walks on and the stairs are on the other side of the building: the straight line to it grows while the bot goes
+            // round and up, and every one of 7 Questers of the raids of 2026-11-07 / 11-08 was "no closer than 24-166 m after 2.5 min" and dropped the step - none
+            // ever completed it. The rule stays for a bot that walks nowhere, but it measures what the bot has left to walk.
+            float progress = WalkingAway(bot, m, s, away, now);
+            if (!float.IsNaN(progress))
             {
-                if (away < s.BestAway - 20f || s.BestAway == float.MaxValue)
+                if (progress < s.BestAway - 20f || s.BestAway == float.MaxValue)
                 {
-                    s.BestAway = away;
+                    s.BestAway = progress;
                     s.BestAt = now;
                 }
-                else if (away > 30f && now - s.BestAt > 150f && BotMind.SinceEngaged(bot) > 20f && !RoomSweep.InVisit(bot) && !LootBusy(bot))
+                else if (progress > 30f && now - s.BestAt > Patience(s) && BotMind.SinceEngaged(bot) > 20f && !RoomSweep.InVisit(bot) && !LootBusy(bot))
                 {
                     NoProgress++;
                     s.BestAt = now;
                     s.GiveUpAt = float.MaxValue;
-                    Log.Info($"LR Quest: {p.Name} ({p.Kind}) is no closer than {s.BestAway:0} m to a step of \"{s.Quest}\" after 2.5 min ({away:0} m now, held {(now - s.HeldSince) / 60f:0.0} min) - drops it for another");
+                    Log.Info($"LR Quest: {p.Name} ({p.Kind}) is no closer than {s.BestAway:0} m (walking) to a step of \"{s.Quest}\" after {Patience(s) / 60f:0.#} min ({progress:0} m now, held {(now - s.HeldSince) / 60f:0.0} min) - drops it for another");
                     m.FailObjective();
                     return;
                 }
@@ -252,6 +265,55 @@ namespace LiveRaid.Client.Bots
                          $"{(float.IsNaN(away) ? "" : $" ({away:0} m from it)")} - drops it for another");
                 m.FailObjective();
             }
+        }
+
+        /// <summary>The distance the bot has left to WALK to its step (NavMesh path, measured every 5 s); the straight line plus twice the height when no path is found.</summary>
+        /// <summary>Seconds without getting closer before a step is dropped: 150, and 330 for the door of a key the bot carries (1.3.0: 7 such steps were dropped in the 1.2.9 raids).</summary>
+        private static float Patience(State s) => Settings.DoorOnTheWay.Value && s.Quest != null && s.Quest.StartsWith(Raid.QuestFactory.LockedPrefix) ? 330f : 150f;
+
+        private static float WalkingAway(BotOwner bot, BotObjectiveManager m, State s, float straight, float now)
+        {
+            if (float.IsNaN(straight))
+            {
+                return straight;
+            }
+
+            if (now < s.PathAt + 5f)
+            {
+                return float.IsNaN(s.PathAway) ? straight : s.PathAway;
+            }
+
+            s.PathAt = now;
+            s.PathAway = float.NaN;
+            Vector3? target = m.Position;
+            if (!target.HasValue)
+            {
+                return straight;
+            }
+
+            try
+            {
+                UnityEngine.AI.NavMeshPath path = new UnityEngine.AI.NavMeshPath();
+                if (UnityEngine.AI.NavMesh.CalculatePath(bot.Position, target.Value, UnityEngine.AI.NavMesh.AllAreas, path) && path.status == UnityEngine.AI.NavMeshPathStatus.PathComplete)
+                {
+                    float length = 0f;
+                    Vector3[] c = path.corners;
+                    for (int i = 1; i < c.Length; i++)
+                    {
+                        length += Vector3.Distance(c[i - 1], c[i]);
+                    }
+
+                    s.PathAway = length;
+                    return length;
+                }
+            }
+            catch (System.Exception)
+            {
+                // no path - the straight line below
+            }
+
+            s.PathAway = straight + 2f * Mathf.Abs(target.Value.y - bot.Position.y);
+            return s.PathAway;
         }
 
         private static bool LootBusy(BotOwner bot)

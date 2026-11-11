@@ -160,10 +160,12 @@ namespace LiveRaid.Client.Patches
 
             // Stay together: followers keep close to the leader (QuestingBots: 7-20 m while questing, 15-35 m in a fight, the leader waits only past 15 / 25 m)
             MaxFollowerDistanceConfig f = q.BotQuestingRequirements.MaxFollowerDistance;
-            Own("QB squad: follow range questing (m)", tight, () => f.TargetRangeQuesting, v => f.TargetRangeQuesting = v, new MinMaxConfig(4, 12), changed);
-            Own("QB squad: follow range in a fight (m)", tight, () => f.TargetRangeCombat, v => f.TargetRangeCombat = v, new MinMaxConfig(8, 22), changed);
-            Own("QB squad: leader waits past (m)", tight, () => f.Nearest, v => f.Nearest = v, 10f, changed);
-            Own("QB squad: leader regroups past (m)", tight, () => f.Furthest, v => f.Furthest = v, 18f, changed);
+            // 1.3.0: the collar was 4-12 m with a wait past 10 and a regroup past 18: the leader ran up, hit the limit, stopped and turned to the follower every few seconds.
+            // Now a loose one - 6-22 m moving, 10-35 m in a fight, the leader waits past 24 and gathers past 42 (and only after the debounce of QbFollowerWaitPatch)
+            Own("QB squad: follow range questing (m)", tight, () => f.TargetRangeQuesting, v => f.TargetRangeQuesting = v, new MinMaxConfig(6, 22), changed);
+            Own("QB squad: follow range in a fight (m)", tight, () => f.TargetRangeCombat, v => f.TargetRangeCombat = v, new MinMaxConfig(10, 35), changed);
+            Own("QB squad: leader waits past (m)", tight, () => f.Nearest, v => f.Nearest = v, 24f, changed);
+            Own("QB squad: leader regroups past (m)", tight, () => f.Furthest, v => f.Furthest = v, 42f, changed);
 
             // LootingBots' own limits (its F12/config values are only read, never edited on disk). "Maximum looting bots" 20: a forced scan (LiveRaid, QuestingBots) adds a bot to
             // the active cache past the limit, and LootingBots then switches the others off one by one - in the middle of looting (StopLooting) - so with 40+ bots on the map

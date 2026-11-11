@@ -5,6 +5,7 @@ using EFT.Achievements;
 using EFT.Prestige;
 using EFT.Quests;
 using HarmonyLib;
+using Koenigz.PerfectCulling.EFT;
 using LiveRaid.Client.Spectator;
 using SAIN.Components;
 using SPT.Reflection.Patching;
@@ -223,6 +224,100 @@ namespace LiveRaid.Client.Patches
 
             Log.Error("LR Spectator: the inventory of the taken-over bot could not be opened: " + __exception);
             return null;
+        }
+    }
+
+    /// <summary>
+    /// The shutdown of the level's occlusion sampler that goes away with a camera LiveRaid made EFT rebuild is skipped (see <see cref="CullingGuard"/>):
+    /// it would dispose the level-wide grids that only the level load makes.
+    /// </summary>
+    public class SamplerShutdownPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod() =>
+            AccessTools.Method(typeof(PerfectCullingCrossSceneSampler), nameof(PerfectCullingCrossSceneSampler.Shutdown));
+
+        [PatchPrefix]
+        protected static bool PatchPrefix(PerfectCullingCrossSceneSampler __instance)
+        {
+            try
+            {
+                if (CullingGuard.ShouldKeep(__instance))
+                {
+                    CullingGuard.Skipped(__instance);
+                    return false;
+                }
+            }
+            catch (Exception e)
+            {
+                Diag.Report("SamplerShutdownPatch", e);
+            }
+
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// A grenade in the hands of a taken-over bot: the animation played and no grenade flew. EFT's throw (BaseGrenadeHandsController.Throw) asks
+    /// "is this an AI bot in the Active state" - the taken bot is (it must stay Active so SAIN and the others still see it) - and then takes the throw
+    /// force and direction from the bot brain's BotGrenadeController.AIGreanageThrowData, which nobody fills for a body you play: an exception, caught in
+    /// the same method, and a silent return. Here the throw of a taken-over bot goes the way of your own character (force from the game's setting,
+    /// direction down the hand, strength and stamina of the body).
+    /// </summary>
+    public class TakenBotGrenadePatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod() =>
+            AccessTools.Method(typeof(Player.BaseGrenadeHandsController), nameof(Player.BaseGrenadeHandsController.Throw));
+
+        [PatchPrefix]
+        protected static bool PatchPrefix(Player.BaseGrenadeHandsController __instance, float timeSinceSafetyLevelRemoved, bool low)
+        {
+            try
+            {
+                Player player = __instance?._player;
+                if (player == null || TakeOver.Current == null || player != TakeOver.Current)
+                {
+                    return true;
+                }
+
+                if (player.HealthController == null || !player.HealthController.IsAlive)
+                {
+                    return false;
+                }
+
+                float lowHigh = low ? 0.66f : 1f + (float)player.Skills.StrengthBuffThrowDistanceInc;
+                float power = EFTHardSettings.Instance.GrenadeForce;
+                UnityEngine.Transform drop = __instance._dropTransform;
+                UnityEngine.Vector3 direction;
+                float stamina = 1f;
+                try
+                {
+                    stamina = player.Physical.HandsStamina.NormalValue;
+                }
+                catch
+                {
+                    // a bot body without hand stamina: a fresh hand
+                }
+
+                if (!player.Skills.ThrowingEliteBuff)
+                {
+                    UnityEngine.Vector3 shake = UnityEngine.Mathf.Clamp01(0.5f - stamina) * UnityEngine.Random.onUnitSphere;
+                    direction = (-drop.up * 5f + shake).normalized;
+                    lowHigh *= UnityEngine.Mathf.Lerp(0.4f, 1f, stamina + 0.5f);
+                }
+                else
+                {
+                    direction = -drop.up;
+                }
+
+                __instance.ThrowGrenadeInner(null, timeSinceSafetyLevelRemoved, lowHigh, direction, power, low, withVelocity: true);
+                Log.Detail("debug", $"LR Spectator: {player.Profile?.Nickname} throws a grenade as you (force {power * lowHigh:0.#})");
+                return false;
+            }
+            catch (Exception e)
+            {
+                Diag.Report("TakenBotGrenadePatch", e);
+                return true;
+            }
         }
     }
 }

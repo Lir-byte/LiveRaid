@@ -45,7 +45,7 @@ namespace LiveRaid.Client.Patches
                 Tactics.SquadBrain.Clear();
                 Formation.Clear();
                 Tactics.CombatSense.Clear();
-                PmcSameSideHostilityPatch.Clear();
+                PmcSameSideHostilityPatch.Clear();RaiderPScavHostilityPatch.Clear();
                 RegionMemory.Clear();
                 Tactics.GunfireResponse.Clear();
                 ContainerUnlockLayer.Clear();
@@ -75,6 +75,11 @@ namespace LiveRaid.Client.Patches
                 LootFacing.Clear();
                 Raid.QuestLedger.Clear();
                 QbRandomSpawnPointPatch.Clear();
+                if (!Settings.OnlineSpawns.Value)
+                {
+                    Log.Warn("LR Population: 'Online-like spawns' is OFF in F12 - squads start on the points furthest from everyone, one side of the map fills first and player scavs do not come to the fights. Turn it on (6. Spawns).");
+                }
+
                 LbCloseEnoughPatch.Accepted = 0;
                 LbCrouchWalkPatch.Clear();
                 Tactics.LootReach.Clear();
@@ -100,6 +105,9 @@ namespace LiveRaid.Client.Patches
                 Tactics.SafeReload.Clear();
                 Tactics.SidearmCare.Clear();
                 Raid.MapBalance.Clear();
+                Raid.CoverageLedger.Clear();
+                Bots.FollowerSweep.Clear();
+                Bots.PackratVacuum.Clear();
                 Tactics.HandsGuard.Clear();
                 Tactics.GunState.Clear();
                 Tactics.HealBreak.Clear();
@@ -134,10 +142,19 @@ namespace LiveRaid.Client.Patches
                 DoorManners.Clear();
                 RoomPeek.Clear();
                 Packrat.Clear();
+                ArenaFightFix.Apply();
                 PerfProbe.Clear();
                 ExitRules.Clear();
                 Load.Clear();
                 FoundKeys.Clear();
+                KeyErrand.Clear();
+                RaidAgenda.Clear();
+                Raid.VerticalLedger.Clear();
+                Raid.FreshSteps.Clear();
+                Raid.Depths.Clear();
+                Tactics.DangerMemory.Clear();Tactics.Caution.Clear();
+                Bots.BackpackExit.Clear();Bots.ExitCover.Clear();Bots.GluharFeud.Clear();
+                SquadKeys.Clear();
                 ExitArrival.Clear();
                 CarExits.Clear();
                 Tactics.ShedWeight.Clear();
@@ -162,6 +179,10 @@ namespace LiveRaid.Client.Patches
                 Tactics.MedsCheck.ClearCounters();
                 QbRecoveryYieldsToLootPatch.ClearCounters();
                 QbShortHoldPatch.ClearCounters();
+                QbFollowerWaitPatch.ClearCounters();
+                QbBreakOnTheWayPatch.ClearCounters();
+                Raid.QbEmptyQuestListPatch.ClearCounters();
+                Tactics.ReloadWorthPatch.ClearCounters();
                 Bots.ExtractPlanner.ClearDeferrals();
                 Tactics.LootRules.ClearCounters();
                 Tactics.LootJobs.Clear();
@@ -173,6 +194,8 @@ namespace LiveRaid.Client.Patches
                 SquadExtract.Clear();
                 RoamPlanner.Clear();
                 SwitchExtract.Clear();
+                Raid.LongPath.Clear();
+                Raid.AutoLinks.Clear();
                 QbDecisionPatch.Clear();
                 QbDecisionPatch.ClearHeal();
                 BotLeftRaidPatch.Clear();
@@ -216,6 +239,7 @@ namespace LiveRaid.Client.Patches
 
             // Before map intel goes: the last trail points are checked against the bots' map
             Diag.Guard("raid end: player trail", PlayerTrail.End);
+            Diag.Guard("raid end: atlas", Raid.CoverageLedger.EndRaid);
             Diag.Guard("raid end: map intel", MapIntel.EndRaid);
             Diag.Guard("raid end: routes", Routes.Remove);
 
@@ -257,6 +281,9 @@ namespace LiveRaid.Client.Patches
                 Tactics.SafeReload.Clear();
                 Tactics.SidearmCare.Clear();
                 Raid.MapBalance.Clear();
+                Raid.CoverageLedger.Clear();
+                Bots.FollowerSweep.Clear();
+                Bots.PackratVacuum.Clear();
                 Tactics.HandsGuard.Clear();
                 Tactics.GunState.Clear();
                 Tactics.HealBreak.Clear();
@@ -287,10 +314,19 @@ namespace LiveRaid.Client.Patches
                 DoorManners.Clear();
                 RoomPeek.Clear();
                 Packrat.Clear();
+                ArenaFightFix.Apply();
                 PerfProbe.Clear();
                 ExitRules.Clear();
                 Load.Clear();
                 FoundKeys.Clear();
+                KeyErrand.Clear();
+                RaidAgenda.Clear();
+                Raid.VerticalLedger.Clear();
+                Raid.FreshSteps.Clear();
+                Raid.Depths.Clear();
+                Tactics.DangerMemory.Clear();Tactics.Caution.Clear();
+                Bots.BackpackExit.Clear();Bots.ExitCover.Clear();Bots.GluharFeud.Clear();
+                SquadKeys.Clear();
                 ExitArrival.Clear();
                 CarExits.Clear();
                 Tactics.ShedWeight.Clear();
@@ -315,6 +351,10 @@ namespace LiveRaid.Client.Patches
                 Tactics.MedsCheck.ClearCounters();
                 QbRecoveryYieldsToLootPatch.ClearCounters();
                 QbShortHoldPatch.ClearCounters();
+                QbFollowerWaitPatch.ClearCounters();
+                QbBreakOnTheWayPatch.ClearCounters();
+                Raid.QbEmptyQuestListPatch.ClearCounters();
+                Tactics.ReloadWorthPatch.ClearCounters();
                 Bots.ExtractPlanner.ClearDeferrals();
                 Tactics.LootRules.ClearCounters();
                 Tactics.LootJobs.Clear();
@@ -331,7 +371,7 @@ namespace LiveRaid.Client.Patches
                 Tactics.BushSightPatch.Clear();
                 Tactics.EnemyLapse.Clear();
                 SainSquadDecisionPatch.Clear();
-                PmcSameSideHostilityPatch.Clear();
+                PmcSameSideHostilityPatch.Clear();RaiderPScavHostilityPatch.Clear();
                 RegionMemory.Clear();
                 Tactics.GunfireResponse.Clear();
                 ContainerUnlockLayer.Clear();
@@ -394,6 +434,7 @@ namespace LiveRaid.Client.Patches
             }
 
             Diag.Guard("quit: encounters", EncounterLog.End);
+            Diag.Guard("quit: atlas", Raid.CoverageLedger.EndRaid);
             Diag.QuitRaid(intel.LocationId);
         }
 
@@ -445,6 +486,16 @@ namespace LiveRaid.Client.Patches
             Diag.Tick("CarExits", CarExits.Tick);
             Diag.Tick("ShedWeight", Tactics.ShedWeight.Tick);
             Diag.Tick("MapBalance", Raid.MapBalance.Tick);
+            Diag.Tick("CoverageLedger", Raid.CoverageLedger.Tick);
+            Diag.Tick("FollowerSweep", Bots.FollowerSweep.Tick);
+            Diag.Tick("VerticalLedger", Raid.VerticalLedger.Tick);
+            Diag.Tick("RaidAgenda", RaidAgenda.Tick);
+            Diag.Tick("BackpackExit", Bots.BackpackExit.Tick);
+            Diag.Tick("GluharFeud", Bots.GluharFeud.Tick);
+            Diag.Tick("ExitCover", Bots.ExitCover.Tick);
+            Diag.Tick("Caution", Tactics.Caution.Tick);
+            Diag.Tick("AirdropEvent", Tactics.AirdropEvent.Tick);
+            Diag.Tick("SquadKeys", SquadKeys.Tick);
             Diag.Tick("SidearmCare", Tactics.SidearmCare.Tick);
             Diag.Tick("Overwatch", Overwatch.Tick);
             Diag.Tick("RaidMood", Tactics.RaidMood.Tick);
@@ -489,7 +540,6 @@ namespace LiveRaid.Client.Patches
             Diag.Tick("ReloadUnderFire", Tactics.ReloadUnderFire.Tick);
             Diag.Tick("Intercept", Tactics.Intercept.Tick);
             Diag.Tick("FrozenWatch", FrozenWatch.Tick);
-            Diag.Tick("Packrat", Packrat.Tick);
             Diag.Tick("SafeReload", Tactics.SafeReload.Tick);
             Diag.Tick("KeyPlaces", KeyPlaces.Tick);
             Diag.Tick("SquadExtract", SquadExtract.Tick);

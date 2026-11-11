@@ -34,7 +34,14 @@ namespace LiveRaid.Client.Bots
             public float Since;
             public float NextTry;
             public float MedsFlagSince = -1f;
+            public float NoWalkSince = -1f;
+            public Vector3 NoWalkAt;
             public float NextNote;
+            // 1.2.6: the same place for minutes whatever the bot is busy with (the "wants to move and does not" window above restarts with every task)
+            public Vector3 WedgeAt;
+            public float WedgeSince;
+            public int WedgeHits;
+            public float NextRescue;
         }
 
         private static readonly Dictionary<string, State> _states = new Dictionary<string, State>();
@@ -44,15 +51,17 @@ namespace LiveRaid.Client.Bots
         public static int Frozen { get; private set; }
         public static int Escaped { get; private set; }
         public static int CannotWalk { get; private set; }
+        public static int Wedged { get; private set; }
+        public static int IdleWedged { get; private set; }
 
         public static string Summary => $"frozen bots: walking given back after a cut-off treatment {Freed}, could not walk for another reason {CannotWalk}, " +
-                                        $"wanted to move and did not {Frozen} (led out of sight {Escaped})";
+                                        $"wanted to move and did not {Frozen} (led out of sight {Escaped}, put back on the navmesh after minutes in one place {Wedged}, of those with no enemy about {IdleWedged})";
 
         public static void Clear()
         {
             _states.Clear();
             _next = 0f;
-            Freed = Frozen = Escaped = CannotWalk = 0;
+            Freed = Frozen = Escaped = CannotWalk = Wedged = IdleWedged = 0;
         }
 
         public static void Tick()
@@ -114,6 +123,15 @@ namespace LiveRaid.Client.Bots
             // 1. Cannot walk
             if (!mc.CanWalk)
             {
+                // EFT's obstacle check (MovementContext.CanWalk -> ObstacleCollisionFacade.CanMove) says "no" for a moment all the time while a bot runs:
+                // raid 2026-11-10 11:43, 1824 of 10136 timeline samples had it, 1365 of them from bots that had just covered 5 m or more. Only a bot that
+                // stays where it is counts as one that cannot walk
+                if (s.NoWalkSince < 0f || (pos - s.NoWalkAt).sqrMagnitude > 0.5f * 0.5f)
+                {
+                    s.NoWalkSince = now;
+                    s.NoWalkAt = pos;
+                }
+
                 bool medsFlag = mc.PhysicalConditionContainsAny(EPhysicalCondition.UsingMeds | EPhysicalCondition.HealingLegs);
                 object hands = player.HandsController;
                 bool medsReal = bot.Medecine?.Using == true || hands is IMedsController || (hands != null && hands.GetType().Name.Contains("QuickUse"));
@@ -129,17 +147,53 @@ namespace LiveRaid.Client.Bots
                         s.MedsFlagSince = -1f;
                     }
                 }
-                else if (!medsFlag && now >= s.NextNote)
+                else if (!medsFlag && now >= s.NextNote && now - s.NoWalkSince >= 5f)
                 {
                     s.NextNote = now + 30f;
                     CannotWalk++;
                     Log.Info($"LR Frozen: {p.Name} cannot walk and no treatment is to blame (conditions {mc.PhysicalCondition}) - {Describe(bot, player, mc)}");
                 }
 
-                return;
+                if (medsFlag)
+                {
+                    // A treatment (or its stale flag, freed above): nothing else to look at until it is over
+                    return;
+                }
+
+                // Held by an obstacle: the watch below (the same place for minutes, a move that does not happen) is what gets such a bot out - it used to be
+                // skipped for exactly the bots pressed into a wall
+            }
+            else
+            {
+                s.MedsFlagSince = -1f;
+                s.NoWalkSince = -1f;
             }
 
-            s.MedsFlagSince = -1f;
+            if (s.WedgeSince <= 0f || (pos - s.WedgeAt).sqrMagnitude > 1.5f * 1.5f)
+            {
+                s.WedgeAt = pos;
+                s.WedgeSince = now;
+                s.WedgeHits = 0;
+            }
+
+            // 1.2.8: the same place for minutes with NO enemy about. Raid 2026-11-08 01:29 (Customs): the scav Fedor Tridemaks stood 16 minutes in front of
+            // the door of the dorms (an open leaf pressed into him, "stuck at door ... opens it" 90 times, PatrolAssault / Unstick / Back Off in turn) - the
+            // wedge count below only grew while a SAIN movement decision against a known enemy was running, and RaidMonitor's rescue only looked at the quest
+            // layer; the one rescue he got put him 7 m away in the same trap. Now any bot (not a boss / guard) that has not moved 1.5 m for 3 minutes and is not
+            // doing something that stands still by nature is put back on the navmesh, farther each time it happens at the same place
+            if (now - s.WedgeSince >= IdleWedgeSeconds && now >= s.NextRescue && !StillByNature(bot, player))
+            {
+                s.NextRescue = now + 60f;
+                if (Raid.RaidMonitor.RescueFrozen(bot, s.WedgeSince, now))
+                {
+                    Wedged++;
+                    IdleWedged++;
+                    s.WedgeAt = bot.Position;
+                    s.WedgeSince = now;
+                    s.WedgeHits = 0;
+                    return;
+                }
+            }
 
             // 2. Wants to move and does not
             if ((pos - s.At).sqrMagnitude > 1.2f * 1.2f)
@@ -175,6 +229,48 @@ namespace LiveRaid.Client.Bots
             {
                 Escaped++;
             }
+
+            // Raid 2026-11-07 18:57: Bratanoff stood at one point to the centimetre for 3+ minutes (SeekCover / Search / Assist in turn, no path, a door beside
+            // him) - the Rescue of RaidMonitor only looked at bots in the quest layer. Three such notes within 2 minutes at the same place: the last step
+            // of a player who is stuck - put back on the navmesh a few metres away, out of sight of the camera
+            s.WedgeHits++;
+            if (s.WedgeHits >= 3 && now - s.WedgeSince >= 120f && now >= s.NextRescue)
+            {
+                s.NextRescue = now + 120f;
+                if (Raid.RaidMonitor.RescueFrozen(bot, s.WedgeSince, now))
+                {
+                    Wedged++;
+                    s.WedgeAt = bot.Position;
+                    s.WedgeSince = now;
+                    s.WedgeHits = 0;
+                }
+            }
+        }
+
+        private const float IdleWedgeSeconds = 180f;
+
+        /// <summary>Standing in one place is what the bot is meant to do: a loot job, a treatment, a reload, a wait at the exit, a fight it can see, a task with time left.</summary>
+        private static bool StillByNature(BotOwner bot, Player player)
+        {
+            if (LootBrainBusy(player) || bot.Medecine?.Using == true || bot.WeaponManager?.Reload?.Reloading == true)
+            {
+                return true;
+            }
+
+            if (TacticalTasks.TryGet(bot, out TacticalTask task) && task.Until > Time.time)
+            {
+                return true;
+            }
+
+            string layer = Raid.RaidMonitor.SafeLayerName(bot);
+            if (layer.IndexOf("Exfil", System.StringComparison.OrdinalIgnoreCase) >= 0 || layer.IndexOf("Extract", System.StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return true;
+            }
+
+            BotComponent sain = SainBot.Of(bot);
+            SAIN.SAINComponent.Classes.EnemyClasses.Enemy e = sain?.GoalEnemy;
+            return e != null && (e.IsVisible || e.RealDistance < 60f);
         }
 
         private static bool LootBrainBusy(Player player)

@@ -49,6 +49,8 @@ namespace LiveRaid.Client.Tactics
 
         private static readonly FieldInfo PlayerField = AccessTools.Field(typeof(LootingTransactionController), "_player");
         private static readonly Dictionary<string, float> _scoutNext = new Dictionary<string, float>();
+        // 1.2.8: how many times a bot has gone to look at one rich body with a full bag without taking anything (bot id + body id -> tries, and when it may try again)
+        private static readonly Dictionary<string, (int tries, float until)> _scoutBody = new Dictionary<string, (int, float)>();
         private static float _next;
 
         // A call to the original TryPickupItemAsync made from here: let it through
@@ -60,6 +62,7 @@ namespace LiveRaid.Client.Tactics
         public static void Clear()
         {
             _scoutNext.Clear();
+            _scoutBody.Clear();
             _refusals.Clear();
             _refusedLogged.Clear();
             _next = 0f;
@@ -353,6 +356,18 @@ namespace LiveRaid.Client.Tactics
                     _scoutNext[bot.ProfileId] = Time.time + 30f;
                     continue;
                 }
+
+                // Raid 2026-11-07 23:32 (Ground Zero, top floor of Capital Insight): a scav with a full bag "went to look" at the same ~121k body 29 m away every minute,
+                // QuestingBots' quest steps took the brain back after seconds each time and it never got there - the walk to and fro the user saw. Two tries per body, then 5 minutes off
+                string scoutKey = bot.ProfileId + rich.VictimId;
+                _scoutBody.TryGetValue(scoutKey, out (int tries, float until) seen);
+                if (seen.tries >= 2 && Time.time < seen.until)
+                {
+                    _scoutNext[bot.ProfileId] = Time.time + 60f;
+                    continue;
+                }
+
+                _scoutBody[scoutKey] = (seen.tries >= 2 ? 1 : seen.tries + 1, Time.time + 300f);
 
                 _scoutNext[bot.ProfileId] = Time.time + 60f;
 

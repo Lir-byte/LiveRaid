@@ -66,6 +66,41 @@ public class LiveRaidServer(
             LrState.Catalog = catalog;
             ApplyBotTweaks(catalog);
 
+            // Guns of content mods into the bots' pools - before the gear archetypes shape the pools
+            if (LrState.Config.Bots.ModWeapons != null)
+            {
+                try
+                {
+                    // Set up always (the F12 switch of the client can turn the guns on later); applied now when the config says so
+                    ModWeapons.Init(templateTable, globalTable, botTable, catalog, LrState.Config.Bots.ModWeapons, Path.GetDirectoryName(LrState.ModPath.TrimEnd('\\', '/')) ?? "");
+                    if (LrState.Config.Bots.ModWeapons.Enabled)
+                    {
+                        ModWeapons.Apply();
+                    }
+                }
+                catch (Exception e)
+                {
+                    LrState.Error("mod weapons failed (the bots keep SPT's guns)", e);
+                }
+            }
+
+            // Clothing of content mods on the PMC bots: set up always (the client's F12 can switch it), applied now when the config says so
+            if (LrState.Config.Bots.ModClothes != null)
+            {
+                try
+                {
+                    ModClothes.Init(templateTable, globalTable, botTable, LrState.Config.Bots.ModClothes, Path.GetDirectoryName(LrState.ModPath.TrimEnd('\\', '/')) ?? "");
+                    if (LrState.Config.Bots.ModClothes.Enabled)
+                    {
+                        ModClothes.Apply();
+                    }
+                }
+                catch (Exception e)
+                {
+                    LrState.Error("mod clothes failed (the bots keep SPT's looks)", e);
+                }
+            }
+
             if (LrState.Config.Gear.Enabled)
             {
                 ArchetypeFile archetypes = LrJson.Load<ArchetypeFile>(Path.Combine(dataDir, "archetypes.json"));
@@ -123,12 +158,19 @@ public class LiveRaidServer(
                 EnablePatch<SpareAmmoPatch>();
             }
 
+            // Every PMC goes in with spare magazines for its main gun (1.2.8)
+            if (LrState.Config.Bots.PmcSpareMagazines)
+            {
+                EnablePatch<SpareMagazinePatch>();
+            }
+
             // PMC guns worn as online (most at 65-80 %, a new one now and then)
             WeaponConditionConfig wc = LrState.Config.Bots.PmcWeaponCondition;
-            if (wc != null && wc.Enabled)
+            if (wc != null)
             {
+                // Always in place: the F12 switch of the client may turn it on (the patch itself checks); the config's values are the start ones
                 EnablePatch<WeaponConditionPatch>();
-                LrState.Info($"PMC weapon condition: {wc.PristineChance:P0} brand new, the rest " +
+                LrState.Info($"PMC weapon condition ({(wc.Enabled ? "on" : "off")} in the config, F12 of the client overrides): {wc.PristineChance:P0} brand new, the rest " +
                              string.Join(", ", wc.Bands.Select(b => $"{b.Min:0}-{b.Max:0} % (weight {b.Weight:0})")));
             }
 

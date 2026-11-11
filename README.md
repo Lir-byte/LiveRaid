@@ -119,6 +119,7 @@ SPT **4.1.6** (EFT 0.16.9) and these mods (the versions LiveRaid is built and te
 | LootingBots | 1.8.0 | looting |
 | BigBrain | 1.5.0 | AI layers (needed by the three above) |
 | Waypoints | 1.9.0 | bot navigation |
+| Smoothie *(recommended)* | 1.1.0 | renders only what you see: a big performance gain, no downside for LiveRaid (by morphox) |
 | Project Fika + QuestingBots Fika sync | 2.4.x | **LiveRaid Online** only |
 
 Not compatible with **ORBIT** (remove it). Install guide: [INSTALL.md](INSTALL.md).
@@ -138,7 +139,7 @@ Say what you did, which map and which minute, and attach `BepInEx/LogOutput.log`
 
 ## Credits and licence
 
-By **Lir**. Licensed under [Creative Commons Attribution-NonCommercial-ShareAlike 4.0](LICENSE): share and adapt with credit, not for commerce, adaptations under the same licence. LiveRaid does not contain code of the mods it extends; see [NOTICE.md](NOTICE.md). Thanks to the authors of QuestingBots (DanW), SAIN (Solarint), LootingBots (Skwizzy), BigBrain and Waypoints (DrakiaXYZ), the SPT and Fika teams.
+By **Lir**. Licensed under [Creative Commons Attribution-NonCommercial-ShareAlike 4.0](LICENSE): share and adapt with credit, not for commerce, adaptations under the same licence. LiveRaid does not contain code of the mods it extends; see [NOTICE.md](NOTICE.md). Thanks to the authors of QuestingBots (DanW), SAIN (Solarint), LootingBots (Skwizzy), BigBrain and Waypoints (DrakiaXYZ), Smoothie (morphox - the performance mod LiveRaid is best played with), the SPT and Fika teams.
 
 ---
 
@@ -247,7 +248,7 @@ SAIN хорошо воюет от секунды к секунде, но сам 
 
 ## Требования
 
-SPT **4.1.6** (EFT 0.16.9) и моды (версии, под которые собран и проверен LiveRaid): QuestingBots 1.2.0, SAIN 4.5.1, LootingBots 1.8.0, BigBrain 1.5.0, Waypoints 1.9.0; для **LiveRaid Online** ещё Project Fika 2.4.x и QuestingBots Fika sync. С **ORBIT** не совместим (удалите). Установка - [INSTALL.md](INSTALL.md).
+SPT **4.1.6** (EFT 0.16.9) и моды (версии, под которые собран и проверен LiveRaid): QuestingBots 1.2.0, SAIN 4.5.1, LootingBots 1.8.0, BigBrain 1.5.0, Waypoints 1.9.0; для **LiveRaid Online** ещё Project Fika 2.4.x и QuestingBots Fika sync. **Очень рекомендуется Smoothie 1.1.0** (автор morphox): рисует только то, что вы видите, - заметный прирост производительности без ущерба для LiveRaid. С **ORBIT** не совместим (удалите). Установка - [INSTALL.md](INSTALL.md).
 
 Сборка и устройство мода - выше и в [PROJECT_STATE.md](PROJECT_STATE.md).
 
@@ -257,4 +258,4 @@ SPT **4.1.6** (EFT 0.16.9) и моды (версии, под которые со
 
 ## Автор и лицензия
 
-Автор - **Lir**. Лицензия [CC BY-NC-SA 4.0](LICENSE): можно делиться и изменять с указанием автора, не для коммерции, производные работы - на тех же условиях. Кода модов, которые LiveRaid расширяет, в нём нет ([NOTICE.md](NOTICE.md)). Спасибо авторам QuestingBots (DanW), SAIN (Solarint), LootingBots (Skwizzy), BigBrain и Waypoints (DrakiaXYZ), командам SPT и Fika.
+Автор - **Lir**. Лицензия [CC BY-NC-SA 4.0](LICENSE): можно делиться и изменять с указанием автора, не для коммерции, производные работы - на тех же условиях. Кода модов, которые LiveRaid расширяет, в нём нет ([NOTICE.md](NOTICE.md)). Спасибо авторам QuestingBots (DanW), SAIN (Solarint), LootingBots (Skwizzy), BigBrain и Waypoints (DrakiaXYZ), Smoothie (morphox - мод производительности, с которым LiveRaid играется лучше всего), командам SPT и Fika.

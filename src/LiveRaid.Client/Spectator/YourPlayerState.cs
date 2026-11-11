@@ -234,7 +234,15 @@ namespace LiveRaid.Client.Spectator
             {
                 PerfectCullingCrossSceneSampler sampler = PerfectCullingCrossSceneSampler.Instance;
                 Camera cam = CameraManager.Exist ? CameraManager.Instance.Camera : null;
-                if (sampler == null || cam == null)
+                if (sampler == null)
+                {
+                    // The sampler went away with the old camera (CullingGuard kept its grids): the current camera gets one
+                    CullingGuard.Revive(cam);
+                    return;
+                }
+
+                CullingGuard.Alive();
+                if (cam == null)
                 {
                     return;
                 }
@@ -341,7 +349,7 @@ namespace LiveRaid.Client.Spectator
                          $"graphics: VRAM {SystemInfo.graphicsMemorySize} MB, texture limit {QualitySettings.globalTextureMipmapLimit}, " +
                          $"lod bias {QualitySettings.lodBias:0.##}, max lod {QualitySettings.maximumLODLevel}, " +
                          $"camera fov {(Camera.main != null ? Camera.main.fieldOfView : 0f):0} far {(Camera.main != null ? Camera.main.farClipPlane : 0f):0} " +
-                         $"at {(Camera.main != null ? Camera.main.transform.position.ToString("F0") : "-")}; {CullingCameraText()}");
+                         $"at {(Camera.main != null ? Camera.main.transform.position.ToString("F0") : "-")}; {CullingCameraText()}; {SmoothieGuard.Text()}");
             }
             catch (Exception e)
             {

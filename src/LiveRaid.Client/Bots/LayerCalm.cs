@@ -26,23 +26,27 @@ namespace LiveRaid.Client.Bots
         private static readonly Dictionary<string, State> _states = new Dictionary<string, State>();
 
         public static int Held { get; private set; }
+        public static int HeldLoot { get; private set; }
 
-        public static string Summary => $"idle-layer flips of QuestingBots not passed on {Held}";
+        public static string Summary => $"layer flips not passed on: QuestingBots' idle layer {Held}, LootingBots' loot layer {HeldLoot}";
 
         public static void Clear()
         {
             _states.Clear();
-            Held = 0;
+            Held = HeldLoot = 0;
         }
 
-        internal static void Calm(CustomLayer layer, ref bool result)
+        internal static void Calm(CustomLayer layer, ref bool result) => Calm(layer, ref result, 1f, "idle");
+
+        /// <summary>The one arbiter of the flicker: an answer of a layer that flips again within <paramref name="hold"/> seconds of its last flip is not passed on.</summary>
+        internal static void Calm(CustomLayer layer, ref bool result, float hold, string tag)
         {
             if (!Settings.LayerCalm.Value || layer?.BotOwner == null)
             {
                 return;
             }
 
-            string id = layer.BotOwner.ProfileId;
+            string id = layer.BotOwner.ProfileId + "|" + tag;
             if (!_states.TryGetValue(id, out State s))
             {
                 _states[id] = new State { Last = result, ChangedAt = Time.time };
@@ -54,15 +58,48 @@ namespace LiveRaid.Client.Bots
                 return;
             }
 
-            if (Time.time - s.ChangedAt < 1f)
+            // Never while the bot is in a real fight or treating itself: those answers must go through at once
+            if (Time.time - s.ChangedAt < hold && !Tactics.HitReaction.InRealFight(layer.BotOwner, 15f) && layer.BotOwner.Medecine?.Using != true && layer.BotOwner.Medecine?.FirstAid?.Have2Do != true)
             {
                 result = s.Last;
-                Held++;
+                if (tag == "loot")
+                {
+                    HeldLoot++;
+                }
+                else
+                {
+                    Held++;
+                }
+
                 return;
             }
 
             s.Last = result;
             s.ChangedAt = Time.time;
+        }
+    }
+
+    /// <summary>
+    /// LootingBots' layer ("Looting") answers "active" while it scans or loots and "inactive" in between: raids 2026-11-07/08 counted "Looting <-> PatrolAssault" 100-140 times
+    /// a raid (and "Looting <-> BotObjectiveLayer" in dozens) - the bot walked, stopped, walked. Its Peaceful action is what runs in a gap, so a flip held back for a
+    /// second (1.5 s) costs nothing, and one sentence of the arbiter covers it as it covers QuestingBots' idle layer.
+    /// </summary>
+    public class LbLootingLayerCalmPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod() =>
+            AccessTools.Method(AccessTools.TypeByName("LootingBots.LootingLayer"), "IsActive");
+
+        [PatchPostfix]
+        protected static void PatchPostfix(CustomLayer __instance, ref bool __result)
+        {
+            try
+            {
+                LayerCalm.Calm(__instance, ref __result, 1.5f, "loot");
+            }
+            catch (System.Exception e)
+            {
+                Diag.Report("LbLootingLayerCalmPatch", e);
+            }
         }
     }
 

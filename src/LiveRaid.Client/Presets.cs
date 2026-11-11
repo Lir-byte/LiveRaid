@@ -41,20 +41,23 @@ namespace LiveRaid.Client
                 recommended.Add((e, e.DefaultValue));
             }
 
-            Table.Add((PresetChoice.FixesOnly, packs.Select(p => ((ConfigEntryBase)p, (object)(p == heal || p == fixes ? SettingsMenu.PackState.On : SettingsMenu.PackState.Off))).ToList()));
+            // Shortcuts learned from the player's trail are on in every preset, "Fixes only" included (1.3.0)
+            List<(ConfigEntryBase, object)> fixesOnly = packs.Select(p => ((ConfigEntryBase)p, (object)(p == heal || p == fixes ? SettingsMenu.PackState.On : SettingsMenu.PackState.Off))).ToList();
+            fixesOnly.Add((Settings.UseLearnedShortcuts, true));
+            Table.Add((PresetChoice.FixesOnly, fixesOnly));
             Table.Add((PresetChoice.LightPc, new List<(ConfigEntryBase, object)>
             {
                 (Settings.SimplifyDistantBots, true), (Settings.QbSleeping, true), (Settings.FarBotsFullSenses, false),
                 (Settings.PopulationDensity, 75), (Settings.PopulationStrength, 100), (Settings.CrowdCap, 6), (Settings.BiggerLobby, false),
-                (Settings.CoverageLog, false), (Settings.EncounterLog, false), (Settings.LogNetwork, false),
+                (Settings.CoverageLog, false), (Settings.EncounterLog, false), (Settings.LogNetwork, false), (Settings.UseLearnedShortcuts, true),
             }));
             Table.Add((PresetChoice.Quiet, new List<(ConfigEntryBase, object)>
             {
-                (Settings.PopulationDensity, 70), (Settings.PopulationStrength, 100), (Settings.BiggerLobby, false), (Settings.PmcReserve, 1), (Settings.CrowdCap, 5),
+                (Settings.PopulationDensity, 70), (Settings.PopulationStrength, 100), (Settings.BiggerLobby, false), (Settings.PmcReserve, 1), (Settings.CrowdCap, 5), (Settings.UseLearnedShortcuts, true),
             }));
             Table.Add((PresetChoice.Busy, new List<(ConfigEntryBase, object)>
             {
-                (Settings.PopulationDensity, 130), (Settings.BiggerLobby, true), (Settings.BiggerLobbyCount, 7), (Settings.PmcReserve, 5), (Settings.CrowdCap, 10),
+                (Settings.PopulationDensity, 130), (Settings.BiggerLobby, true), (Settings.BiggerLobbyCount, 7), (Settings.PmcReserve, 5), (Settings.CrowdCap, 10), (Settings.UseLearnedShortcuts, true),
             }));
             Table.Add((PresetChoice.Recommended, recommended));
 
@@ -73,7 +76,7 @@ namespace LiveRaid.Client
         {
             Settings.PopulationBalance, Settings.PopulationDensity, Settings.PopulationStrength, Settings.CrowdCap, Settings.BiggerLobby, Settings.BiggerLobbyCount,
             Settings.PmcReserve, Settings.LivelyMap, Settings.PScavReplace, Settings.SimplifyDistantBots, Settings.QbSleeping, Settings.FarBotsFullSenses,
-            Settings.CoverageLog, Settings.EncounterLog, Settings.LogNetwork,
+            Settings.CoverageLog, Settings.EncounterLog, Settings.LogNetwork, Settings.UseLearnedShortcuts,
         };
 
         private static void OnChosen()

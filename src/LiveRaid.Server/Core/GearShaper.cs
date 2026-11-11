@@ -165,6 +165,13 @@ public class GearShaper
         if (arch.Holster != null)
         {
             SetChance(chances, "Holster", arch.Holster.Chance);
+            if (equipment.TryGetValue(EquipmentSlots.Holster, out var holsterPool) && holsterPool.Count > 1)
+            {
+                // 1.4.14: the sawn-off MP-43 (Обрез) is a double barrel: a bot's reload never starts for it (raids 2026-11-11 18:13 and 21:42, the packrat stood with an empty
+                // Обрез for minutes: "its empty Обрез is not reloaded", "its reload had hung") - not a holster weapon for bots
+                holsterPool.Remove(new MongoId("64748cb8de82c85eaf0a273a"));
+            }
+
             if (arch.Holster.Price != null && equipment.TryGetValue(EquipmentSlots.Holster, out var holsters))
             {
                 ShapeByPrice(holsters, arch.Holster.Price, ctx.BandShift, arch.Variance);

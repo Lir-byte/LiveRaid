@@ -49,6 +49,7 @@ namespace LiveRaid.Client.Bots
         public static void Clear()
         {
             _states.Clear();
+            _healSince.Clear();
             _next = 0f;
             Nudges = Moves = PatrolWalks = 0;
         }

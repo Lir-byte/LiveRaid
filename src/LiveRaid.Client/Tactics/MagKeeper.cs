@@ -35,6 +35,11 @@ namespace LiveRaid.Client.Tactics
     {
         private static readonly Dictionary<string, float> _next = new Dictionary<string, float>();
         private static readonly List<Magazine> _mags = new List<Magazine>();
+        // 1.2.6: the same magazine is not carried to the rig / filled again and again (raid 2026-11-07: one 8-round magazine "taken out of the bag" 7 times,
+        // and EFT refused a refill with "hands controller can't perform this operation" while the hands were busy). Id of the magazine -> when it may be tried again
+        private static readonly Dictionary<string, float> _carryAgain = new Dictionary<string, float>();
+        private static readonly Dictionary<string, (string mag, int tries, float at)> _fillTries = new Dictionary<string, (string, int, float)>();
+        public static int Backoffs { get; private set; }
         private static float _tick;
 
         public static int KeptInBag { get; private set; }
@@ -46,13 +51,15 @@ namespace LiveRaid.Client.Tactics
 
         public static string Summary =>
             $"magazines: emptied ones kept in the bag / secure container {KeptInBag} (thrown away, nowhere to put {Dropped}), brought from out of reach into the rig {BroughtToRig}, " +
-            $"filled from loose rounds {Filled}, picked up from the ground {PickedUp}, bots with no magazine for their gun at all {NoMagazine}";
+            $"filled from loose rounds {Filled}, picked up from the ground {PickedUp}, bots with no magazine for their gun at all {NoMagazine}, repeats of one magazine held back {Backoffs}";
 
         public static void Clear()
         {
             _next.Clear();
+            _carryAgain.Clear();
+            _fillTries.Clear();
             _tick = 0f;
-            KeptInBag = Dropped = BroughtToRig = Filled = PickedUp = NoMagazine = 0;
+            KeptInBag = Dropped = BroughtToRig = Filled = PickedUp = NoMagazine = Backoffs = 0;
         }
 
         private static string Name(BotOwner bot) => bot?.Profile?.Nickname ?? "?";
@@ -238,7 +245,8 @@ namespace LiveRaid.Client.Tactics
             }
 
             // 1. A magazine out of reach (loaded, or empty while there are rounds to fill it) into the rig / pockets
-            if (outOfReach != null && (outOfReach.Count > 0 || reachEmpty == null))
+            if (outOfReach != null && (outOfReach.Count > 0 || reachEmpty == null)
+                && !(_carryAgain.TryGetValue(outOfReach.Id.ToString(), out float carryAt) && now < carryAt && ++Backoffs > 0))
             {
                 GridItemAddress to = FreeSpot(eq, outOfReach, EquipmentSlot.TacticalVest, EquipmentSlot.Pockets);
                 if (to != null)
@@ -249,6 +257,7 @@ namespace LiveRaid.Client.Tactics
                     if (!move.Failed)
                     {
                         ic.TryRunNetworkTransaction(move, null);
+                        _carryAgain[moved.Id.ToString()] = now + 120f;
                         BroughtToRig++;
                         Log.Detail("weapon", () => $"{Name(bot)}: no loaded magazine in its rig - takes its {moved.ShortName.Localized()} ({moved.Count} rounds) out of {from}");
                         return true;
@@ -259,9 +268,19 @@ namespace LiveRaid.Client.Tactics
             // 2. An empty magazine in reach and loose rounds for it: filled (EFT's own refill, from rig, pockets, bag and secure container)
             if (reachEmpty != null)
             {
+                string emptyId = reachEmpty.Id.ToString();
+                if (_fillTries.TryGetValue(bot.ProfileId, out var tried) && tried.mag == emptyId && tried.tries >= 2 && now - tried.at < 90f)
+                {
+                    // Two refills of this very magazine in a row and it is still empty: EFT is refusing (busy hands) - not again for 90 s
+                    Backoffs++;
+                    return false;
+                }
+
                 if (reload.FindAmmoToReloadMag(gun, reachEmpty) != null)
                 {
-                    SafeReload.Run(() => reload.AddAmmoToMag(gun, reachEmpty));
+                    bool again = _fillTries.TryGetValue(bot.ProfileId, out var last) && last.mag == emptyId && now - last.at < 20f;
+                    _fillTries[bot.ProfileId] = (emptyId, again ? last.tries + 1 : 1, again && last.tries + 1 >= 2 ? now : (again ? last.at : now));
+                    Bottomless.FillMagazine(bot, reload, gun, reachEmpty);
                     Filled++;
                     Log.Detail("weapon", () => $"{Name(bot)}: fills its empty {reachEmpty.ShortName.Localized()} with loose rounds");
                     return true;
@@ -351,15 +370,24 @@ namespace LiveRaid.Client.Tactics
         [PatchPrefix]
         protected static bool PatchPrefix(BotReload __instance, Magazine foundMag)
         {
-            if (!Settings.KeepMagazines.Value)
-            {
-                return true;
-            }
-
             try
             {
-                BotOwner bot = __instance._owner;
-                Magazine old = __instance._weapon?.GetCurrentMagazine();
+                BotOwner bot0 = __instance._owner;
+                Magazine old0 = __instance._weapon?.GetCurrentMagazine();
+                // 1.3.3: a swap that adds nothing is not made (ReloadWorthPatch), nor the third one within 14 s while the gun is still loaded
+                if (bot0 != null && old0 != null && foundMag != null && ReloadWorthPatch.Futile(__instance, bot0, old0, foundMag))
+                {
+                    __instance.Reloading = false;
+                    return false;
+                }
+
+                if (!Settings.KeepMagazines.Value)
+                {
+                    return true;
+                }
+
+                BotOwner bot = bot0;
+                Magazine old = old0;
                 IFirearmHandsController shoot = __instance.ShootController;
                 if (bot == null || old == null || shoot == null || foundMag == null)
                 {
@@ -395,6 +423,143 @@ namespace LiveRaid.Client.Tactics
                 Diag.Report("MagKeeperReloadPatch", e);
                 return true;
             }
+        }
+    }
+
+    /// <summary>
+    /// "Endless reload" (always on, 1.3.3). Raid 2026-11-09 22:18: 42MadBeast (a PMC, Mk-47 with 20-round PMAGs) reloaded every 3-4 s for three minutes (53 times, "emptied PMAG goes into its bag"),
+    /// shot nothing and was beaten up by a player scav. EFT per the IL: SAIN reloads when the magazine in the gun is under 80 % (ammo ratio = rounds / the magazine's capacity); BotReloadMagazine.CanReload refuses only
+    /// when the magazine in the gun is FULL, otherwise it takes GetMagazineForReload - the reachable magazine with the MOST rounds, bag included, with no check that it holds more than the one in the gun.
+    /// With every spare magazine at 15 of 20 the bot swaps one 15 for another 15 (the old one goes to the bag - with the rig full, since MagKeeper - or the rig, where the next swap finds it again), the ratio stays at
+    /// 0.75 and SAIN's self-action "Reload" never ends: the bot does nothing else. Here: a swap after which the gun does not hold more rounds than it does (the found magazine has no more than the one in the gun, and the gun is
+    /// not empty) is refused in CanReload (so SAIN does not even start it) and again in ReloadMagazine; and a loaded gun (4+ rounds) that has had 3 swaps in 14 s is left alone for 20 s.
+    /// </summary>
+    public class ReloadWorthPatch : ModulePatch
+    {
+        private static readonly Dictionary<string, List<float>> _swaps = new Dictionary<string, List<float>>();
+        private static readonly Dictionary<string, float> _said = new Dictionary<string, float>();
+        private static readonly Dictionary<string, float> _holdUntil = new Dictionary<string, float>();
+
+        public static int Refused { get; private set; }
+        public static int Held { get; private set; }
+
+        public static string Summary => $"magazine swaps that would add no rounds refused {Refused}, endless reload loops held {Held}";
+
+        public static void ClearCounters()
+        {
+            Refused = Held = 0;
+            _swaps.Clear();
+            _said.Clear();
+            _holdUntil.Clear();
+        }
+
+        protected override MethodBase GetTargetMethod() =>
+            AccessTools.Method(typeof(BotReloadMagazine), nameof(BotReloadMagazine.CanReload), new[] { typeof(bool), typeof(Magazine).MakeByRefType(), typeof(List<Ammo>).MakeByRefType() });
+
+        [PatchPostfix]
+        protected static void PatchPostfix(BotReloadMagazine __instance, ref bool __result, ref Magazine foundMag)
+        {
+            try
+            {
+                if (!__result || foundMag == null || !Settings.Enabled.Value)
+                {
+                    return;
+                }
+
+                BotOwner bot = __instance._owner;
+                Magazine cur = bot?.WeaponManager?.CurrentWeapon?.GetCurrentMagazine();
+                if (cur == null || !Pointless(bot, cur, foundMag, out string why))
+                {
+                    return;
+                }
+
+                __result = false;
+                foundMag = null;
+                __instance._nextReloadTime = Time.time + 3f;
+                Note(bot, why);
+            }
+            catch (System.Exception e)
+            {
+                Diag.Report("ReloadWorthPatch", e);
+            }
+        }
+
+        /// <summary>True when the swap should not be made (and counts the swaps that are made).</summary>
+        internal static bool Futile(BotReload reload, BotOwner bot, Magazine old, Magazine found)
+        {
+            if (!Settings.Enabled.Value)
+            {
+                return false;
+            }
+
+            if (Pointless(bot, old, found, out string why))
+            {
+                reload._nextReloadTime = Time.time + 3f;
+                Note(bot, why);
+                return true;
+            }
+
+            // Counted here: a swap that is going to be made
+            float now = Time.time;
+            if (!_swaps.TryGetValue(bot.ProfileId, out List<float> list))
+            {
+                _swaps[bot.ProfileId] = list = new List<float>();
+            }
+
+            list.RemoveAll(t => now - t > 14f);
+            list.Add(now);
+            return false;
+        }
+
+        private static bool Pointless(BotOwner bot, Magazine cur, Magazine found, out string why)
+        {
+            why = null;
+            float now = Time.time;
+            if (cur.Count <= 0)
+            {
+                return false;
+            }
+
+            // 1.4.10: a full magazine in a gun with an EMPTY CHAMBER is not "the same rounds": the swap loads the chamber. Raid 2026-11-11 17:27: Zhiguli's Kedr stood at
+            // chamber 0, magazine 20/20 and the best spare 20 - "a swap adds nothing" - and he did not fire for 6 s at 17 m
+            Weapon curGun = bot.WeaponManager?.CurrentWeapon;
+            if (curGun != null && curGun.HasChambers && curGun.ChamberAmmoCount == 0 && curGun.ReloadMode == Weapon.EReloadMode.ExternalMagazine)
+            {
+                return false;
+            }
+
+            if (found.Count <= cur.Count)
+            {
+                why = $"the best spare magazine holds {found.Count} rounds, the one in the gun {cur.Count} - a swap adds nothing";
+                Refused++;
+                return true;
+            }
+
+            if (cur.Count >= 4 && _swaps.TryGetValue(bot.ProfileId, out List<float> list) && list.Count(t => now - t <= 14f) >= 3)
+            {
+                _holdUntil[bot.ProfileId] = now + 20f;
+            }
+
+            if (cur.Count >= 4 && _holdUntil.TryGetValue(bot.ProfileId, out float until) && now < until)
+            {
+                why = $"three swaps within 14 s with {cur.Count} rounds in the gun - left alone for a while";
+                Held++;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static void Note(BotOwner bot, string why)
+        {
+            float now = Time.time;
+            if (_said.TryGetValue(bot.ProfileId, out float at) && now - at < 30f)
+            {
+                return;
+            }
+
+            _said[bot.ProfileId] = now;
+            Log.Info($"LR Weapon: {bot.Profile?.Nickname ?? "?"} does not reload - {why}");
         }
     }
 }

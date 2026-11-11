@@ -28,14 +28,40 @@ namespace LiveRaid.Client.Tactics
         public static int Unstoppable { get; private set; }
         public static int SurgeryKits { get; private set; }
 
+        public static int StaleStims { get; private set; }
+
         public static void ClearCounters()
         {
-            Swapped = Unstoppable = SurgeryKits = 0;
+            Swapped = Unstoppable = SurgeryKits = StaleStims = 0;
             _surgeryNoted.Clear();
         }
 
         public static string Summary => $"medkits: a kit that can afford the bleed taken instead {Swapped}, bleeds no kit carried could stop {Unstoppable}; " +
-                                        $"bots with a surgical kit in the bag for a blacked-out part {SurgeryKits}";
+                                        $"bots with a surgical kit in the bag for a blacked-out part {SurgeryKits}; injectors already used up or given away not reached for {StaleStims}";
+
+        /// <summary>
+        /// The injector the game remembers for the bot is looked up again before it is used. Raid 2026-11-10 12:37 (Reserve): Hotdog took its Propital as a
+        /// painkiller for a blacked-out leg (LegCare, through the first aid hands) - and the game's BotStimulators still held the used-up item: FindMeds is called
+        /// only after the bot's own injection, and when it finds nothing it clears "HaveSmt" but leaves the old item in place. SAIN then chose "Stims" in the
+        /// fight again and again (ten SeekCover/Stims ping-pongs in a row), each try threw "Trying to get parent of an item that doesn't have a parent" in the
+        /// hands and left "Using" set. The same happens to an injector handed to a squadmate, thrown out for a better find or shed as weight.
+        /// </summary>
+        public static void BeforeStim(BotStimulators stims)
+        {
+            if (stims == null || stims.Using)
+            {
+                return;
+            }
+
+            Stimulator before = stims._stimulator;
+            stims.Refresh();
+            if (before != null && stims._stimulator != before)
+            {
+                StaleStims++;
+                Log.Detail("combat", () => $"{stims._owner?.Profile?.Nickname}: the injector it meant to use ({before.ShortName.Localized()}) is not on it any more - " +
+                                           (stims._stimulator != null ? "takes another" : "has none left"));
+            }
+        }
 
         // Where a surgical kit may come from: what the bot carries - not its secure container
         private static readonly EquipmentSlot[] BagSlots = { EquipmentSlot.Backpack, EquipmentSlot.TacticalVest, EquipmentSlot.Pockets };
@@ -199,6 +225,25 @@ namespace LiveRaid.Client.Tactics
             catch (Exception e)
             {
                 Diag.Report("SurgeryKitRefreshPatch", e);
+            }
+        }
+    }
+
+    /// <summary>EFT's bot is about to inject a stimulator: the item is checked against what the bot really carries first (MedsCheck.BeforeStim).</summary>
+    public class StimRefreshPatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod() => AccessTools.Method(typeof(BotStimulators), nameof(BotStimulators.TryApply));
+
+        [PatchPrefix]
+        protected static void PatchPrefix(BotStimulators __instance)
+        {
+            try
+            {
+                MedsCheck.BeforeStim(__instance);
+            }
+            catch (Exception e)
+            {
+                Diag.Report("StimRefreshPatch", e);
             }
         }
     }

@@ -54,6 +54,7 @@ namespace LiveRaid.Client.Bots
             _done.Clear();
             _wants.Clear();
             Busy.Clear();
+            LayerRegistry.Clear();
             Went = Skipped = InnerDoors = PrizeDoors = 0;
         }
 
@@ -417,6 +418,9 @@ namespace LiveRaid.Client.Bots
         private static readonly Dictionary<string, ContainerUnlockLayer> _layers = new Dictionary<string, ContainerUnlockLayer>();
 
         public static void Register(BotOwner bot, ContainerUnlockLayer layer) => _layers[bot.ProfileId] = layer;
+
+        /// <summary>The layers of a raid that is over hold its bots (and through them the whole unloaded map) in memory: dropped with the raid.</summary>
+        public static void Clear() => _layers.Clear();
 
         public static ContainerUnlockLayer Get(BotOwner bot) => _layers.TryGetValue(bot.ProfileId, out ContainerUnlockLayer l) ? l : null;
     }

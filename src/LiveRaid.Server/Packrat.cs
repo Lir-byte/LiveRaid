@@ -34,7 +34,10 @@ public static class Packrat
     private static readonly string FilePath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "", "packrat.json");
     private static double _chance = -1;
     private static bool _armed;
-    private static readonly HashSet<string> _takenRoles = new();
+    private static readonly Dictionary<string, int> _takenRoles = new();
+
+    // 1.3.0: three candidate kits per side instead of one - raid 2026-11-09 16:56 (chance 100 %) tagged two and neither was ever in the client pool when a lone group was made
+    private const int KitsPerSide = 3;
     private static readonly List<string> _ids = new();
     private static string _name = "";
     private static DateTime _raidAt = DateTime.MinValue;
@@ -157,13 +160,16 @@ public static class Packrat
         string role = (details.Role ?? "").ToLowerInvariant();
         lock (Gate)
         {
-            if (!_takenRoles.Add(role))
+            _takenRoles.TryGetValue(role, out int taken);
+            if (taken >= KitsPerSide)
             {
                 return false;
             }
+
+            _takenRoles[role] = taken + 1;
         }
 
-        LrState.Info($"packrat: the first {role} generated gets the packrat's kit");
+        LrState.Info($"packrat: one of the first {KitsPerSide} {role} generated gets the packrat's kit");
         return true;
     }
 

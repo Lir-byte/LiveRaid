@@ -5,7 +5,7 @@
 **SPT versions:** 4.1.6 (`~4.1.0`)
 **License field on the hub:** Creative Commons BY-NC-SA 4.0
 **Source code:** https://github.com/Lir-byte/LiveRaid
-**Dependencies:** QuestingBots (1.2.0), SAIN (4.5.1), LootingBots (1.8.0), BigBrain (1.5.0), Waypoints (1.9.0). LiveRaid Online also: Project Fika (2.4.x), QuestingBots Fika sync
+**Dependencies:** QuestingBots (1.2.0), SAIN (4.5.1), LootingBots (1.8.0), BigBrain (1.5.0), Waypoints (1.9.0). Strongly recommended: Smoothie (1.1.0, by morphox) - big performance gain, no downside for LiveRaid. LiveRaid Online also: Project Fika (2.4.x), QuestingBots Fika sync
 **Incompatible with:** ORBIT
 **Tags / categories:** AI, Bots, Gameplay, PvE, Quality of life
 

@@ -34,13 +34,17 @@ namespace LiveRaid.Client.Bots
         private static float _wait;
         private static Vector3? _fight;
         private static float _fightUntil;
+        private static Vector3? _cold;
+        private static float _coldUntil;
 
         public static int Groups { get; private set; }
         public static int Scavs { get; private set; }
         public static int NearFights { get; private set; }
+        public static int ToColdGround { get; private set; }
+        public static int ColdPlaced { get; private set; }
         public static int Short { get; private set; }
 
-        public static string Summary => $"player scavs as replacements: {Groups} group(s), {Scavs} scav(s) brought forward ({NearFights} on the side of a loud fight), ticks short of people with none left to bring {Short}";
+        public static string Summary => $"player scavs as replacements: {Groups} group(s), {Scavs} scav(s) brought forward ({NearFights} placed on the side of a loud fight, {ToColdGround} group(s) sent to ground nobody had been to - {ColdPlaced} placed there), ticks short of people with none left to bring {Short}";
 
         public static bool On => Settings.Enabled.Value && Settings.PScavReplace.Value && Settings.LivelyMap.Value && Settings.LobbyLikeOnline.Value;
 
@@ -54,8 +58,10 @@ namespace LiveRaid.Client.Bots
             _shortSince = -1f;
             _fight = null;
             _fightUntil = 0f;
+            _cold = null;
+            _coldUntil = 0f;
             PlacingNearFight = false;
-            Groups = Scavs = NearFights = Short = 0;
+            Groups = Scavs = NearFights = Short = ToColdGround = ColdPlaced = 0;
         }
 
         /// <summary>The lobby in people: the PMC bots of the start and the human PMCs of the group (QuestingBots counts one human on its own).</summary>
@@ -100,6 +106,15 @@ namespace LiveRaid.Client.Bots
             point = _fight ?? default;
             return PlacingNearFight && _fight.HasValue && Time.time < _fightUntil;
         }
+
+        /// <summary>The untouched part of the map a brought-forward group comes in at (valid while that group is being placed).</summary>
+        internal static bool ColdPoint(out Vector3 point)
+        {
+            point = _cold ?? default;
+            return PlacingNearFight && _cold.HasValue && Time.time < _coldUntil;
+        }
+
+        internal static void ColdUsed() => ColdPlaced++;
 
         internal static bool IsPulled(object group) => group != null && _pulled.Contains(group);
 
@@ -184,14 +199,34 @@ namespace LiveRaid.Client.Bots
             Groups++;
             Scavs += pick.GeneratedBotCount;
             _shortSince = -1f;
-            if (loud)
+
+            // 1.4.0: not every scav run goes to the fresh bodies (F12 -> 6 "Replacements to the fight, %"). Raid 2026-11-10 12:37 (Reserve): seventeen player scavs
+            // in a row came in "to the fight" at the same two squares and died there - the people on the map stayed at 3-5 of 8 wanted all raid. The rest come in
+            // at the part of the map nobody has been to yet, away from the fights: they live, and the map gets walked
+            _fight = null;
+            _cold = null;
+            string where = "";
+            bool toFight = loud && _rng.NextDouble() * 100.0 < Settings.PScavToFight.Value;
+            if (toFight)
             {
                 _fight = fight;
                 _fightUntil = Time.time + 90f;
+                where = $", to the fight at ({fight.x:0}, {fight.z:0})";
+            }
+            else
+            {
+                List<Vector3> fights = WorldEvents.Kills.Where(k => Time.time - k.Time < 300f).Select(k => k.Position).ToList();
+                if (Raid.CoverageLedger.TryColdArea(fights, _rng, out Vector3 cold, out int spots))
+                {
+                    _cold = cold;
+                    _coldUntil = Time.time + 90f;
+                    ToColdGround++;
+                    where = $", to ground nobody has been to round ({cold.x:0}, {cold.z:0}) - {spots} spots{(loud ? ", not to the fight" : "")}";
+                }
             }
 
             Log.Info($"LR PScav: {pick.GeneratedBotCount} come(s) in to replace the people gone (people {people} of {target} wanted, lobby {lobby}); " +
-                     $"they were due at {Clock(was)}{(loud ? $", to the fight at ({fight.x:0}, {fight.z:0})" : "")}");
+                     $"they were due at {Clock(was)}{where}");
         }
 
         /// <summary>Two people (PMCs, player scavs, humans) killed within 3 minutes and 120 m of each other in the last 4 minutes.</summary>

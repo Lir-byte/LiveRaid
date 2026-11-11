@@ -16,6 +16,8 @@ public static class LrState
     public static SPTarkov.Server.Core.Helpers.InRaid.WeatherHelper Weather { get; set; }
     public static int NightBots;
     public static int SpareAmmoFixed;
+    public static int SpareMagazinesAdded;
+    public static int SpareMagazinesNoRoom;
 
     public static void Info(string msg) => Logger?.Info("[LiveRaid] " + msg);
 

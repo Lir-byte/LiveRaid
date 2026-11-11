@@ -19,13 +19,58 @@ public class WeaponConditionPatch : AbstractPatch
     public static int Rolled;
     public static int Pristine;
 
+    // The F12 settings of the client (sent to /liveraid/weaponcondition/set/...): they stand over data/config.json while the client says so
+    private static readonly object Gate = new();
+    private static bool? _on;
+    private static double? _pristine;
+    private static double? _maxAbove;
+    private static List<WeaponConditionBand> _bands;
+
+    public static string Set(bool on, double pristinePercent, double maxAbove, List<WeaponConditionBand> bands)
+    {
+        lock (Gate)
+        {
+            _on = on;
+            _pristine = Math.Clamp(pristinePercent, 0, 100) / 100.0;
+            _maxAbove = Math.Clamp(maxAbove, 0, 100);
+            _bands = bands;
+        }
+
+        LrState.Info($"PMC weapon condition set from F12: {(on ? "on" : "off (SPT's values)")}, {_pristine:P0} brand new, max up to {_maxAbove:0} above, bands " +
+                     string.Join(", ", bands.Select(b => $"{b.Min:0}-{b.Max:0} % (weight {b.Weight:0})")));
+        return Status();
+    }
+
+    public static string Status() =>
+        "{\"on\":" + ((_on ?? LrState.Config.Bots.PmcWeaponCondition?.Enabled ?? false) ? "true" : "false") + ",\"rolled\":" + Rolled + ",\"pristine\":" + Pristine + "}";
+
+    /// <summary>The config with the client's F12 values laid over it (a copy; the config itself is left alone).</summary>
+    private static WeaponConditionConfig Effective(WeaponConditionConfig cfg)
+    {
+        lock (Gate)
+        {
+            if (_on == null)
+            {
+                return cfg;
+            }
+
+            return new WeaponConditionConfig
+            {
+                Enabled = _on.Value,
+                PristineChance = _pristine ?? cfg.PristineChance,
+                MaxAboveCurrent = _maxAbove ?? cfg.MaxAboveCurrent,
+                Bands = _bands != null && _bands.Count > 0 ? _bands : cfg.Bands,
+            };
+        }
+    }
+
     protected override MethodBase GetTargetMethod() =>
         typeof(BotGeneratorHelper).GetMethod("GenerateWeaponRepairableProperties", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
 
     [PatchPostfix]
     public static void Postfix(string botRole, ref UpdRepairable __result)
     {
-        WeaponConditionConfig cfg = LrState.Config.Bots.PmcWeaponCondition;
+        WeaponConditionConfig cfg = LrState.Config.Bots.PmcWeaponCondition == null ? null : Effective(LrState.Config.Bots.PmcWeaponCondition);
         if (cfg == null || !cfg.Enabled || __result == null || !IsPmc(botRole))
         {
             return;

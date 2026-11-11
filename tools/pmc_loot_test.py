@@ -33,3 +33,6 @@ loot = d["notKit"]
 print(f"not kit: {sum(loot.values())} pieces" + ("" if loot else " - PMCs start without loot"))
 for k, v in list(loot.items())[:40]:
     print(f"  {v:4d} x {k}")
+if "spareMagazinesPerBot" in d:
+    h = d["spareMagazinesPerBot"]
+    print("spare magazines per PMC (rig+pockets+backpack+secure, not counting the one in the gun): " + ", ".join(f"{int(k)}: {v}" for k, v in h.items()))

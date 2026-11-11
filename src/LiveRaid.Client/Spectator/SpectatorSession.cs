@@ -50,8 +50,10 @@ namespace LiveRaid.Client.Spectator
         public static void Clear()
         {
             TakeOver.Clear();
+            SmoothieGuard.Release();
             ObserverMode.Clear();
             CullingProxy.Clear();
+            CullingGuard.Clear();
             YourPlayerState.Clear();
             SpectatorCamera.Remove();
             State = SpectatorState.Off;

@@ -214,8 +214,12 @@ namespace LiveRaid.Client.Tactics
             }
 
             bool throwing = wm.Grenades?.ThrowindNow == true;
-            bool grenadeStuck = grenadeInHands && now - s.GrenadeSince >= (throwing ? 10f : 3f);
-            bool idleHands = p.Kind != BotKind.Other && hands != null && !using_ && (medsInHands || grenadeStuck || (IsEmpty(hands) && !player.HandsController.IsInInteractionStrictCheck()));
+            // A throw of the game takes 3-4 s from the hand going for the grenade; 7 s with the flag up is a throw that hung.
+            // Raiders and guards too (raid 2026-11-10 15:01, Reserve: the raider "Питон" started three throws in 16 s and later walked 19 s with the grenade
+            // in his hands) - a hung grenade is the game's fault whoever holds it; meds and empty hands stay PMC/scav business.
+            bool grenadeStuck = grenadeInHands && now - s.GrenadeSince >= (throwing ? 7f : 3f);
+            bool idleHands = hands != null && !using_
+                             && (grenadeStuck || (p.Kind != BotKind.Other && (medsInHands || (IsEmpty(hands) && !player.HandsController.IsInInteractionStrictCheck()))));
             if (idleHands)
             {
                 if (s.IdleHandsSince < 0f)

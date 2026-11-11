@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using System.Linq;
 using System.Reflection;
 using Comfort.Common;
@@ -85,6 +86,120 @@ namespace LiveRaid.Client.Tactics
         public static int Evicted { get; private set; }
         public static int Unloaded { get; private set; }
         public static int Restored { get; private set; }
+        public static int RoomMade { get; private set; }
+        public static int Armed { get; private set; }
+
+        private static readonly AccessTools.FieldRef<LootingInventoryController, LootingTransactionController> TxField =
+            AccessTools.FieldRefAccess<LootingInventoryController, LootingTransactionController>("_transactionController");
+
+        private static readonly Dictionary<string, float> _roomAt = new Dictionary<string, float>();
+
+        /// <summary>A gun was just found (EFT knows it anew): the bot is looked at at once, not in a few seconds.</summary>
+        public static void Poke(BotOwner bot)
+        {
+            if (bot != null)
+            {
+                _next.Remove(bot.ProfileId);
+            }
+        }
+
+        /// <summary>
+        /// No room for the magazine or the rounds a bot needs to fire at all (raid 2026-11-11: Larry swapped to a found RSASS, had nowhere to put a magazine for it
+        /// and died with the gun empty, not firing a shot at the enemy who shot him dead from 4 m): the cheapest things in its bag, rig and pockets - not kept
+        /// by the same rule as the exchange of cheap for dear (MakeRoom.Keep) - are thrown out, as many as free the cells the thing needs. True = a throw is started;
+        /// the thing is made when it is over.
+        /// </summary>
+        private static bool MakeRoomFor(BotOwner bot, Item incoming)
+        {
+            try
+            {
+                if (bot?.GetPlayer == null || incoming == null || (_roomAt.TryGetValue(bot.ProfileId, out float at) && Time.time - at < 20f))
+                {
+                    return false;
+                }
+
+                Player player = bot.GetPlayer;
+                InventoryEquipment eq = player.InventoryController?.Inventory?.Equipment;
+                LootingBrain brain = player.GetComponent<LootingBrain>();
+                LootingInventoryController lic = brain?.InventoryController;
+                LootingTransactionController tc = lic != null ? TxField(lic) : null;
+                if (eq == null || tc == null || brain.IsBotLooting)
+                {
+                    return false;
+                }
+
+                var size = incoming.CalculateCellSize();
+                int need = Mathf.Max(1, size.X * size.Y);
+                var candidates = new List<(Item it, float perCell, int cells)>();
+                foreach (EquipmentSlot slot in new[] { EquipmentSlot.Backpack, EquipmentSlot.TacticalVest, EquipmentSlot.Pockets })
+                {
+                    Item container = eq.GetSlot(slot)?.ContainedItem;
+                    if (container == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (Item child in container.GetAllItems())
+                    {
+                        if (child == container || child.Parent?.Container?.ParentItem != container || MakeRoom.Keep(lic, child) || IsAir(bot, child))
+                        {
+                            continue;
+                        }
+
+                        var cs = child.CalculateCellSize();
+                        int cells = Mathf.Max(1, cs.X * cs.Y);
+                        candidates.Add((child, LootBrain.Price(child) / cells, cells));
+                    }
+                }
+
+                List<Item> drops = new List<Item>();
+                int freed = 0;
+                foreach (var cand in candidates.OrderBy(x => x.perCell))
+                {
+                    drops.Add(cand.it);
+                    freed += cand.cells;
+                    if (freed >= need || drops.Count >= 5)
+                    {
+                        break;
+                    }
+                }
+
+                if (freed < need)
+                {
+                    return false;
+                }
+
+                _roomAt[bot.ProfileId] = Time.time;
+                foreach (Item d in drops)
+                {
+                    ThrowOut(bot, tc, d);
+                }
+
+                RoomMade += drops.Count;
+                Log.Info($"LR Ammo: {Name(bot)} has nowhere to put {incoming.ShortName.Localized()} that it needs to fire its gun - throws out {drops.Count} cheap thing(s) " +
+                         $"({string.Join(", ", drops.Select(d => d.ShortName.Localized()))})");
+                return true;
+            }
+            catch (System.Exception e)
+            {
+                Diag.Report("Bottomless.MakeRoomFor", e);
+                return false;
+            }
+        }
+
+        private static bool IsAir(BotOwner bot, Item it) => _air.TryGetValue(bot.ProfileId, out List<Air> list) && list.Any(a => a.It == it);
+
+        private static async void ThrowOut(BotOwner bot, LootingTransactionController tc, Item item)
+        {
+            try
+            {
+                await tc.ThrowItemAsync(item, CancellationToken.None);
+            }
+            catch (System.Exception e)
+            {
+                Diag.Report("Bottomless.ThrowOut", e);
+            }
+        }
 
         private static readonly HashSet<string> _toppedBots = new HashSet<string>();
 
@@ -92,10 +207,13 @@ namespace LiveRaid.Client.Tactics
             $"summoned ammo: round stacks {StacksMade} ({RoundsAdded} rounds, bots {BotsToppedUp}, nowhere to put {NoRoom}), magazines made {MagsMade} " +
             $"(an empty one filled {MagsReused}, could not make {MagsFailed}), the gun's own empty magazine taken out to be filled {Unloaded} " +
             $"(put back in the gun when the rounds would not go in {Restored}), " +
-            $"refused for a gun the bot started with {RefusedStart}, taken away for a find {Evicted}";
+            $"refused for a gun the bot started with {RefusedStart}, taken away for a find {Evicted}, " +
+            $"cheap things thrown out for the magazine or rounds of a gun {RoomMade}, magazines filled by their room from a bigger stack {FilledByCount}, guns armed at once without EFT asking {Armed}, rounds EFT did not find (secure container) taken by LiveRaid {FoundByUs}";
 
         public static void Clear()
         {
+            RoomMade = Armed = 0;
+            _roomAt.Clear();
             _next.Clear();
             _noMake.Clear();
             _pending.Clear();
@@ -181,7 +299,7 @@ namespace LiveRaid.Client.Tactics
                     continue;
                 }
 
-                _next[bot.ProfileId] = now + 3f;
+                _next[bot.ProfileId] = now + (bot.Memory?.GoalEnemy != null ? 1f : 3f);
                 try
                 {
                     // LootingBots moves items of a looting bot: no second hand in its bag meanwhile
@@ -322,7 +440,13 @@ namespace LiveRaid.Client.Tactics
             bool secure = eq.GetSlot(EquipmentSlot.SecuredContainer)?.ContainedItem != null;
             if (!BotSetup.Place(bot, fresh, secure ? SecureOnly : RigSlots))
             {
-                // Nowhere to put it: not tried again for a while
+                // Nowhere to put it: room is made (a gun with no rounds fires nothing), then not tried again for a while
+                if (MakeRoomFor(bot, fresh))
+                {
+                    _next[bot.ProfileId] = Time.time + 4f;
+                    return 0;
+                }
+
                 NoRoom++;
                 _next[bot.ProfileId] = Time.time + 30f;
                 return 0;
@@ -377,14 +501,101 @@ namespace LiveRaid.Client.Tactics
             }
 
             FindMagazines(eq, gun, magSlot, gun.GetCurrentMagazine(), out Magazine loaded, out Magazine empty);
-            if (loaded != null || empty == null)
+            if (loaded != null)
             {
+                return;
+            }
+
+            if (empty == null)
+            {
+                // Nothing loaded in the gun (a found gun, its magazine empty or none) and no magazine of the bot's for it at all: it waited for EFT to ask
+                // for a reload, and EFT did not (its weapon table was out of date) - a minute with a gun that could not fire (raid 2026-11-11, Larry).
+                // The magazine is conjured now, as it is when EFT asks, and the reload started
+                if (gun.GetAllItems().OfType<Ammo>().Sum(a => a.StackObjectsCount) > 0)
+                {
+                    return;
+                }
+
+                Magazine made = Conjure(bot, gun);
+                if (made != null)
+                {
+                    Armed++;
+                    SafeReload.Run(() => reload.TryReload());
+                }
+
                 return;
             }
 
             if (SummonRounds(bot, eq, gun, Capacity(gun)) > 0)
             {
-                SafeReload.Run(() => reload.AddAmmoToMag(gun, empty));
+                FillMagazine(bot, reload, gun, empty);
+            }
+        }
+
+        public static int FilledByCount { get; private set; }
+        public static int FoundByUs { get; private set; }
+
+        /// <summary>The biggest loose stack of the gun's calibre the bot carries anywhere (rig, pockets, bag, secure container), not in a gun or a magazine.</summary>
+        private static Ammo LooseStack(BotOwner bot, Weapon gun)
+        {
+            InventoryEquipment eq = bot.GetPlayer?.InventoryController?.Inventory?.Equipment;
+            if (eq == null || string.IsNullOrEmpty(gun.AmmoCaliber))
+            {
+                return null;
+            }
+
+            Ammo best = null;
+            foreach (Item it in eq.GetAllItems())
+            {
+                if (it is Ammo a && a.Caliber == gun.AmmoCaliber && a.StackObjectsCount > 0 && !(a.Parent?.Container?.ParentItem is Magazine)
+                    && !(a.Parent?.Container?.ParentItem is Weapon) && (best == null || a.StackObjectsCount > best.StackObjectsCount))
+                {
+                    best = a;
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>
+        /// Rounds into an empty magazine - by what the magazine holds (1.4.7). EFT's own BotReload.AddAmmoToMag takes the biggest acceptable stack the bot has and
+        /// applies ALL of it to the magazine; a stack bigger than the magazine (the summoned stacks are 30-40 rounds, a SA58 magazine takes 20, an AK-105 30, a P226R
+        /// 15-20) is refused whole, and the magazine "stayed empty - the rounds did not go in" (SA58 of Зураб Погон, AK-105 of Серега Палач, P226R of Изя Комитов;
+        /// the PPSh drum of Якун Хук took 35 of 71). Pistols were hit worst: "its pistol could not be reloaded in 12 s", an empty gun drawn in every lull and put back.
+        /// Here the same stack is applied with the count the magazine has room for.
+        /// </summary>
+        internal static void FillMagazine(BotOwner bot, BotReload reload, Weapon gun, Magazine mag)
+        {
+            try
+            {
+                Ammo ammo = reload.FindAmmoToReloadMag(gun, mag);
+                int room = mag == null ? 0 : Mathf.Max(0, mag.MaxCount - mag.Count);
+                if (ammo == null && room > 0)
+                {
+                    // 1.4.9: EFT's search did not find the rounds (raid 2026-11-11 16:06: Hold_W's SVT-40 stayed empty three times with rounds summoned into his
+                    // secure container - EFT's reload does not look there). The bot's own stack of the gun's calibre is taken wherever it lies
+                    ammo = LooseStack(bot, gun);
+                    if (ammo != null)
+                    {
+                        FoundByUs++;
+                    }
+                }
+
+                if (ammo == null || room <= 0 || (ammo.StackObjectsCount <= room && reload.FindAmmoToReloadMag(gun, mag) != null))
+                {
+                    // Nothing to find, no room, or the whole stack fits and EFT sees it: EFT's own call is right (and keeps its bookkeeping of "no ammo to reload with")
+                    SafeReload.Run(() => reload.AddAmmoToMag(gun, mag));
+                    return;
+                }
+
+                InventoryController ic = bot.GetPlayer.InventoryController;
+                var op = mag.Apply(ic, ammo, Mathf.Min(room, ammo.StackObjectsCount), simulate: true);
+                ic.TryRunNetworkTransaction(op, null);
+                FilledByCount++;
+            }
+            catch (System.Exception e)
+            {
+                Diag.Report("Bottomless.FillMagazine", e);
             }
         }
 
@@ -516,7 +727,7 @@ namespace LiveRaid.Client.Tactics
                 // The bot carries no magazine for the gun. The one it started the raid with has its SPT magazines and no more - but the one in it is
                 // taken out and filled as a player does it (raid 2026-10-30 23:28: RedBeard's P90 and a guard's RSASS stood empty with rounds in the
                 // secure container, the bots swapped from one dry gun to the next); a found gun gets a spare
-                if (IsOriginal(bot, gun))
+                if (IsOriginal(bot, gun) && inGun != null)
                 {
                     if (Unload(bot, ic, eq, gun, inGun, now))
                     {
@@ -537,6 +748,12 @@ namespace LiveRaid.Client.Tactics
                 bool secure = eq.GetSlot(EquipmentSlot.SecuredContainer)?.ContainedItem != null;
                 if (fresh == null || !magSlot.CanAccept(fresh) || !BotSetup.Place(bot, fresh, secure ? MagSlotsSecure : MagSlotsRig))
                 {
+                    if (fresh != null && magSlot.CanAccept(fresh) && MakeRoomFor(bot, fresh))
+                    {
+                        _noMake[id] = now + 4f;
+                        return null;
+                    }
+
                     return Failed(bot, gun, now, "no magazine of its kind could be made or put anywhere");
                 }
 
@@ -548,7 +765,7 @@ namespace LiveRaid.Client.Tactics
             // Rounds to fill it with, if the bot carries too few
             SummonRounds(bot, eq, gun, inGun != null ? inGun.MaxCount : 30);
             bool reused = empty != null;
-            SafeReload.Run(() => reload.AddAmmoToMag(gun, target));
+            FillMagazine(bot, reload, gun, target);
             if (target.Count <= 0)
             {
                 _pending[id] = new Pending { Mag = target, Until = now + 3f, Reused = reused, Where = where };

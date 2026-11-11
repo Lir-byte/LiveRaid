@@ -11,7 +11,7 @@ class P {
     // LR_DLL: a built DLL to check instead of the one in the game (both editions: bin/Release-Single, bin/Release-Online)
     string dll = Environment.GetEnvironmentVariable("LR_DLL") ?? Path.Combine(root, "BepInEx", "plugins", "LiveRaid", "LiveRaid.Client.dll");
     string[] dirs = { Path.Combine(root, "BepInEx", "core"), Path.Combine(root, "EscapeFromTarkov_Data", "Managed"), Path.GetDirectoryName(Path.GetFullPath(dll)),
-                      Path.Combine(root, "BepInEx", "plugins", "Fika"), Path.Combine(root, "BepInEx", "plugins", "spt") };
+                      Path.Combine(root, "BepInEx", "plugins", "Fika"), Path.Combine(root, "BepInEx", "plugins", "spt"), Path.Combine(root, "BepInEx", "plugins") };
     AppDomain.CurrentDomain.AssemblyResolve += (s, e) => {
       string n = new AssemblyName(e.Name).Name + ".dll";
       foreach (var d in dirs) { var f = Path.Combine(d, n); if (File.Exists(f)) return Assembly.LoadFrom(f); }
@@ -72,6 +72,13 @@ class P {
       string result = (string)plan.GetMethod("SelfTest").Invoke(null, null);
       Console.WriteLine(result);
       if (!result.StartsWith("POPULATION OK")) return 3;
+    }
+    // Arena fighters (1.3.2): the carving of BigBrain's exclusions touches the arena role only
+    var arena = lr.GetType("LiveRaid.Client.Bots.ArenaFightFix");
+    if (arena != null) {
+      string result = (string)arena.GetMethod("SelfTest").Invoke(null, null);
+      Console.WriteLine(result);
+      if (result.StartsWith("ARENA BAD")) return 5;
     }
     return 0;
   }

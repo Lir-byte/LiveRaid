@@ -34,12 +34,12 @@ namespace LiveRaid.Client.Tactics
         public static int Dropped { get; private set; }
         public static int WallAtHand { get; private set; }
 
-        public static string Summary => $"loot spots moved to the thing's side of the wall {Moved}, things left out (no way to their side) {Dropped}, looting through a wall refused {WallAtHand}";
+        public static string Summary => $"loot spots moved to the thing's side of the wall {Moved}, things left out (no way to their side) {Dropped}, looting through a wall refused {WallAtHand}, of them behind a locked door {LockedDoors}";
 
         public static void Clear()
         {
             _cache.Clear();
-            Moved = Dropped = WallAtHand = 0;
+            Moved = Dropped = WallAtHand = LockedDoors = 0;
         }
 
         public static bool On => Settings.Enabled.Value && Settings.LootRightSide.Value;
@@ -58,12 +58,42 @@ namespace LiveRaid.Client.Tactics
                 float len = d.magnitude;
                 if (len < 0.8f || !Physics.Raycast(eye, d / len, out RaycastHit hit, len, LayersMaskController.HighPolyWithTerrainMask) || hit.distance >= len - 0.7f)
                 {
-                    return false;
+                    // No wall in the mask of solid things - but a closed door that is LOCKED is a wall too (1.3.0: at the military checkpoint on Customs a PMC looted a thing
+                    // through a locked door: the door is not in the solid mask, the spot outside it was "clear", and a locked door never opens for the unstick layer)
+                    return LockedDoorBetween(eye, to);
                 }
             }
 
             return true;
         }
+
+        private static readonly RaycastHit[] _doorHits = new RaycastHit[8];
+
+        /// <summary>A door on the line from <paramref name="eye"/> to <paramref name="to"/> that is locked (a bot that has its key opens it by its own errand, not by looting through it).</summary>
+        private static bool LockedDoorBetween(Vector3 eye, Vector3 to)
+        {
+            Vector3 d = to - eye;
+            float len = d.magnitude;
+            if (len < 0.8f)
+            {
+                return false;
+            }
+
+            int n = Physics.RaycastNonAlloc(eye, d / len, _doorHits, len, ~0, QueryTriggerInteraction.Collide);
+            for (int i = 0; i < n; i++)
+            {
+                EFT.Interactive.Door door = _doorHits[i].collider != null ? _doorHits[i].collider.GetComponentInParent<EFT.Interactive.Door>() : null;
+                if (door != null && door.DoorState == EFT.Interactive.EDoorState.Locked)
+                {
+                    LockedDoors++;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public static int LockedDoors { get; private set; }
 
         /// <summary>The spot a bot should loot <paramref name="center"/> from: <paramref name="dest"/> when it is good, another one, or Vector3.zero.</summary>
         public static Vector3 Check(BotOwner bot, Vector3 center, Vector3 dest)

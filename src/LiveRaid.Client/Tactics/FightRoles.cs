@@ -105,6 +105,12 @@ namespace LiveRaid.Client.Tactics
                 return FightRole.None;
             }
 
+            // The packrat has no part in a fight: it was drawn Assault and Flank like anyone (raids 2026-11-10)
+            if (p.Packrat)
+            {
+                return FightRole.None;
+            }
+
             float now = Time.time;
             int ratio = RatioBand(allies, enemies);
             int hp = HpBand(health);

@@ -19,6 +19,10 @@ namespace LiveRaid.Client.Tactics
         Overwatch,
         Rifleman,
         Rear,
+
+        // 1.3.0: roles that come and go (DynamicRoles): a flanker keeps wide on a side, a scout goes ahead of the pointman
+        Flanker,
+        Scout,
     }
 
     /// <summary>
@@ -35,6 +39,9 @@ namespace LiveRaid.Client.Tactics
 
             // 0 = a bunch of randoms, 1 = drilled team. From the members' experience plus luck.
             public float Discipline = -1f;
+
+            // When the squad's roles are looked at again (DynamicRoles)
+            public float NextShuffle;
             public float Talkativeness;
         }
 
@@ -47,6 +54,7 @@ namespace LiveRaid.Client.Tactics
         public static void Clear()
         {
             _squads.Clear();
+            Shuffles = RoleChanges = 0;
             _roles.Clear();
             _squadOf.Clear();
             _nextTick = 0;
@@ -132,6 +140,7 @@ namespace LiveRaid.Client.Tactics
                 }
 
                 AssignRoles(g.Value);
+                Reshuffle(g.Value, state);
                 ManageLooting(g.Value, state);
             }
         }
@@ -194,6 +203,129 @@ namespace LiveRaid.Client.Tactics
             }
 
             Log.Info("LR Squad: " + string.Join(", ", members.Select(m => $"{m.Profile.Nickname}={RoleOf(m)}")));
+        }
+
+        public static int Shuffles { get; private set; }
+        public static int RoleChanges { get; private set; }
+
+        public static string RolesSummary => $"squad roles looked at again {Shuffles} times, {RoleChanges} roles changed hands";
+
+        /// <summary>
+        /// Roles are not for the whole raid (F12 -> 8 "Roles change on the way", 1.3.0). Every 45-135 s of a calm moment (drilled squads less often) the squad's roles are drawn again:
+        /// each member has a weight for every role from his gun, style, aggression, curiosity and health (a hurt man likes the rear, a man with a long gun the overwatch, a rusher
+        /// the point), the role he has now weighs x2.2 (so it is a drift, not a lottery every time), each role has room for one man, the rest are riflemen.
+        /// </summary>
+        private static void Reshuffle(List<BotOwner> members, SquadState state)
+        {
+            if (!Settings.DynamicRoles.Value || members.Count < 3)
+            {
+                return;
+            }
+
+            float now = Time.time;
+            if (state.NextShuffle <= 0f)
+            {
+                state.NextShuffle = now + 40f + (float)_rng.NextDouble() * 60f;
+                return;
+            }
+
+            if (now < state.NextShuffle)
+            {
+                return;
+            }
+
+            if (members.Any(m => !TacticalTasks.NoThreat(m) || TacticalTasks.TryGet(m, out _)))
+            {
+                state.NextShuffle = now + 12f;
+                return;
+            }
+
+            float drilled = Mathf.Clamp01(state.Discipline < 0f ? 0.4f : state.Discipline);
+            state.NextShuffle = now + (45f + (float)_rng.NextDouble() * 90f) * Mathf.Lerp(0.8f, 1.6f, drilled);
+            BotOwner leader = members.FirstOrDefault(m => RoleOf(m) == SquadRole.Leader);
+            if (leader == null)
+            {
+                return;
+            }
+
+            List<BotOwner> rest = members.Where(m => m != leader).OrderBy(_ => _rng.Next()).ToList();
+            bool room3 = rest.Count >= 3;
+            Dictionary<SquadRole, int> cap = new Dictionary<SquadRole, int>
+            {
+                [SquadRole.Pointman] = 1, [SquadRole.Overwatch] = 1, [SquadRole.Scout] = room3 ? 1 : 0, [SquadRole.Flanker] = room3 ? 1 : 0, [SquadRole.Rear] = rest.Count >= 2 ? 1 : 0,
+            };
+            SquadRole[] pool = { SquadRole.Pointman, SquadRole.Overwatch, SquadRole.Scout, SquadRole.Flanker, SquadRole.Rear, SquadRole.Rifleman };
+            int changed = 0;
+            foreach (BotOwner m in rest)
+            {
+                BotProfile p = BotProfiles.Get(m);
+                if (p == null)
+                {
+                    continue;
+                }
+
+                float hp = m.HealthController.GetBodyPartHealth(EBodyPart.Common).Normalized;
+                bool longGun = p.WeaponClass == "sniperRifle" || p.WeaponClass == "marksmanRifle";
+                bool shortGun = p.WeaponClass == "smg" || p.WeaponClass == "shotgun";
+                SquadRole now0 = RoleOf(m);
+                float[] w = new float[pool.Length];
+                for (int i = 0; i < pool.Length; i++)
+                {
+                    switch (pool[i])
+                    {
+                        case SquadRole.Pointman: w[i] = 1f + (p.Style == PlayStyle.Rusher ? 1.2f : 0f) + (shortGun ? 0.8f : 0f) + p.Aggression * 0.8f - (hp < 0.6f ? 1f : 0f); break;
+                        case SquadRole.Overwatch: w[i] = longGun ? 2.2f : 0.1f; break;
+                        case SquadRole.Scout: w[i] = 0.6f + (p.Style == PlayStyle.Explorer || p.Style == PlayStyle.Hunter ? 0.8f : 0f) + p.Explore * 0.3f - (hp < 0.6f ? 0.5f : 0f); break;
+                        case SquadRole.Flanker: w[i] = 0.7f + p.Aggression * 0.9f + (p.Style == PlayStyle.Hunter ? 0.5f : 0f) - (hp < 0.6f ? 0.8f : 0f); break;
+                        case SquadRole.Rear: w[i] = 0.8f + (hp < 0.7f ? 1.5f : 0f) + (1f - p.Aggression) * 0.8f; break;
+                        default: w[i] = 1.4f; break;
+                    }
+
+                    if (pool[i] == now0)
+                    {
+                        w[i] *= 2.2f;
+                    }
+
+                    if (cap.TryGetValue(pool[i], out int room) && room <= 0)
+                    {
+                        w[i] = 0f;
+                    }
+
+                    w[i] = Mathf.Max(0f, w[i]);
+                }
+
+                float total = w.Sum();
+                double roll = _rng.NextDouble() * total;
+                int pick = pool.Length - 1;
+                for (int i = 0; i < pool.Length; i++)
+                {
+                    roll -= w[i];
+                    if (roll <= 0)
+                    {
+                        pick = i;
+                        break;
+                    }
+                }
+
+                SquadRole chosen = pool[pick];
+                if (cap.ContainsKey(chosen))
+                {
+                    cap[chosen]--;
+                }
+
+                if (chosen != now0)
+                {
+                    changed++;
+                    _roles[m.ProfileId] = chosen;
+                }
+            }
+
+            Shuffles++;
+            RoleChanges += changed;
+            if (changed > 0)
+            {
+                Log.Info("LR Squad: roles change on the way: " + string.Join(", ", members.Select(m => $"{m.Profile.Nickname}={RoleOf(m)}")));
+            }
         }
 
         private static void ManageLooting(List<BotOwner> members, SquadState state)

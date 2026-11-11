@@ -43,7 +43,16 @@ namespace LiveRaid.Client.Bots
             public float NextSample;
             public float NotBefore;
             public float FastNotBefore;
+            public Vector3 Area;
+            public float AreaSince = -1f;
         }
+
+        // Raid 2026-11-10 17:22 (Reserve): the squad of Bnuy spent minutes 8-32 in the barracks yard, 120 x 50 m. Every check was skipped: there was always a
+        // body of the last fight to go through within 60 m ("not loitering"), a fight less than a minute ago, or a loot job - the yard is where every scav of
+        // the base comes, and each one killed was the next reason to stay. A stay 1.75 times over the limit (10.5 min by default) ends whatever the reason:
+        // the bodies there are let go and the squad goes to another part of the map.
+        private const float OverstayFactor = 1.75f;
+        public static int Overstays { get; private set; }
 
         // Quick tier of the stay check: a calm bot that has not left a circle this small for this long is stuck, not busy (raid 2026-11-01 16:11:
         // FiveF and his partner shuffled 7.5 minutes inside 25 m of one spot, "Regroup" against "FollowBoss", before the 5-minute check sent them away)
@@ -66,7 +75,7 @@ namespace LiveRaid.Client.Bots
             _anchors.Clear();
             _dwell.Clear();
             MovedOn = 0;
-            Evictions = EvictionsFailed = 0;
+            Evictions = EvictionsFailed = Overstays = 0;
         }
 
         public static void Tick()
@@ -98,9 +107,19 @@ namespace LiveRaid.Client.Bots
                     continue;
                 }
 
-                // Still going through the bodies of a fight here: not loitering
+                // Still going through the bodies of a fight here: not loitering - up to a point (the overstay)
                 if (Tactics.LootJobs.HasWorkNear(bot) || Tactics.LootJobs.LeaderShouldWait(bot))
                 {
+                    if (Settings.Eviction.Value)
+                    {
+                        if (!_anchors.TryGetValue(bot.ProfileId, out Anchor held))
+                        {
+                            _anchors[bot.ProfileId] = held = new Anchor { Pos = bot.Position, Since = Time.time };
+                        }
+
+                        Evict(bot, p, held, bot.Position, busyWithBodies: true);
+                    }
+
                     continue;
                 }
 
@@ -188,7 +207,7 @@ namespace LiveRaid.Client.Bots
         /// Now: the current objective is dropped, everything near is shut out for 8 minutes (desirability) and a far place of the map is chosen for it and it is walked there
         /// as a tactical task (sprinting the long stretches, called off by any fight). Squad followers follow their leader.
         /// </summary>
-        private static void Evict(BotOwner bot, BotProfile p, Anchor a, Vector3 pos)
+        private static void Evict(BotOwner bot, BotProfile p, Anchor a, Vector3 pos, bool busyWithBodies = false)
         {
             if (!_dwell.TryGetValue(bot.ProfileId, out Dwell d))
             {
@@ -203,6 +222,25 @@ namespace LiveRaid.Client.Bots
             d.NextSample = Time.time + 5f;
             d.Samples.Enqueue((pos, Time.time));
             float limit = StayLimit(p);
+
+            // How long the bot has not left one circle, whatever it was doing
+            if (d.AreaSince < 0f || FlatDistance(pos, d.Area) > EvictRadius)
+            {
+                d.Area = pos;
+                d.AreaSince = Time.time;
+            }
+
+            float stayed = Time.time - d.AreaSince;
+            if (stayed >= limit * OverstayFactor && Time.time >= d.NotBefore)
+            {
+                Overstay(bot, p, a, d, pos, stayed);
+                return;
+            }
+
+            if (busyWithBodies)
+            {
+                return;
+            }
             while (d.Samples.Count > 0 && Time.time - d.Samples.Peek().at > limit + 10f)
             {
                 d.Samples.Dequeue();
@@ -287,6 +325,69 @@ namespace LiveRaid.Client.Bots
             };
             TacticalTasks.Set(bot, task);
             Log.Info($"LR Route: {p.Name} ({p.Style}) has stayed {used / 60f:0.0} min within {(fast ? FastRadius : EvictRadius):0} m of ({centre.x:0}, {centre.z:0}) - sent to ({far.Value.x:0}, {far.Value.z:0}), {pathLength:0} m away");
+        }
+
+        /// <summary>A stay far over the limit: only a fight right now, a treatment or a loot job in the hands put it off (a few seconds).</summary>
+        private static void Overstay(BotOwner bot, BotProfile p, Anchor a, Dwell d, Vector3 pos, float stayed)
+        {
+            BotObjectiveManager objectives = bot.GetObjectiveManager();
+            LootingBots.Components.LootingBrain brain = bot.GetPlayer?.GetComponent<LootingBots.Components.LootingBrain>();
+            if (HitReaction.InRealFight(bot, 12f) || bot.Medecine?.Using == true || (brain != null && brain.LootTaskRunning)
+                || objectives?.BotMonitor?.GetMonitor<QuestingBots.BotLogic.BotMonitor.Monitors.BotExtractMonitor>()?.IsTryingToExtract == true
+                || SwitchExtract.HasPlan(bot) || RemainingFraction() < 0.12f)
+            {
+                return;
+            }
+
+            Vector3 centre = d.Area;
+            Vector3? far = PickFarPoint(bot, centre, out float pathLength);
+            d.Samples.Clear();
+            d.AreaSince = -1f;
+            d.NotBefore = Time.time + 180f;
+            d.FastNotBefore = Time.time + 150f;
+            a.RestlessFrom = centre;
+            a.RestlessUntil = Time.time + 480f;
+            a.Evicted = true;
+            a.Pos = pos;
+            a.Since = Time.time;
+            int bodies = LootJobs.DropNear(bot, centre, EvictRadius + 40f);
+            List<BotOwner> followers = bot.Boss?.Followers;
+            if (followers != null)
+            {
+                foreach (BotOwner f in followers)
+                {
+                    if (f != null && !f.IsDead)
+                    {
+                        bodies += LootJobs.DropNear(f, centre, EvictRadius + 40f);
+                    }
+                }
+            }
+
+            BotJobAssignmentController.InactivateAllJobAssignmentsForBot(bot.ProfileId);
+            TacticalTasks.Cancel(bot, "overstay");
+            if (far == null)
+            {
+                EvictionsFailed++;
+                Log.Info($"LR Route: {p.Name} ({p.Style}) has not left {EvictRadius:0} m of ({centre.x:0}, {centre.z:0}) for {stayed / 60f:0.0} min - the objectives there are dropped and shut out, " +
+                         "no far place found to send it to");
+                return;
+            }
+
+            Evictions++;
+            Overstays++;
+            TacticalTasks.Set(bot, new TacticalTask
+            {
+                Kind = TaskKind.Relocate,
+                StandAt = far,
+                LookAt = far.Value,
+                Until = Time.time + pathLength / 3.2f + 45f,
+                Speed = 1f,
+                MovePose = 1f,
+                Sprint = true,
+                SprintBeyond = 30f,
+            });
+            Log.Info($"LR Route: {p.Name} ({p.Style}) has not left {EvictRadius:0} m of ({centre.x:0}, {centre.z:0}) for {stayed / 60f:0.0} min (fights, bodies and loot kept it there) - " +
+                     $"{bodies} bodies there are let go, sent to ({far.Value.x:0}, {far.Value.z:0}), {pathLength:0} m away");
         }
 
         /// <summary>The samples of the last <paramref name="seconds"/> all lie within <see cref="FastRadius"/> of their centre (and the window is really covered).</summary>
