@@ -9,13 +9,9 @@
 **Incompatible with:** ORBIT
 **Tags / categories:** AI, Bots, Gameplay, PvE, Quality of life
 
-## Short description (teaser)
+## Short description (teaser) - one field of at most 255 characters, both languages
 
-Makes SPT bots much smarter and more tactical - able to do what online players do: squads with their own tactics, flanks and ambushes, real keys, looting, leaving through any exit, the whole map explored. Built on QuestingBots, SAIN and LootingBots.
-
-## Краткое описание (RU)
-
-Делает ботов в SPT гораздо умнее и тактичнее - способными на то, на что способны игроки онлайн: отряды со своей тактикой, фланги и засады, настоящие ключи, лут, уход через любой выход, обход всей карты. Работает поверх QuestingBots, SAIN и LootingBots.
+Much smarter, more tactical SPT bots - they do what online players do: squads, flanks, ambushes, keys, loot, any exit. Боты SPT гораздо умнее и тактичнее - делают то, на что способны игроки онлайн: отряды, фланги, засады, ключи, лут, любой выход.
 
 ## Description
 
