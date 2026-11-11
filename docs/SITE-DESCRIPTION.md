@@ -11,11 +11,11 @@
 
 ## Short description (teaser)
 
-Not a replacement for QuestingBots, SAIN and LootingBots but a layer on top: who a bot is, what it carries, where it goes, how it fights, loots and leaves. Whole-map exploring, online-sized lobbies, real keys.
+Makes SPT bots much smarter and more tactical - able to do what online players do: squads with their own tactics, flanks and ambushes, real keys, looting, leaving through any exit, the whole map explored. Built on QuestingBots, SAIN and LootingBots.
 
 ## Краткое описание (RU)
 
-Не замена QuestingBots, SAIN и LootingBots, а слой поверх них: кто такой бот, что у него с собой, куда он идёт, как дерётся, лутает и уходит. Вся карта, онлайн-лобби, настоящие ключи.
+Делает ботов в SPT гораздо умнее и тактичнее - способными на то, на что способны игроки онлайн: отряды со своей тактикой, фланги и засады, настоящие ключи, лут, уход через любой выход, обход всей карты. Работает поверх QuestingBots, SAIN и LootingBots.
 
 ## Description
 

@@ -5,11 +5,24 @@ https://www.youtube.com/watch?v=I84dgrjb89g
 
 # English
 
-## What it is, in two sentences
+## What it is
 
-LiveRaid does **not** replace QuestingBots, SAIN or LootingBots. They keep doing what they do - walk quests, shoot, pick things up - and I added the part none of them has: **who each bot is, what it carries, and what it decides to do with the raid around it.**
+LiveRaid makes SPT bots **much smarter, more tactical and capable of what online players do.** A bot here is not a target that runs along a quest: it has a character and a kit, plays in a squad with its own doctrine and tactics (flanks, pincers, ambushes, bounds under cover, revenge for a fallen mate), weighs a fight and breaks off a lost one, opens locked rooms with real keys and searches them, loots with a head on its shoulders, explores the whole map and leaves through any exit - even the ones behind a lever and the armoured train.
 
-Is it a copy of ORBIT? Same goal, different way: ORBIT replaces those mods, LiveRaid sits on top of them and does not contain their code.
+How: QuestingBots, SAIN and LootingBots keep doing what they do - walk quests, shoot, pick things up - and LiveRaid adds the part none of them has: **who each bot is, what it carries, and what it decides to do with the raid around it.** Is it a copy of ORBIT? Same goal, different way: ORBIT replaces those mods, LiveRaid sits on top of them and does not contain their code.
+
+## What's new since 1.0.5 (versions 1.2.4 - 1.4.16)
+
+- **Weapons and clothes of WTT-ContentBackport on the bots** - the mod's guns, knives, ammo and clothes now appear on PMCs and scavs (when that mod is installed; a switch in F12).
+- **Every exit is open to the bots.** The airtight door of the bunker, D-2, the Interchange safe room, gates and lifts, the sewer manhole and the armoured train on Reserve: the bot finds the lever, pulls it, stands out the timer and leaves, like a player. An exit that opens in the middle of a raid is a chance to slip out "under cover of noise", when everybody is heading for the exit.
+- **The map is explored evenly, floor by floor.** An atlas remembers every place the bots missed and why; each bot gets 2-4 aims for the raid; upper floors and "cold corners" get their share of the time.
+- **The mod learns the map from your walk.** Where you walked off the navmesh, it writes a link or a patch itself (with a wall check) and uses it from the next raid.
+- **Keys got a purpose.** A key lies in the secured pouch with a chance; a bot with a door key goes to its door, enters the room it unlocked and searches all of it; keys are dealt near the doors they open.
+- **The packrat** - a lone PMC that comes only for loot, with the hitboxes of Kaban; it loots room by room and runs from a fight away from the crowd. Its chance is in F12.
+- **Careful choice.** A lone bot or a squad with a wounded mate weighs a fight before it goes in; places where bots died are remembered; a cornered bot fights where it stands; bots lie in ambush for an enemy they hear.
+- **16 squad doctrines** (new: scouts, ambushers, wolf pack, support group), a formation that breathes, a fallen mate's kit looted whole.
+- **Fixes of EFT bugs:** the eternal reload, spare magazines for every PMC (a third of them had none), "the rounds did not go in" the magazine, a gun without a magazine breaking SAIN, grenade suicides.
+- **Spawns:** squads placed apart at the start, reserves not before N minutes, optional late waves of PMCs.
 
 ## Who does what
 
@@ -25,13 +38,15 @@ Is it a copy of ORBIT? Same goal, different way: ORBIT replaces those mods, Live
 - **A bot with a past and a kit.** A PMC's gear and level don't depend on yours: from a bum with a pistol and no armour to a full meta kit, like online. They start with an empty backpack and rig (just the kit: gun, mags, a few meds) - loot is what they find in the raid. Every squad is hostile to every other squad and to you, same side included.
 - **Everybody is someone.** A play style (camper, rat, rusher, looter, quester, explorer, hunter, sniper), a skill from newcomer to pro, moods (the vengeful one looks for whoever shot him, the lucky survivor turns careful, the one with an expensive find hurries to the exit).
 - **The lobby of a real online raid.** QuestingBots can spawn PMCs; LiveRaid sets it to the full lobby of that map, adds reserves, sends player scavs on a schedule and to replace the dead, and a **smart population balance** keeps the head count right for the map and the age of the raid - no crowd round you, no empty map.
-- **The whole map, floor by floor.** QuestingBots goes to quest points. LiveRaid reads every loot spawn, container and locked room from SPT's own data and builds exploration goals over all of it, remembers who has been where so places "cool down", and walks routes over rubble the navmesh doesn't connect. Switch on the route recorder and the bots also learn the paths **you** walk.
-- **Keys that matter.** Real key items in pockets: no key, no door. A bot with a key walks to its locked room or container; some PMCs carry the key to the richest place of the map (you can take it off the body). A helper opens doors in the way when a bot gets stuck.
+- **The whole map, floor by floor.** QuestingBots goes to quest points. LiveRaid reads every loot spawn, container and locked room from SPT's own data and builds exploration goals over all of it, remembers who has been where so places "cool down", and walks routes over rubble the navmesh doesn't connect. Places the bots missed are remembered in an **atlas** and swept floor by floor in the next raids. Switch on the route recorder and the bots also learn the paths **you** walk - links and navmesh patches are written automatically.
+- **Keys that matter.** Real key items, often in the secured pouch: no key, no door. A bot with a key walks to its locked room or container, goes in and searches **all** of it, and the squad does not repeat it; some PMCs carry the key to the richest place of the map (you can take it off the body). A helper opens doors in the way when a bot gets stuck.
 - **Decisions around loot.** LootingBots grabs; LiveRaid decides whether *now* is the time: value against danger, look at a body before walking up to it, search a whole room, drop cheap stuff for a find, carry out a fallen mate's kit, share meds in the squad.
-- **Decisions in a fight.** SAIN does the shooting; LiveRaid decides the rest: morale and roles, retreating from a lost fight, forgetting a cold one, rush / flank / hold / ambush / leave when a fight is heard far away, by character. Squads play one of 12 doctrines and a deck of 21 tactics (flanks, pincers, smoke, bounds under cover, revenge for a fallen mate).
-- **Healing and leaving.** Bandage at the first quiet moment, splints and painkillers for broken legs; each squad has its own time to leave, waits crouched at the exit and goes out together.
+- **Decisions in a fight.** SAIN does the shooting; LiveRaid decides the rest: morale and roles, retreating from a lost fight, forgetting a cold one, rush / flank / hold / ambush / leave when a fight is heard far away, by character. Squads play one of 16 doctrines and a deck of 21 tactics (flanks, pincers, smoke, bounds under cover, revenge for a fallen mate).
+- **Healing and leaving.** Bandage at the first quiet moment, splints and painkillers for broken legs; each squad has its own time to leave, waits crouched at the exit and goes out together. Bots use **every exit**, including the ones behind a lever (the airtight door, D-2, the manhole) and the armoured train.
 - **Repairs of EFT's own AI bugs.** Stuck hands after a reload, magazines thrown on the floor, friendly fire inside a squad, bots frozen under fire, bots walking to the exit backwards.
-- **After death - a second life.** A free camera, an observer mode, and taking over any other bot: play on as that PMC or scav with its own gear and inventory (see *Life after death* below).
+- **WTT-ContentBackport on the bots.** Guns, knives, ammo and clothes of that mod appear on PMCs and scavs (only when the mod is installed).
+- **The packrat.** A lone PMC that comes only for loot and keeps out of fights.
+- **After death - a second life.** **Offline (single player) edition only - not in LiveRaid Online (Fika).** A free camera, an observer mode, and taking over any other bot: play on as that PMC or scav with its own gear and inventory (see *Life after death* below).
 - **One menu instead of four config files.** The other mods' files stay original; LiveRaid sets the values it needs in memory from F12 and gives them back when you switch a feature off. Presets, English and Russian.
 
 What it does **not** do: it doesn't make bots aim better, see through walls or cheat, it adds no bosses and never goes above the map's own scav limit.
@@ -40,7 +55,7 @@ What it does **not** do: it doesn't make bots aim better, see through walls or c
 
 ### Squad doctrines: every squad plays its own game
 
-A PMC squad doesn't just follow its leader. When it comes in, it draws one of **12 doctrines**: storm troopers, PvP hunters, looters, questers, carry (the strong one leads the weak), randoms, a tight clan, boss hunters, the quiet ones, marksmen, speedrunners, armoured fist. Who is in the squad matters: a squad of rushers storms more often, rats keep quiet, a squad of long guns plays marksmen.
+A PMC squad doesn't just follow its leader. When it comes in, it draws one of **16 doctrines**: storm troopers, PvP hunters, looters, questers, carry (the strong one leads the weak), randoms, a tight clan, boss hunters, the quiet ones, marksmen, speedrunners, armoured fist, scouts, ambushers, the wolf pack and a support group. Who is in the squad matters: a squad of rushers storms more often, rats keep quiet, a squad of long guns plays marksmen.
 
 A doctrine is a set of eleven numbers (aggression, cohesion, pace, talk, precision, grit, preferred range, greed for loot, appetite for third-partying, thirst for revenge, readiness to leave early). On top of that every squad gets **two quirks** out of fourteen: chatty or silent, hasty or pedantic, careful or bold, scattering or sticking together, long fights or close ones, vultures or loners, vengeful, greedy. A doctrine comes up at most twice per raid and no two squads are alike - a draw that lands too close to a squad already on the map is drawn again.
 
@@ -103,7 +118,33 @@ Online some squads come for Reshala, Glukhar, Sanitar or Tagilla, for the boss's
 
 Online a teammate comes for his friend's loot once it is quiet. The same here, and then some: at the body the bot swaps its own finds for the friend's guns, armour, helmet and backpack; what still doesn't fit it carries off to a hidden spot 6-22 m away (a bush, a corner) or heads out with what it has. Nobody goes while the killer is still within 120 m of the body.
 
+### Leaving the raid: every exit, even behind a lever
+
+Until now bots left only through exits without conditions. Now they leave **like players**:
+
+- **Switch exits.** The airtight door of the bunker and D-2 (Reserve), the Interchange safe room, gates and lifts. The bot finds the first lever of the exit's chain that is still off, runs to it, pulls it and, when the exit opens, runs there, stands out the timer and leaves. A squad does it together. Levers that sit off the navmesh are reached by the end of the path and a wait.
+- **The sewer manhole** takes nobody with a backpack: the bot throws the backpack off at the hatch and leaves.
+- **The armoured train** (Reserve): bots know its rules (it comes in the second part of the raid, is open while it stands, leaves 5 s after the countdown), run to its zone, **step into the carriage, spread over its length** and leave when it pulls out. *The carriage boarding is new and has not been seen in many raids yet.*
+- **"Under cover of noise".** An exit that opens after the start (a lever, power, the train, a timer) is an event: each free PMC or player scav that is not in a fight rolls a die (a rat or a looter more likely, a quester less), and the winner slips out while it is open. The chance is in F12.
+
+### The whole map: sweep, atlas, learned paths
+
+- **Even sweep.** A region is split into parts of 12-20 places and every place gets its quest; "cold corners" that nobody has visited pull harder from the 4th to the 12th minute.
+- **Raid aims.** Each PMC and player scav gets 2-4 aims by character (an area to loot, a quest of its own, a height, a cold corner); the upper floors get their share of the time.
+- **The atlas.** Every place the bots missed is remembered with the reason; sweep quests go floor by floor over the unreached places, and the weight grows with every raid that missed one.
+- **Your walk teaches the map.** Where you walked off the navmesh, the mod learns a link or a navmesh patch (with a wall check) and uses it from the next raid, with nothing for you to do.
+
+### The packrat
+
+A lone PMC comes into the raid with a pistol and one of the biggest backpacks only for the loot, keeps out of fights and has the hitboxes of Kaban (chest 355, stomach 260). It loots room by room, flees a fight away from the crowd, ignores enemies farther than the alert distance (F12, 70 m) and goes home only with loot. Its spawn chance is set in F12 (Spawns).
+
+### WTT-ContentBackport: weapons and clothes for the bots
+
+If the WTT-ContentBackport mod is installed, its guns, knives and ammo go into the PMC pools (cheap ones into the scavs'), and its clothes into the PMC appearance by side. A switch is in F12 and shows only when the client part of that mod is installed.
+
 ### Life after death: play on as any bot
+
+> **Offline (single player) edition only - not available in LiveRaid Online (Fika).**
 
 Your death does not have to end the raid. A free camera comes loose over the map; aim at any living PMC or scav and press **F** - you are that bot now, with **its own gun, armour, rig, backpack and everything in them**: shoot, loot, heal, open its inventory, walk to its exit. When it dies, you are back in the free camera and can take over the next one; **Delete** hands it back to its AI. Switch it on in F12 → *After death* → *Take over a bot*. What the bot does - kills, loot, its exit - does not go to your profile: the raid still ends as your death. If the hands of the bot you took do not work (the gun does not fire or reload), leave it with Delete and take it over again.
 
@@ -122,8 +163,8 @@ Every group of features (keys, map life, characters, spawns, loot, squads, fight
 ## Install
 
 1. Install the requirements below and make sure SPT 4.1.6 runs. Close the game and the server.
-2. Download **`LiveRaid-<version>.zip`** (single player) or **`LiveRaid-Online-<version>.zip`** (co-op through Project Fika).
-3. Unpack into the game's root folder (where `EscapeFromTarkov.exe` is), agreeing to replace files.
+2. Download **`LiveRaid-<version>.zip`**: one archive with two equal folders, `Single` (single player) and `Online` (co-op through Project Fika).
+3. Unpack the folder you need into the game's root folder (where `EscapeFromTarkov.exe` is), agreeing to replace files. **LiveRaid Launcher** (in the archive) switches the edition later.
 4. Start the server and the game. F12 → LiveRaid, pick a preset or leave *Recommended*.
 5. Check `BepInEx/LogOutput.log` for `LiveRaid <version> loaded` with no `disabled: …` after it.
 
@@ -131,14 +172,13 @@ Updating: the same way over the old files; your settings and recorded routes are
 
 ## Requirements and compatibility
 
-SPT **4.1.6** and: **QuestingBots 1.2.0**, **SAIN 4.5.1**, **LootingBots 1.8.0**, **BigBrain 1.5.0**, **Waypoints 1.9.0**. *SAIN 4.5.1 is the latest version on the Forge; older 4.4.x may work worse or not at all.* **Strongly recommended: Smoothie 1.1.0** (by morphox, https://sp-mod.com/mod/3132/smoothie) - it renders only what you actually see; a big performance gain with no downside for LiveRaid (with 20+ bots alive it helps most). Many thanks to its author.*4.5.1** - get it from the SAIN author; with 4.4.x some behaviour may work worse or not at all.* **LiveRaid Online** also needs **Project Fika 2.4.x** and **QuestingBots Fika sync**: the bots live on the host, the host's settings apply to everybody. If the SPT server runs on another machine (dedicated or headless), put the text of the server's `user/mods/LiveRaid/host.token` into the **Host key** field of `BepInEx/config/com.lir.liveraid.cfg` (section `0. Online`) on the machine of the player who should change the settings, and restart the game.
+SPT **4.1.6** and: **QuestingBots 1.2.0**, **SAIN 4.5.1**, **LootingBots 1.8.0**, **BigBrain 1.5.0**, **Waypoints 1.9.0**. *SAIN 4.5.1 is the latest version on the Forge; older 4.4.x may work worse or not at all.* **Strongly recommended: Smoothie 1.1.0** (by morphox, https://sp-mod.com/mod/3132/smoothie) - it renders only what you actually see; a big performance gain with no downside for LiveRaid (with 20+ bots alive it helps most). Many thanks to its author. **Compatible with WTT-ContentBackport** (optional): with it installed the bots also carry its guns and clothes. **LiveRaid Online** also needs **Project Fika 2.4.x** and **QuestingBots Fika sync**: the bots live on the host, the host's settings apply to everybody. If the SPT server runs on another machine (dedicated or headless), put the text of the server's `user/mods/LiveRaid/host.token` into the **Host key** field of `BepInEx/config/com.lir.liveraid.cfg` (section `0. Online`) on the machine of the player who should change the settings, and restart the game.
 
 Not compatible with **ORBIT** - remove it. Other mods that change the same things (spawns, quests, looting) will fight with LiveRaid; keep one of them. **LiveRaid Launcher** (in the archive) switches single player ↔ Online and the stable ↔ test branch in one click.
 
 ## Known problems
 
-- **Taking over a bot:** if the hands of the bot you took do not work (the gun does not fire or reload), leave it (Delete) and take it over again.
-- The newest behaviour (population balance, standoff breaker, quick idle watchdog) was written from the logs of a few raids and has not been through many long ones. If a bot does something silly, tell me.
+- **Taking over a bot** (offline edition only): if the hands of the bot you took do not work (the gun does not fire or reload), leave it (Delete) and take it over again.
 
 ## Reporting a problem
 
@@ -148,11 +188,24 @@ Say what you did, which map and which minute, and attach `BepInEx/LogOutput.log`
 
 # Русский
 
-## Что это, в двух предложениях
+## Что это
 
-LiveRaid **не заменяет** QuestingBots, SAIN и LootingBots. Они делают то же, что и делали - ходят по квестам, стреляют, подбирают вещи, - а я добавил то, чего нет ни в одном из них: **кто такой каждый бот, что у него с собой и что он решает делать с рейдом вокруг.**
+LiveRaid делает ботов SPT **гораздо умнее, тактичнее и способными на то, на что способны игроки онлайн.** Бот здесь - не мишень, бегущая по квесту: у него есть характер и набор снаряжения, он играет в отряде по своей доктрине и тактике (фланги, клещи, засады, перебежки с прикрытием, месть за павшего), взвешивает бой и выходит из проигранного, открывает запертые комнаты настоящими ключами и обыскивает их, лутает с умом, обходит всю карту и уходит через любой выход, даже за рычагом и на бронепоезде.
 
-Это копия ORBIT? Цель та же, путь другой: ORBIT заменяет эти моды, LiveRaid стоит поверх них и их кода в себе не содержит.
+Как: QuestingBots, SAIN и LootingBots делают то же, что и делали - ходят по квестам, стреляют, подбирают вещи, - а LiveRaid добавляет то, чего нет ни в одном из них: **кто такой каждый бот, что у него с собой и что он решает делать с рейдом вокруг.** Это копия ORBIT? Цель та же, путь другой: ORBIT заменяет эти моды, LiveRaid стоит поверх них и их кода в себе не содержит.
+
+## Что нового с версии 1.0.5 (версии 1.2.4 - 1.4.16)
+
+- **Оружие и одежда из WTT-ContentBackport у ботов** - стволы, ножи, патроны и одежда этого мода теперь появляются у ЧВК и диких (при установке мода; переключатель в F12).
+- **Все выходы открыты для ботов.** Гермозатвор бункера, Д-2, убежище Развязки, ворота и лифты, канализационный люк и бронепоезд на Резерве: бот находит рычаг, дёргает, стоит таймер и уходит, как игрок. Выход, открывшийся посреди рейда, - шанс уйти «под шумок», когда на выход идут все.
+- **Карта обходится равномерно, этаж за этажом.** Атлас помнит каждое место, которое боты пропустили, и почему; у каждого бота 2-4 цели на рейд; верхние этажи и «холодные углы» получают свою долю времени.
+- **Мод учит карту по вашему проходу.** Где вы прошли вне навмеша, он сам пишет связку или патч (с проверкой стены) и использует со следующего рейда.
+- **Ключи обрели смысл.** Ключ с шансом лежит в защищённом подсумке; бот с ключом от двери идёт к своей двери, заходит в отпертую комнату и обыскивает ВСЮ; ключи раздаются рядом с дверями, которые открывают.
+- **Барахольщик** - ЧВК-одиночка, который приходит только за лутом, с хитбоксами Кабана; лутает по комнатам и от боя бежит прочь от толпы. Шанс - в F12.
+- **Осторожный выбор.** Одиночка или отряд с раненым взвешивает бой, прежде чем лезть; места гибели ботов запоминаются; загнанный в угол дерётся там, где стоит; боты устраивают засады на услышанного врага.
+- **16 доктрин отрядов** (новые: разведчики, засадники, волчья стая, группа поддержки), строй, который дышит, полный разлут павшего товарища.
+- **Исправления ошибок EFT:** вечная перезарядка, запасные магазины у каждого ЧВК (у трети их не было), «патроны не легли в магазин», ствол без магазина ломал SAIN, самоубийства гранатой.
+- **Спавн:** стартовые отряды ставятся врозь, запасные приходят не раньше N минут, необязательные поздние заходы ЧВК.
 
 ## Кто за что отвечает
 
@@ -168,13 +221,15 @@ LiveRaid **не заменяет** QuestingBots, SAIN и LootingBots. Они д�
 - **У бота есть прошлое и набор.** Снаряжение и уровень ЧВК не зависят от вашего: от бомжа с пистолетом без брони до полной меты, как в онлайне. Стартуют с пустым рюкзаком и разгрузкой (только набор: оружие, магазины, немного аптечек) - лут это то, что нашли в рейде. Каждый отряд враг любому другому отряду и вам, своя сторона тоже.
 - **Каждый - кто-то.** Стиль игры (кемпер, крыса, рашер, лутер, квестер, исследователь, охотник, снайпер), навык от новичка до профи, настроение (мстительный ищет того, кто в него стрелял, чудом выживший становится осторожным, нашедший дорогое торопится к выходу).
 - **Лобби настоящего онлайн-рейда.** QuestingBots умеет спавнить ЧВК; LiveRaid выставляет ему полное лобби именно этой карты, добавляет запасных, отправляет игроков-диких по расписанию и на замену погибшим, а **умный баланс численности** держит число ботов под карту и время рейда: не толпа вокруг вас и не пустыня.
-- **Вся карта, этаж за этажом.** QuestingBots идёт к точкам квестов. LiveRaid берёт из данных самого SPT каждую точку лута, контейнер и запертую комнату и строит по ним цели исследования, помнит, кто где был, чтобы места «остывали», и водит ботов по тропам через завалы, которые навмеш не соединяет. Включите запись маршрута - боты начнут ходить и по тем путям, которыми ходите **вы**.
-- **Ключи, которые что-то значат.** Настоящие ключи в карманах: нет ключа - нет двери. Бот с ключом идёт к своей запертой комнате или контейнеру; у некоторых ЧВК ключ от самого богатого места карты (его можно снять с тела). Помощник открывает двери на пути, если бот застрял.
+- **Вся карта, этаж за этажом.** QuestingBots идёт к точкам квестов. LiveRaid берёт из данных самого SPT каждую точку лута, контейнер и запертую комнату и строит по ним цели исследования, помнит, кто где был, чтобы места «остывали», и водит ботов по тропам через завалы, которые навмеш не соединяет. Пропущенные ботами места запоминаются в **атласе** и обходятся этаж за этажом в следующих рейдах. Включите запись маршрута - боты начнут ходить и по тем путям, которыми ходите **вы**, а связки и навмеш-патчи пишутся сами.
+- **Ключи, которые что-то значат.** Настоящие ключи, нередко в защищённом подсумке: нет ключа - нет двери. Бот с ключом идёт к своей запертой комнате или контейнеру, заходит и обыскивает ВСЮ, а отряд этого не повторяет; у некоторых ЧВК ключ от самого богатого места карты (его можно снять с тела). Помощник открывает двери на пути, если бот застрял.
 - **Решения вокруг лута.** LootingBots хватает; LiveRaid решает, *сейчас ли* время: ценность против опасности, осмотреть тело издали, обыскать всю комнату, выбросить дешёвое ради находки, вынести снаряжение павшего товарища, поделиться аптечками в отряде.
-- **Решения в бою.** Стреляет SAIN; остальное решает LiveRaid: мораль и роли, отступление из проигранного боя, забывание остывшего, бросок / фланг / ожидание / засада / уход, когда бой слышен далеко, - по характеру. Отряды играют по одной из 12 доктрин и колоде из 21 тактики (фланги, клещи, дым, перебежки с прикрытием, месть за павшего).
-- **Лечение и уход.** Перевязка в первую тихую минуту, шины и обезболивающие при сломанных ногах; у каждого отряда своё время ухода, ждут у выхода присев и уходят вместе.
+- **Решения в бою.** Стреляет SAIN; остальное решает LiveRaid: мораль и роли, отступление из проигранного боя, забывание остывшего, бросок / фланг / ожидание / засада / уход, когда бой слышен далеко, - по характеру. Отряды играют по одной из 16 доктрин и колоде из 21 тактики (фланги, клещи, дым, перебежки с прикрытием, месть за павшего).
+- **Лечение и уход.** Перевязка в первую тихую минуту, шины и обезболивающие при сломанных ногах; у каждого отряда своё время ухода, ждут у выхода присев и уходят вместе. Боты пользуются **всеми выходами**, в том числе теми, что открываются рычагом (гермозатвор, Д-2, люк), и бронепоездом.
 - **Исправления ошибок ИИ самой EFT.** Зависшие руки после перезарядки, выброшенные на пол магазины, огонь по своим внутри отряда, замирание под огнём, ход к выходу спиной.
-- **После смерти - вторая жизнь.** Свободная камера, режим наблюдателя и вселение в любого другого бота: играйте дальше за этого ЧВК или дикого с его снаряжением и инвентарём (см. «Жизнь после смерти» ниже).
+- **WTT-ContentBackport у ботов.** Стволы, ножи, патроны и одежда этого мода появляются у ЧВК и диких (только если мод установлен).
+- **Барахольщик.** ЧВК-одиночка, который приходит только за лутом и обходит бои.
+- **После смерти - вторая жизнь.** **Только в офлайн-версии мода (без Fika) - в LiveRaid Online этой функции нет.** Свободная камера, режим наблюдателя и вселение в любого другого бота: играйте дальше за этого ЧВК или дикого с его снаряжением и инвентарём (см. «Жизнь после смерти» ниже).
 - **Одно меню вместо четырёх конфигов.** Файлы остальных модов остаются оригинальными; LiveRaid выставляет нужные значения в памяти из F12 и возвращает их, когда вы выключаете функцию. Пресеты, английский и русский.
 
 Чего он **не** делает: не улучшает прицеливание, не даёт видеть сквозь стены, не читерит, не добавляет боссов и не поднимает число диких выше лимита карты.
@@ -183,7 +238,7 @@ LiveRaid **не заменяет** QuestingBots, SAIN и LootingBots. Они д�
 
 ### Доктрины отрядов: у каждого отряда своя игра
 
-ЧВК-отряд не просто идёт за лидером. Когда он заходит в рейд, ему выпадает одна из **12 доктрин**: штурмовики, PvP-охотники, лутеры, квестеры, кэрри (сильный ведёт слабых), рандомы, слаженный клан, охотники на боссов, тихушники, дальники, торопыги, бронированный кулак. Важно, кто в отряде: отряд рашеров штурмует чаще, крысы сидят тихо, отряд с длинными стволами играет дальников.
+ЧВК-отряд не просто идёт за лидером. Когда он заходит в рейд, ему выпадает одна из **16 доктрин**: штурмовики, PvP-охотники, лутеры, квестеры, кэрри (сильный ведёт слабых), рандомы, слаженный клан, охотники на боссов, тихушники, дальники, торопыги, бронированный кулак, разведчики, засадники, волчья стая и группа поддержки. Важно, кто в отряде: отряд рашеров штурмует чаще, крысы сидят тихо, отряд с длинными стволами играет дальников.
 
 Доктрина - это набор из одиннадцати чисел (агрессия, сплочённость, темп, разговорчивость, точность, стойкость, любимая дистанция, жадность к луту, тяга ударить в спину третьей стороне, жажда мести, готовность уйти пораньше). Сверху каждому отряду достаётся **две особенности** из четырнадцати: болтливые или молчуны, торопливые или педанты, осторожные или дерзкие, разбредаются или держатся кучей, любят дальний бой или ближний, стервятники или сами по себе, мстительные, жадные. Доктрина попадается в рейде не больше двух раз, и двух одинаковых отрядов не бывает: если жребий выпал слишком похожим на отряд, уже вышедший на карту, он бросается заново.
 
@@ -246,7 +301,33 @@ SAIN хорошо воюет от секунды к секунде, но сам 
 
 В онлайне товарищ приходит за лутом друга, когда стихнет. Здесь так же, и даже больше: у тела бот меняет свои находки на оружие, броню, шлем и рюкзак друга; то, что не поместилось, он уносит в укромное место в 6-22 м (куст, угол) или уходит с тем, что есть. Пока убийца ближе 120 м к телу, никто не идёт.
 
+### Выход из рейда: любой выход, даже за рычагом
+
+Раньше боты уходили только через выходы без условий. Теперь они уходят **как игроки**:
+
+- **Выходы через рубильник.** Гермозатвор бункера и Д-2 (Резерв), убежище Развязки, ворота и лифты. Бот находит первый ещё не включённый рычаг цепочки выхода, бежит к нему, дёргает, а когда выход открылся - бежит туда, стоит таймер и уходит. Отряд делает это вместе. К рычагам вне навмеша бот идёт до конца пути и ждёт.
+- **Канализационный люк** не берёт никого с рюкзаком: бот бросает рюкзак у люка и уходит.
+- **Бронепоезд** (Резерв): боты знают его правила (приходит во второй половине рейда, открыт, пока стоит, уходит через 5 с после отсчёта), бегут к зоне, **заходят внутрь вагона и расходятся по нему** и уходят с отправлением. *Посадка в вагон - новая, в многих рейдах её ещё не видели.*
+- **«Под шумок».** Выход, открывшийся после старта (рычаг, питание, поезд, таймер), - событие: каждый свободный ЧВК или игрок-дикий не в бою бросает кубик (крыса и добытчик чаще, квестер реже), победитель уходит, пока выход открыт. Шанс - в F12.
+
+### Вся карта: обход, атлас, выученные пути
+
+- **Равномерный обход.** Регион делится на части по 12-20 мест, у каждого места свой квест; «холодные углы», где никто не бывал, тянут сильнее с 4-й по 12-ю минуту.
+- **Цели рейда.** У каждого ЧВК и игрока-дикого 2-4 цели по характеру (район для лута, свой квест, высота, холодный угол); верхние этажи получают свою долю времени.
+- **Атлас.** Каждое пропущенное ботами место запоминается с причиной; квесты-обходы идут этаж за этажом по недостигнутым местам, вес растёт с каждым рейдом, где место пропустили.
+- **Ваш проход учит карту.** Где вы прошли вне навмеша, мод учит связку или навмеш-патч (с проверкой стены) и использует со следующего рейда, вам ничего делать не нужно.
+
+### Барахольщик
+
+ЧВК-одиночка приходит в рейд с пистолетом и одним из самых больших рюкзаков только ради лута, обходит бои и имеет хитбокс Кабана (грудь 355, живот 260). Лутает по комнатам, от боя бежит прочь от толпы, не реагирует на врагов дальше дистанции тревоги (F12, 70 м) и уходит домой только с добычей. Шанс его появления настраивается в F12 («Спавн»).
+
+### WTT-ContentBackport: оружие и одежда для ботов
+
+Если установлен мод WTT-ContentBackport, его стволы, ножи и патроны попадают в пулы ЧВК (дешёвые - диким), а одежда - во внешность ЧВК по стороне. Переключатель есть в F12 и виден только при установленной клиентской части этого мода.
+
 ### Жизнь после смерти: играйте дальше за любого бота
+
+> **Только в офлайн-версии мода (без Fika) - в LiveRaid Online этой функции нет.**
 
 Смерть не обязана заканчивать рейд. Над картой отрывается свободная камера; наведитесь на любого живого ЧВК или дикого и нажмите **F** - теперь вы этот бот, **с его оружием, бронёй, разгрузкой, рюкзаком и всем, что в них лежит**: стреляйте, лутайте, лечитесь, открывайте его инвентарь, идите к его выходу. Погиб - вы снова в свободной камере и можете вселиться в следующего; **Delete** возвращает бота его ИИ. Включается в F12 → «После смерти» → «Вселяться в бота». То, что делает бот (убийства, лут, его выход), в ваш профиль не идёт: рейд всё равно заканчивается вашей смертью. Если у бота, в которого вы вселились, не работают руки (оружие не стреляет, не перезаряжается) - выйдите из него клавишей Delete и вселитесь снова.
 
@@ -265,8 +346,8 @@ SAIN хорошо воюет от секунды к секунде, но сам 
 ## Установка
 
 1. Поставьте нужные моды (ниже), убедитесь, что SPT 4.1.6 запускается. Закройте игру и сервер.
-2. Скачайте **`LiveRaid-<версия>.zip`** (одиночная игра) или **`LiveRaid-Online-<версия>.zip`** (кооператив через Project Fika).
-3. Распакуйте в корень папки игры (где `EscapeFromTarkov.exe`), согласившись на замену файлов.
+2. Скачайте **`LiveRaid-<версия>.zip`**: один архив с двумя равноправными папками, `Single` (одиночная игра) и `Online` (кооператив через Project Fika).
+3. Распакуйте нужную папку в корень папки игры (где `EscapeFromTarkov.exe`), согласившись на замену файлов. **LiveRaid Launcher** (в архиве) потом переключает редакцию.
 4. Запустите сервер и игру. F12 → LiveRaid, выберите пресет или оставьте «Рекомендуемый».
 5. Проверка: в `BepInEx/LogOutput.log` есть `LiveRaid <версия> loaded` без `disabled: …` после неё.
 
@@ -274,14 +355,13 @@ SAIN хорошо воюет от секунды к секунде, но сам 
 
 ## Требования и совместимость
 
-SPT **4.1.6** и: **QuestingBots 1.2.0**, **SAIN 4.5.1**, **LootingBots 1.8.0**, **BigBrain 1.5.0**, **Waypoints 1.9.0**. *SAIN 4.5.1 - последняя версия на Forge; со старыми 4.4.x часть поведения может работать хуже или не работать.* **Очень рекомендуется: Smoothie 1.1.0** (автор morphox, https://sp-mod.com/mod/3132/smoothie) - рисует только то, что вы реально видите; заметный прирост производительности без ущерба для LiveRaid (с 20+ живыми ботами выигрыш больше всего). Отдельное спасибо автору.*4.5.1** - возьмите его у автора SAIN; с 4.4.x часть поведения может работать хуже или не работать.* Для **LiveRaid Online** ещё **Project Fika 2.4.x** и **QuestingBots Fika sync**: боты живут у хоста, настройки задаёт хост. Если сервер SPT стоит на другом компьютере (выделенный или headless), вставьте текст файла `user/mods/LiveRaid/host.token` с сервера в поле **Host key** файла `BepInEx/config/com.lir.liveraid.cfg` (раздел `0. Online`) на машине игрока, который должен менять настройки, и перезапустите игру.
+SPT **4.1.6** и: **QuestingBots 1.2.0**, **SAIN 4.5.1**, **LootingBots 1.8.0**, **BigBrain 1.5.0**, **Waypoints 1.9.0**. *SAIN 4.5.1 - последняя версия на Forge; со старыми 4.4.x часть поведения может работать хуже или не работать.* **Очень рекомендуется: Smoothie 1.1.0** (автор morphox, https://sp-mod.com/mod/3132/smoothie) - рисует только то, что вы реально видите; заметный прирост производительности без ущерба для LiveRaid (с 20+ живыми ботами выигрыш больше всего). Отдельное спасибо автору. **Совместим с WTT-ContentBackport** (необязательно): при его установке боты носят и его оружие и одежду. Для **LiveRaid Online** ещё **Project Fika 2.4.x** и **QuestingBots Fika sync**: боты живут у хоста, настройки задаёт хост. Если сервер SPT стоит на другом компьютере (выделенный или headless), вставьте текст файла `user/mods/LiveRaid/host.token` с сервера в поле **Host key** файла `BepInEx/config/com.lir.liveraid.cfg` (раздел `0. Online`) на машине игрока, который должен менять настройки, и перезапустите игру.
 
 С **ORBIT** не совместим - удалите. Другие моды, меняющие то же самое (спавн, квесты, лут), будут конфликтовать с LiveRaid; оставьте один. **LiveRaid Launcher** (в архиве) переключает одиночный ↔ Online и стабильную ↔ тестовую ветку одним нажатием.
 
 ## Известные проблемы
 
-- **Вселение в бота:** если у бота, в которого вы вселились, не работают руки (оружие не стреляет, не перезаряжается), выйдите из него (Delete) и вселитесь снова.
-- Новейшее поведение (баланс численности, выход из тупика, быстрый сторож простоя) написано по логам нескольких рейдов и ещё не прошло много длинных. Если бот делает глупость, напишите.
+- **Вселение в бота** (только офлайн-версия): если у бота, в которого вы вселились, не работают руки (оружие не стреляет, не перезаряжается), выйдите из него (Delete) и вселитесь снова.
 
 ## Сообщить о проблеме
 
